@@ -324,6 +324,11 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+#costMetric {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(230px, 0.72fr);

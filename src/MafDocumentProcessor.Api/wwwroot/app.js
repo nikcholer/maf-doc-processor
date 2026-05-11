@@ -311,12 +311,25 @@ function formatUsdCost(value) {
 }
 
 function formatSubCentUsd(amount) {
-  const rendered = amount.toFixed(8);
-  if (Number(rendered) > 0) {
+  const rounded = roundToSignificantFigures(amount, 2);
+  if (Math.abs(rounded) >= 0.00000001) {
+    const decimalPlaces = Math.min(8, significantDecimalPlaces(rounded, 2));
+    const rendered = rounded.toFixed(decimalPlaces);
     return `$${rendered.replace(/0+$/, "").replace(/\.$/, "")}`;
   }
 
   return "<$0.00000001";
+}
+
+function roundToSignificantFigures(value, significantFigures) {
+  const magnitude = Math.floor(Math.log10(Math.abs(value)));
+  const scale = 10 ** (significantFigures - magnitude - 1);
+  return Math.round(value * scale) / scale;
+}
+
+function significantDecimalPlaces(value, significantFigures) {
+  const magnitude = Math.floor(Math.log10(Math.abs(value)));
+  return Math.max(2, significantFigures - magnitude - 1);
 }
 
 function sentenceCase(value) {
