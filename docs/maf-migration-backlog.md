@@ -44,6 +44,7 @@ V2 will live in a separate repository so the Semantic Kernel implementation can 
 | D6 | Human review trigger | Partly decided | Human review is required when the model is in doubt on categorization or other key fields. Some document types may require user ownership/attestation after parsing, e.g. an expense claim is submitted by the user, not by the model. |
 | D7 | Multi-agent review | Decided | Post-MVP quality layer, not part of the first vertical slice. |
 | D8 | Durability question | Open | The question is not "which cloud backend?" yet. It is: do we need durable pause/resume for local long-running jobs, and if so should we use MAF Durable Task locally, a lightweight local job store, or defer entirely until hosting exists? |
+| D9 | Frontend scope | Decided for MVP | Port or recreate the old static web app only as a reassuring local demo for human consumption with an arbitrary new image. A proper user-facing frontend is a separate future effort. |
 
 ## Backlog
 
@@ -104,6 +105,23 @@ Initial package pins:
 - [x] Add structured output validation and clear failure messages.
 - [x] Keep the workflow local-only with no external hosting dependency.
 - [ ] Wire real configured model clients behind `IDocumentClassifier` and `IReceiptExtractor`.
+
+### P1.5 - Local API and Demo UI
+
+- [ ] Add a V2 ASP.NET Minimal API host project over the workflow library.
+- [ ] Serve static demo assets, using the old `wwwroot` app as the reference point.
+- [ ] Keep the UI scope deliberately small: upload one arbitrary PNG/JPEG, submit it, and show the parsed result.
+- [ ] Add `/health` with local readiness and configured model/provider visibility.
+- [ ] Add `/api/documents/process` as an adapter from multipart upload to `ReceiptProcessingWorkflow`.
+- [ ] Map V2 workflow output into a demo response that shows:
+  - [ ] document category
+  - [ ] extracted receipt fields
+  - [ ] policy/review decision and reasons
+  - [ ] model usage
+  - [ ] validation errors and warnings
+- [ ] Preserve upload validation from the old API where still relevant.
+- [ ] Avoid production frontend concerns for this stage: no auth UI, no persistence UI, no workflow history UI, and no polished product IA.
+- [ ] Verify the demo with a known sample image and at least one ad hoc new image.
 
 ### P2 - Workflow Maturity
 
