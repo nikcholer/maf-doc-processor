@@ -128,8 +128,8 @@ Initial package pins:
 
 ### P2 - Workflow Maturity
 
-- [ ] Add conditional routing by document type.
-- [ ] Add shopping list as a candidate second document type if a non-receipt type is needed.
+- [x] Add conditional routing by document type.
+- [x] Add shopping list as a candidate second document type if a non-receipt type is needed.
 - [ ] Add retry policy for transient model/provider failures.
 - [ ] Add validation-based repair or re-run flow.
 - [ ] Add workflow event logging.

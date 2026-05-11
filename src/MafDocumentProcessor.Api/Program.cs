@@ -38,7 +38,14 @@ builder.Services.AddScoped<IReceiptExtractor>(sp =>
         sp.GetRequiredService<IModelChatClient>(),
         settings.ImageRecognition);
 });
-builder.Services.AddScoped<ReceiptProcessingWorkflow>();
+builder.Services.AddScoped<IShoppingListExtractor>(sp =>
+{
+    var settings = sp.GetRequiredService<AiModelSettings>();
+    return new ModelShoppingListExtractor(
+        sp.GetRequiredService<IModelChatClient>(),
+        settings.ImageRecognition);
+});
+builder.Services.AddScoped<DocumentProcessingWorkflow>();
 
 var app = builder.Build();
 

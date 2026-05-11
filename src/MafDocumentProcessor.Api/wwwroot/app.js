@@ -24,7 +24,10 @@ const fieldLabels = {
   totalAmount: "Total",
   purchaseDate: "Purchase date",
   paymentMethod: "Payment method",
-  currencyCode: "Currency"
+  currencyCode: "Currency",
+  title: "Title",
+  items: "Items",
+  notes: "Notes"
 };
 
 let previewUrl = null;
@@ -71,7 +74,7 @@ form.addEventListener("submit", async (event) => {
   if (!file) {
     renderError({
       code: "missing_file",
-      message: "Choose a PNG or JPEG receipt image before processing.",
+      message: "Choose a PNG or JPEG document image before processing.",
       target: "image",
       traceId: "-"
     });
@@ -173,9 +176,9 @@ function setSelectedFile(file) {
 
 function setBusy(isBusy) {
   processButton.disabled = isBusy;
-  processButton.querySelector("span").textContent = isBusy ? "Processing..." : "Process receipt";
+  processButton.querySelector("span").textContent = isBusy ? "Processing..." : "Process document";
   if (isBusy) {
-    resultTitle.textContent = "Processing receipt";
+    resultTitle.textContent = "Processing document";
     statusPill.textContent = "Running";
     statusPill.className = "status-pill";
     jsonPanel.open = false;
@@ -270,6 +273,32 @@ function formatValue(key, value) {
 
   if (typeof value === "number") {
     return Number.isInteger(value) ? value.toString() : value.toFixed(2);
+  }
+
+  if (Array.isArray(value)) {
+    return value.length === 0
+      ? "-"
+      : value.map(formatArrayItem).join(", ");
+  }
+
+  return String(value);
+}
+
+function formatArrayItem(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const name = value.name ?? value.item ?? "Item";
+    const quantity = value.quantity === null || value.quantity === undefined
+      ? null
+      : Number(value.quantity);
+    const quantityText = quantity === null || Number.isNaN(quantity)
+      ? null
+      : Number.isInteger(quantity) ? quantity.toString() : quantity.toFixed(2);
+    const unit = value.unit ? ` ${value.unit}` : "";
+    const checked = value.isChecked === true ? " (checked)" : "";
+
+    return quantityText
+      ? `${quantityText}${unit} ${name}${checked}`
+      : `${name}${checked}`;
   }
 
   return String(value);

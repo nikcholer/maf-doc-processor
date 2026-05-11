@@ -7,14 +7,14 @@ public sealed record DocumentProcessingResponse(
     DocumentMetadata Metadata,
     DocumentClassification Classification,
     DocumentModelUsage ModelUsage,
-    ReceiptDocumentResponse? Document,
+    ProcessedDocumentResponse? Document,
     bool IsSuccess,
     IReadOnlyList<string> Errors,
     IReadOnlyList<string> Warnings);
 
-public sealed record ReceiptDocumentResponse(
+public sealed record ProcessedDocumentResponse(
     DocumentCategory Category,
     DocumentMetadata Metadata,
-    ReceiptData Data,
+    object Data,
     ReceiptPolicyResult? PolicyResult,
     ValidationResult Validation);

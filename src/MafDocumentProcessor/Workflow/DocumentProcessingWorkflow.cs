@@ -5,20 +5,16 @@ using Microsoft.Agents.AI.Workflows;
 
 namespace MafDocumentProcessor.Workflow;
 
-public sealed class ReceiptProcessingWorkflow(
+public sealed class DocumentProcessingWorkflow(
     IDocumentClassifier classifier,
-    IReceiptExtractor extractor,
+    IReceiptExtractor receiptExtractor,
+    IShoppingListExtractor shoppingListExtractor,
     ReceiptPolicyOptions policyOptions)
 {
-    public async Task<ReceiptProcessingResult> RunAsync(
+    public async Task<DocumentProcessingResult> RunAsync(
         FileRequest request,
         CancellationToken cancellationToken = default)
     {
-        var extractionExecutor = new ReceiptExtractionExecutor(extractor);
-        var validationExecutor = new ReceiptValidationExecutor();
-        var policyExecutor = new ReceiptPolicyExecutor(policyOptions);
-        var resultExecutor = new ReceiptResultExecutor();
-
         var classification = await classifier.ClassifyAsync(request, cancellationToken);
         var classifiedDocument = new ClassifiedDocument(
             request,
@@ -29,10 +25,22 @@ public sealed class ReceiptProcessingWorkflow(
             classification.Value,
             classification.Usage);
 
-        if (classification.Value.Category != DocumentCategory.Receipt)
+        return classifiedDocument.Classification.Category switch
         {
-            return CreateUnsupportedDocumentResult(classifiedDocument);
-        }
+            DocumentCategory.Receipt => await RunReceiptWorkflowAsync(classifiedDocument, cancellationToken),
+            DocumentCategory.ShoppingList => await RunShoppingListWorkflowAsync(classifiedDocument, cancellationToken),
+            _ => CreateUnsupportedDocumentResult(classifiedDocument)
+        };
+    }
+
+    private async Task<DocumentProcessingResult> RunReceiptWorkflowAsync(
+        ClassifiedDocument classifiedDocument,
+        CancellationToken cancellationToken)
+    {
+        var extractionExecutor = new ReceiptExtractionExecutor(receiptExtractor);
+        var validationExecutor = new ReceiptValidationExecutor();
+        var policyExecutor = new ReceiptPolicyExecutor(policyOptions);
+        var resultExecutor = new ReceiptResultExecutor();
 
         var workflow = new WorkflowBuilder(extractionExecutor)
             .AddEdge(extractionExecutor, validationExecutor)
@@ -40,34 +48,63 @@ public sealed class ReceiptProcessingWorkflow(
             .AddEdge(policyExecutor, resultExecutor)
             .WithOutputFrom(resultExecutor)
             .WithName("Receipt Processing")
-            .WithDescription("Classifies, extracts, validates, and evaluates a receipt image.")
+            .WithDescription("Extracts, validates, and evaluates a receipt image.")
             .Build();
 
+        return await RunWorkflowAsync(workflow, classifiedDocument, cancellationToken)
+            ?? throw new InvalidOperationException(
+                "Receipt workflow completed without a document processing result.");
+    }
+
+    private async Task<DocumentProcessingResult> RunShoppingListWorkflowAsync(
+        ClassifiedDocument classifiedDocument,
+        CancellationToken cancellationToken)
+    {
+        var extractionExecutor = new ShoppingListExtractionExecutor(shoppingListExtractor);
+        var validationExecutor = new ShoppingListValidationExecutor();
+        var resultExecutor = new ShoppingListResultExecutor();
+
+        var workflow = new WorkflowBuilder(extractionExecutor)
+            .AddEdge(extractionExecutor, validationExecutor)
+            .AddEdge(validationExecutor, resultExecutor)
+            .WithOutputFrom(resultExecutor)
+            .WithName("Shopping List Processing")
+            .WithDescription("Extracts and validates shopping list items from an image.")
+            .Build();
+
+        return await RunWorkflowAsync(workflow, classifiedDocument, cancellationToken)
+            ?? throw new InvalidOperationException(
+                "Shopping list workflow completed without a document processing result.");
+    }
+
+    private static async Task<DocumentProcessingResult?> RunWorkflowAsync(
+        Microsoft.Agents.AI.Workflows.Workflow workflow,
+        ClassifiedDocument classifiedDocument,
+        CancellationToken cancellationToken)
+    {
         var run = await InProcessExecution.RunAsync(
             workflow,
             classifiedDocument,
             cancellationToken: cancellationToken);
 
-        var output = run.NewEvents
+        return run.NewEvents
             .OfType<WorkflowOutputEvent>()
             .Select(evt => evt.Data)
-            .OfType<ReceiptProcessingResult>()
+            .OfType<DocumentProcessingResult>()
             .LastOrDefault();
-
-        return output ?? throw new InvalidOperationException(
-            "Receipt workflow completed without a receipt processing result. The uploaded document may not have been classified as a receipt.");
     }
 
-    private static ReceiptProcessingResult CreateUnsupportedDocumentResult(ClassifiedDocument document)
+    private static DocumentProcessingResult CreateUnsupportedDocumentResult(ClassifiedDocument document)
     {
         var message = BuildUnsupportedDocumentMessage(document.Classification);
 
-        return new ReceiptProcessingResult(
+        return new DocumentProcessingResult(
             document.Classification.Category,
             document.Metadata,
             document.Classification,
             DocumentModelUsage.FromCalls([document.ClassificationUsage]),
             Receipt: null,
+            ShoppingList: null,
             PolicyResult: null,
             ValidationResult.Invalid(message),
             IsSuccess: false,
@@ -80,7 +117,7 @@ public sealed class ReceiptProcessingWorkflow(
         var description = NormalizeDocumentTypeDescription(classification);
         var article = GetIndefiniteArticle(description);
 
-        return $"This appears to be {article} {description}. This demo can only process receipts right now.";
+        return $"This appears to be {article} {description}. This demo can process receipts and shopping lists right now.";
     }
 
     private static string NormalizeDocumentTypeDescription(DocumentClassification classification)
@@ -91,6 +128,7 @@ public sealed class ReceiptProcessingWorkflow(
             description = classification.Category switch
             {
                 DocumentCategory.Invoice => "invoice",
+                DocumentCategory.ShoppingList => "shopping list",
                 DocumentCategory.Unknown => "unsupported document",
                 _ => classification.Category.ToString()
             };

@@ -44,6 +44,22 @@ public sealed class ModelDocumentServicesTests
     }
 
     [Fact]
+    public async Task ExtractShoppingListAsync_UsesConfiguredRoleAndParsesJson()
+    {
+        var chatClient = new CapturingModelChatClient(
+            """{"title":"Weekly groceries","items":[{"name":"milk","quantity":2,"unit":"pints","isChecked":false}],"notes":null}""");
+        var settings = AiModelSettingsDefaults.CreateTogetherGemma4Role("text-testing");
+        var extractor = new ModelShoppingListExtractor(chatClient, settings);
+
+        var result = await extractor.ExtractShoppingListAsync(CreateReceiptRequest(), CancellationToken.None);
+
+        Assert.Equal("Weekly groceries", result.Value.Title);
+        Assert.Equal("milk", result.Value.Items[0].Name);
+        Assert.Equal("shopping_list_extraction", chatClient.LastRequest?.Operation);
+        Assert.Equal(settings, chatClient.LastRequest?.Settings);
+    }
+
+    [Fact]
     public void CreateTogetherGemma4_PreservesSeparateRoleSettings()
     {
         var settings = AiModelSettingsDefaults.CreateTogetherGemma4();

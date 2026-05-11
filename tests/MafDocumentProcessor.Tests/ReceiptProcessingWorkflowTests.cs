@@ -10,7 +10,8 @@ public sealed class ReceiptProcessingWorkflowTests
     [Fact]
     public async Task RunAsync_ProcessesReceiptEndToEnd()
     {
-        var workflow = new ReceiptProcessingWorkflow(
+        var shoppingListExtractor = new FakeShoppingListExtractor(CreateShoppingList());
+        var workflow = new DocumentProcessingWorkflow(
             new FakeDocumentClassifier(DocumentCategory.Receipt, 0.91m),
             new FakeReceiptExtractor(new ReceiptData(
                 "Meadow Vale Supermarket",
@@ -18,6 +19,7 @@ public sealed class ReceiptProcessingWorkflowTests
                 new DateOnly(2024, 5, 28),
                 "Visa",
                 "GBP")),
+            shoppingListExtractor,
             new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
 
         var result = await workflow.RunAsync(CreateReceiptRequest());
@@ -36,20 +38,20 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.Equal(15, result.ModelUsage.TotalTokens);
         Assert.Equal(0.000006m, result.ModelUsage.EstimatedTotalCostUsd);
         Assert.Equal(0.91m, result.Metadata.ClassificationConfidence);
+        Assert.Equal(0, shoppingListExtractor.CallCount);
     }
 
     [Fact]
     public async Task RunAsync_FlagsReceiptForReviewWhenPaymentMethodIsMissing()
     {
-        var workflow = new ReceiptProcessingWorkflow(
+        var workflow = CreateWorkflow(
             new FakeDocumentClassifier(DocumentCategory.Receipt, 0.82m),
             new FakeReceiptExtractor(new ReceiptData(
                 "Corner Shop",
                 10.50m,
                 new DateOnly(2024, 6, 1),
                 PaymentMethod: null,
-                "GBP")),
-            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
+                "GBP")));
 
         var result = await workflow.RunAsync(CreateReceiptRequest());
 
@@ -62,15 +64,14 @@ public sealed class ReceiptProcessingWorkflowTests
     [Fact]
     public async Task RunAsync_FlagsReceiptForReviewWhenExtractedFieldsFailValidation()
     {
-        var workflow = new ReceiptProcessingWorkflow(
+        var workflow = CreateWorkflow(
             new FakeDocumentClassifier(DocumentCategory.Receipt, 0.82m),
             new FakeReceiptExtractor(new ReceiptData(
                 StoreName: "",
                 TotalAmount: 10.50m,
                 new DateOnly(2024, 6, 1),
                 "Visa",
-                CurrencyCode: "GB")),
-            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
+                CurrencyCode: "GB")));
 
         var result = await workflow.RunAsync(CreateReceiptRequest());
 
@@ -81,9 +82,38 @@ public sealed class ReceiptProcessingWorkflowTests
     }
 
     [Fact]
+    public async Task RunAsync_RoutesShoppingListToShoppingListExtractor()
+    {
+        var receiptExtractor = new FakeReceiptExtractor(new ReceiptData(
+            "Not used",
+            1m,
+            null,
+            null,
+            "GBP"));
+        var shoppingListExtractor = new FakeShoppingListExtractor(CreateShoppingList());
+        var workflow = new DocumentProcessingWorkflow(
+            new FakeDocumentClassifier(DocumentCategory.ShoppingList, 0.88m),
+            receiptExtractor,
+            shoppingListExtractor,
+            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
+
+        var result = await workflow.RunAsync(CreateReceiptRequest());
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(DocumentCategory.ShoppingList, result.Category);
+        Assert.Null(result.Receipt);
+        Assert.Null(result.PolicyResult);
+        Assert.Equal("Weekly groceries", result.ShoppingList?.Title);
+        Assert.Equal(["milk", "bread"], result.ShoppingList?.Items.Select(item => item.Name).ToArray());
+        Assert.True(result.Validation.IsValid);
+        Assert.Equal(1, shoppingListExtractor.CallCount);
+        Assert.Equal(0, receiptExtractor.CallCount);
+    }
+
+    [Fact]
     public async Task RunAsync_ReturnsHumanUnsupportedMessageForNonReceipt()
     {
-        var workflow = new ReceiptProcessingWorkflow(
+        var workflow = CreateWorkflow(
             new FakeDocumentClassifier(
                 DocumentCategory.Unknown,
                 0.79m,
@@ -93,8 +123,7 @@ public sealed class ReceiptProcessingWorkflowTests
                 1m,
                 null,
                 null,
-                "GBP")),
-            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
+                "GBP")));
 
         var result = await workflow.RunAsync(CreateReceiptRequest());
 
@@ -103,29 +132,39 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.Null(result.Receipt);
         Assert.Contains(
             result.Errors,
-            error => error == "This appears to be a car registration document. This demo can only process receipts right now.");
+            error => error == "This appears to be a car registration document. This demo can process receipts and shopping lists right now.");
         Assert.Single(result.ModelUsage.Calls);
     }
 
     [Fact]
     public async Task RunAsync_ReturnsHumanUnsupportedMessageForInvoice()
     {
-        var workflow = new ReceiptProcessingWorkflow(
+        var workflow = CreateWorkflow(
             new FakeDocumentClassifier(DocumentCategory.Invoice, 0.95m),
             new FakeReceiptExtractor(new ReceiptData(
                 "Not used",
                 1m,
                 null,
                 null,
-                "GBP")),
-            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
+                "GBP")));
 
         var result = await workflow.RunAsync(CreateReceiptRequest());
 
         Assert.False(result.IsSuccess);
         Assert.Contains(
             result.Errors,
-            error => error == "This appears to be an invoice. This demo can only process receipts right now.");
+            error => error == "This appears to be an invoice. This demo can process receipts and shopping lists right now.");
+    }
+
+    private static DocumentProcessingWorkflow CreateWorkflow(
+        IDocumentClassifier classifier,
+        IReceiptExtractor receiptExtractor)
+    {
+        return new DocumentProcessingWorkflow(
+            classifier,
+            receiptExtractor,
+            new FakeShoppingListExtractor(CreateShoppingList()),
+            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
     }
 
     private static FileRequest CreateReceiptRequest()
@@ -137,6 +176,17 @@ public sealed class ReceiptProcessingWorkflowTests
             FileSizeBytes: 3,
             DateTimeOffset.Parse("2024-05-28T12:00:00Z"),
             SourceId: "unit-test");
+    }
+
+    private static ShoppingListData CreateShoppingList()
+    {
+        return new ShoppingListData(
+            "Weekly groceries",
+            [
+                new ShoppingListItem("milk", 2, "pints", false),
+                new ShoppingListItem("bread", null, null, null)
+            ],
+            Notes: null);
     }
 
     private sealed class FakeDocumentClassifier(
@@ -160,13 +210,31 @@ public sealed class ReceiptProcessingWorkflowTests
 
     private sealed class FakeReceiptExtractor(ReceiptData receipt) : IReceiptExtractor
     {
+        public int CallCount { get; private set; }
+
         public ValueTask<ModelResult<ReceiptData>> ExtractReceiptAsync(
             FileRequest request,
             CancellationToken cancellationToken)
         {
+            CallCount++;
             return ValueTask.FromResult(new ModelResult<ReceiptData>(
                 receipt,
                 new ModelTokenUsage("receipt_extraction", "test-extractor", 4, 8, 12, 0.20m, 0.50m, 0.0000008m, 0.000004m, 0.0000048m)));
+        }
+    }
+
+    private sealed class FakeShoppingListExtractor(ShoppingListData shoppingList) : IShoppingListExtractor
+    {
+        public int CallCount { get; private set; }
+
+        public ValueTask<ModelResult<ShoppingListData>> ExtractShoppingListAsync(
+            FileRequest request,
+            CancellationToken cancellationToken)
+        {
+            CallCount++;
+            return ValueTask.FromResult(new ModelResult<ShoppingListData>(
+                shoppingList,
+                new ModelTokenUsage("shopping_list_extraction", "test-shopping-list-extractor", 4, 8, 12, 0.20m, 0.50m, 0.0000008m, 0.000004m, 0.0000048m)));
         }
     }
 }

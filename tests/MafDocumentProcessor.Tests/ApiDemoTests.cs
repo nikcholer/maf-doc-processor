@@ -59,23 +59,52 @@ public sealed class ApiDemoTests
         var response = DocumentProcessingResponseMapper.Map(result);
 
         Assert.Equal(DocumentCategory.Receipt, response.Category);
-        Assert.Equal("Corner Shop", response.Document?.Data.StoreName);
+        var receipt = Assert.IsType<ReceiptData>(response.Document?.Data);
+        Assert.Equal("Corner Shop", receipt.StoreName);
         Assert.Equal(PolicyDecision.Approved, response.Document?.PolicyResult?.Decision);
         Assert.True(response.Document?.Validation.IsValid);
         Assert.Equal(12, response.ModelUsage.TotalTokens);
         Assert.Equal(0.0000048m, response.ModelUsage.EstimatedTotalCostUsd);
     }
 
-    private static ReceiptProcessingResult CreateWorkflowResult()
+    [Fact]
+    public void DocumentProcessingResponseMapper_MapsShoppingListWorkflowResultForDemoUi()
     {
-        var metadata = new DocumentMetadata(
-            "receipt.png",
-            "image/png",
-            FileSizeBytes: 128,
-            DateTimeOffset.Parse("2026-05-11T12:00:00Z"),
-            SourceId: "api-test",
-            ModelId: "google/gemma-4-31B-it",
-            ClassificationConfidence: 0.9m);
+        var metadata = CreateMetadata("shopping-list.png");
+        var result = new DocumentProcessingResult(
+            DocumentCategory.ShoppingList,
+            metadata,
+            new DocumentClassification(
+                DocumentCategory.ShoppingList,
+                0.9m,
+                "shopping list layout"),
+            DocumentModelUsage.FromCalls([
+                new ModelTokenUsage("classification", "model", 2, 4, 6),
+                new ModelTokenUsage("shopping_list_extraction", "model", 2, 4, 6)
+            ]),
+            Receipt: null,
+            new ShoppingListData(
+                "Weekly groceries",
+                [new ShoppingListItem("milk", 2, "pints", false)],
+                Notes: null),
+            PolicyResult: null,
+            ValidationResult.Valid,
+            IsSuccess: true,
+            Errors: [],
+            Warnings: []);
+
+        var response = DocumentProcessingResponseMapper.Map(result);
+
+        var shoppingList = Assert.IsType<ShoppingListData>(response.Document?.Data);
+        Assert.Equal(DocumentCategory.ShoppingList, response.Category);
+        Assert.Equal("Weekly groceries", shoppingList.Title);
+        Assert.Equal("milk", shoppingList.Items[0].Name);
+        Assert.Null(response.Document?.PolicyResult);
+    }
+
+    private static DocumentProcessingResult CreateWorkflowResult()
+    {
+        var metadata = CreateMetadata("receipt.png");
         var receipt = new ReceiptData(
             "Corner Shop",
             10.5m,
@@ -88,7 +117,7 @@ public sealed class ApiDemoTests
             PolicyDecision.Approved,
             ["Receipt is within review threshold."]);
 
-        return new ReceiptProcessingResult(
+        return new DocumentProcessingResult(
             DocumentCategory.Receipt,
             metadata,
             new DocumentClassification(
@@ -100,10 +129,23 @@ public sealed class ApiDemoTests
                 new ModelTokenUsage("receipt_extraction", "model", 2, 4, 6, 0.20m, 0.50m, 0.0000004m, 0.000002m, 0.0000024m)
             ]),
             receipt,
+            ShoppingList: null,
             policy,
             ValidationResult.Valid,
             IsSuccess: true,
             Errors: [],
             Warnings: []);
+    }
+
+    private static DocumentMetadata CreateMetadata(string fileName)
+    {
+        return new DocumentMetadata(
+            fileName,
+            "image/png",
+            FileSizeBytes: 128,
+            DateTimeOffset.Parse("2026-05-11T12:00:00Z"),
+            SourceId: "api-test",
+            ModelId: "google/gemma-4-31B-it",
+            ClassificationConfidence: 0.9m);
     }
 }

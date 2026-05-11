@@ -5,14 +5,15 @@ namespace MafDocumentProcessor.Api.Services;
 
 public static class DocumentProcessingResponseMapper
 {
-    public static DocumentProcessingResponse Map(ReceiptProcessingResult result)
+    public static DocumentProcessingResponse Map(DocumentProcessingResult result)
     {
-        var document = result.Receipt is null
+        var documentData = GetDocumentData(result);
+        var document = documentData is null
             ? null
-            : new ReceiptDocumentResponse(
+            : new ProcessedDocumentResponse(
                 result.Category,
                 result.Metadata,
-                result.Receipt,
+                documentData,
                 result.PolicyResult,
                 result.Validation);
 
@@ -25,5 +26,15 @@ public static class DocumentProcessingResponseMapper
             result.IsSuccess,
             result.Errors,
             result.Warnings);
+    }
+
+    private static object? GetDocumentData(DocumentProcessingResult result)
+    {
+        return result.Category switch
+        {
+            DocumentCategory.Receipt => result.Receipt,
+            DocumentCategory.ShoppingList => result.ShoppingList,
+            _ => null
+        };
     }
 }

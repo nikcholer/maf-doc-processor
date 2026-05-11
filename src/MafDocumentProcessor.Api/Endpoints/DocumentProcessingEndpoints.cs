@@ -22,7 +22,7 @@ public static class DocumentProcessingEndpoints
         DocumentIntakeSettings intakeSettings,
         AiModelSettings aiModelSettings,
         DocumentImageValidator imageValidator,
-        ReceiptProcessingWorkflow workflow,
+        DocumentProcessingWorkflow workflow,
         ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
@@ -94,7 +94,7 @@ public static class DocumentProcessingEndpoints
         var fileName = Path.GetFileName(image.FileName);
 
         logger.LogInformation(
-            "Starting receipt workflow for {FileName} ({ContentType}, {FileSizeBytes} bytes).",
+            "Starting document workflow for {FileName} ({ContentType}, {FileSizeBytes} bytes).",
             fileName,
             image.ContentType,
             image.Length);
@@ -112,7 +112,7 @@ public static class DocumentProcessingEndpoints
                 cancellationToken);
 
             logger.LogInformation(
-                "Completed receipt workflow for {FileName} after {ElapsedMilliseconds} ms. Success={IsSuccess}, Category={Category}.",
+                "Completed document workflow for {FileName} after {ElapsedMilliseconds} ms. Success={IsSuccess}, Category={Category}.",
                 fileName,
                 elapsed.ElapsedMilliseconds,
                 result.IsSuccess,

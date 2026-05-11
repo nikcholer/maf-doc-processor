@@ -46,6 +46,17 @@ public static class ModelResponseParsers
             NormalizeCurrencyCode(GetOptionalString(root, "currencyCode")));
     }
 
+    public static ShoppingListData ParseShoppingList(string? content)
+    {
+        using var document = ParseJson(content, "shopping list extraction");
+        var root = document.RootElement;
+
+        return new ShoppingListData(
+            GetOptionalString(root, "title"),
+            GetShoppingListItems(root),
+            GetOptionalString(root, "notes"));
+    }
+
     private static JsonDocument ParseJson(string? content, string operation)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -180,6 +191,59 @@ public static class ModelResponseParsers
             out var date)
             ? date
             : null;
+    }
+
+    private static IReadOnlyList<ShoppingListItem> GetShoppingListItems(JsonElement root)
+    {
+        if (!root.TryGetProperty("items", out var itemsProperty)
+            || itemsProperty.ValueKind != JsonValueKind.Array)
+        {
+            throw new DocumentModelResponseException(
+                "The shopping list extraction model response did not include an 'items' array.");
+        }
+
+        var items = new List<ShoppingListItem>();
+        foreach (var itemProperty in itemsProperty.EnumerateArray())
+        {
+            var name = GetOptionalString(itemProperty, "name")
+                ?? GetOptionalString(itemProperty, "item");
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            items.Add(new ShoppingListItem(
+                name,
+                GetOptionalDecimal(itemProperty, "quantity"),
+                GetOptionalString(itemProperty, "unit"),
+                GetOptionalBool(itemProperty, "isChecked")
+                    ?? GetOptionalBool(itemProperty, "checked")));
+        }
+
+        return items;
+    }
+
+    private static bool? GetOptionalBool(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var property)
+            || property.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (property.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            return property.GetBoolean();
+        }
+
+        if (property.ValueKind == JsonValueKind.String
+            && bool.TryParse(property.GetString(), out var value))
+        {
+            return value;
+        }
+
+        return null;
     }
 
     private static decimal? NormalizeConfidence(decimal? confidence)

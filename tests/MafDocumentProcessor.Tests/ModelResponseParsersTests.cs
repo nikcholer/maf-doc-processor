@@ -24,6 +24,15 @@ public sealed class ModelResponseParsersTests
     }
 
     [Fact]
+    public void ParseClassification_ParsesShoppingListCategory()
+    {
+        var result = ModelResponseParsers.ParseClassification("""{"category":"ShoppingList","confidence":0.8,"documentTypeDescription":"handwritten shopping list"}""");
+
+        Assert.Equal(DocumentCategory.ShoppingList, result.Category);
+        Assert.Equal("handwritten shopping list", result.DocumentTypeDescription);
+    }
+
+    [Fact]
     public void ParseClassification_RejectsInvalidJson()
     {
         var exception = Assert.Throws<DocumentModelResponseException>(
@@ -100,5 +109,37 @@ public sealed class ModelResponseParsersTests
                 """));
 
         Assert.Contains("totalAmount", exception.Message);
+    }
+
+    [Fact]
+    public void ParseShoppingList_ParsesItems()
+    {
+        var result = ModelResponseParsers.ParseShoppingList("""
+            {
+              "title": "Weekly groceries",
+              "items": [
+                { "name": "milk", "quantity": 2, "unit": "pints", "isChecked": false },
+                { "item": "bread", "checked": true }
+              ],
+              "notes": "written in pencil"
+            }
+            """);
+
+        Assert.Equal("Weekly groceries", result.Title);
+        Assert.Equal("milk", result.Items[0].Name);
+        Assert.Equal(2m, result.Items[0].Quantity);
+        Assert.False(result.Items[0].IsChecked);
+        Assert.Equal("bread", result.Items[1].Name);
+        Assert.True(result.Items[1].IsChecked);
+        Assert.Equal("written in pencil", result.Notes);
+    }
+
+    [Fact]
+    public void ParseShoppingList_RejectsMissingItems()
+    {
+        var exception = Assert.Throws<DocumentModelResponseException>(
+            () => ModelResponseParsers.ParseShoppingList("""{"title":"Weekly groceries"}"""));
+
+        Assert.Contains("items", exception.Message);
     }
 }

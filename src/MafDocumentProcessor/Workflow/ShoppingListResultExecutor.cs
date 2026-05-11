@@ -3,15 +3,15 @@ using Microsoft.Agents.AI.Workflows;
 
 namespace MafDocumentProcessor.Workflow;
 
-public sealed class ReceiptResultExecutor()
-    : Executor<ReceiptPolicyEvaluation, DocumentProcessingResult>("ReceiptResult")
+public sealed class ShoppingListResultExecutor()
+    : Executor<ValidatedShoppingListExtraction, DocumentProcessingResult>("ShoppingListResult")
 {
     public override ValueTask<DocumentProcessingResult> HandleAsync(
-        ReceiptPolicyEvaluation message,
+        ValidatedShoppingListExtraction message,
         IWorkflowContext context,
         CancellationToken cancellationToken = default)
     {
-        var extraction = message.ValidatedExtraction.Extraction;
+        var extraction = message.Extraction;
         var classifiedDocument = extraction.ClassifiedDocument;
         var modelUsage = DocumentModelUsage.FromCalls(
             [
@@ -19,19 +19,17 @@ public sealed class ReceiptResultExecutor()
                 extraction.ExtractionUsage
             ]);
 
-        var warnings = message.Validation.IsValid ? [] : message.Validation.Reasons;
-
         return ValueTask.FromResult(new DocumentProcessingResult(
             classifiedDocument.Classification.Category,
             classifiedDocument.Metadata,
             classifiedDocument.Classification,
             modelUsage,
-            extraction.Receipt,
-            ShoppingList: null,
-            message.PolicyResult,
+            Receipt: null,
+            extraction.ShoppingList,
+            PolicyResult: null,
             message.Validation,
-            IsSuccess: true,
-            Errors: [],
-            Warnings: warnings));
+            IsSuccess: message.Validation.IsValid,
+            Errors: message.Validation.IsValid ? [] : message.Validation.Reasons,
+            Warnings: []));
     }
 }
