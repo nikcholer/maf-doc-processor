@@ -64,10 +64,10 @@ V2 will live in a separate repository so the Semantic Kernel implementation can 
 - [x] Inventory current receipt extraction fields from the old repository.
 - [x] Decide target .NET version.
 - [x] Pin initial Agent Framework package versions.
-- [ ] Define config shape for model selection:
-  - [ ] image recognition model, initially Gemma 4
-  - [ ] text/test model, initially a GPT mini model
-  - [ ] provider endpoints/keys outside source control
+- [x] Define config shape for model selection:
+  - [x] image recognition model, initially Gemma 4
+  - [x] text/test model, initially a GPT mini model
+  - [x] provider endpoints/keys outside source control
 - [x] Document that the V1 test project must currently be run directly because it is not included in the old solution.
 
 Initial package pins:
@@ -80,30 +80,30 @@ Initial package pins:
 
 ### P1 - Working Vertical Slice
 
-- [ ] Remove SK package references from the V2 project.
-- [ ] Add Agent Framework package references:
-  - [ ] `Microsoft.Agents.AI`
-  - [ ] `Microsoft.Agents.AI.Workflows`
-  - [ ] `Microsoft.Extensions.AI`
-  - [ ] selected provider package
-- [ ] Define core domain records:
-  - [ ] `FileRequest`
-  - [ ] `DocumentText`
-  - [ ] `DocumentClassification`
-  - [ ] receipt extraction record matching the old repository
-  - [ ] optional `DocumentSummary`
-  - [ ] `ValidationResult`
-- [ ] Port deterministic processing into executors:
-  - [ ] text extraction executor
-  - [ ] document classification executor
-  - [ ] document analysis/extraction executor
-  - [ ] validation executor
-  - [ ] persistence/output executor
-- [ ] Build a first linear workflow with `WorkflowBuilder`.
-- [ ] Run one sample receipt end to end.
-- [ ] Add tests for the sample receipt workflow.
-- [ ] Add structured output validation and clear failure messages.
-- [ ] Keep the workflow local-only with no external hosting dependency.
+- [x] Remove SK package references from the V2 project. No SK references were added to V2.
+- [x] Add Agent Framework package references:
+  - [x] `Microsoft.Agents.AI`
+  - [x] `Microsoft.Agents.AI.Workflows`
+  - [x] `Microsoft.Extensions.AI`
+  - [x] selected provider package: `Microsoft.Agents.AI.OpenAI`
+- [x] Define core domain records:
+  - [x] `FileRequest`
+  - [x] `DocumentClassification`
+  - [x] receipt extraction record matching the old repository
+  - [x] `ValidationResult`
+  - [x] model usage and receipt processing result records
+- [x] Port deterministic processing into executors:
+  - [x] document classification executor
+  - [x] receipt extraction executor
+  - [x] receipt validation executor
+  - [x] receipt policy executor
+  - [x] receipt result/output executor
+- [x] Build a first linear workflow with `WorkflowBuilder`.
+- [x] Run one sample receipt end to end.
+- [x] Add tests for the sample receipt workflow.
+- [x] Add structured output validation and clear failure messages.
+- [x] Keep the workflow local-only with no external hosting dependency.
+- [ ] Wire real configured model clients behind `IDocumentClassifier` and `IReceiptExtractor`.
 
 ### P2 - Workflow Maturity
 
