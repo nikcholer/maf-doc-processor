@@ -51,21 +51,20 @@ public sealed class OpenAICompatibleModelChatClient(
                 timeout.Token);
 
             var content = string.Concat(completion.Content.Select(part => part.Text));
+            var usage = MapUsage(request.Operation, settings, completion.Usage);
             _logger.LogInformation(
-                "Completed model operation {Operation} with {Provider}/{ModelId}. ResponseChars={ResponseChars}.",
+                "Completed model operation {Operation} with {Provider}/{ModelId}. ResponseChars={ResponseChars}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, EstimatedCostUsd={EstimatedCostUsd}.",
                 request.Operation,
                 settings.Provider,
                 settings.ModelId,
-                content.Length);
+                content.Length,
+                usage.InputTokens,
+                usage.OutputTokens,
+                usage.EstimatedTotalCostUsd);
 
             return new ModelChatResponse(
                 content,
-                new ModelTokenUsage(
-                    request.Operation,
-                    settings.ModelId,
-                    InputTokens: null,
-                    OutputTokens: null,
-                    TotalTokens: null));
+                usage);
         }
         catch (AggregateException ex) when (IsTimeoutException(ex) && !cancellationToken.IsCancellationRequested)
         {
@@ -168,6 +167,57 @@ public sealed class OpenAICompatibleModelChatClient(
             throw new ModelConfigurationException(
                 $"RequestTimeoutSeconds must be greater than zero for model role '{settings.ServiceId}'.");
         }
+
+        if (settings.InputTokenPricePerMillionUsd < 0)
+        {
+            throw new ModelConfigurationException(
+                $"InputTokenPricePerMillionUsd must not be negative for model role '{settings.ServiceId}'.");
+        }
+
+        if (settings.OutputTokenPricePerMillionUsd < 0)
+        {
+            throw new ModelConfigurationException(
+                $"OutputTokenPricePerMillionUsd must not be negative for model role '{settings.ServiceId}'.");
+        }
+    }
+
+    private static ModelTokenUsage MapUsage(
+        string operation,
+        ModelRoleSettings settings,
+        ChatTokenUsage? usage)
+    {
+        var inputTokens = usage?.InputTokenCount;
+        var outputTokens = usage?.OutputTokenCount;
+        var estimatedInputCost = EstimateCost(inputTokens, settings.InputTokenPricePerMillionUsd);
+        var estimatedOutputCost = EstimateCost(outputTokens, settings.OutputTokenPricePerMillionUsd);
+
+        return new ModelTokenUsage(
+            operation,
+            settings.ModelId,
+            inputTokens,
+            outputTokens,
+            usage?.TotalTokenCount,
+            settings.InputTokenPricePerMillionUsd,
+            settings.OutputTokenPricePerMillionUsd,
+            estimatedInputCost,
+            estimatedOutputCost,
+            SumCosts(estimatedInputCost, estimatedOutputCost));
+    }
+
+    private static decimal? EstimateCost(int? tokens, decimal? pricePerMillionUsd)
+    {
+        if (!tokens.HasValue || !pricePerMillionUsd.HasValue)
+        {
+            return null;
+        }
+
+        return decimal.Round(tokens.Value * pricePerMillionUsd.Value / 1_000_000m, 8);
+    }
+
+    private static decimal? SumCosts(params decimal?[] costs)
+    {
+        var knownCosts = costs.Where(cost => cost.HasValue).Select(cost => cost!.Value).ToArray();
+        return knownCosts.Length == 0 ? null : knownCosts.Sum();
     }
 
     private static ChatMessage ConvertMessage(ModelChatMessage message)

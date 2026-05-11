@@ -5,4 +5,9 @@ public sealed record ModelTokenUsage(
     string ModelId,
     int? InputTokens,
     int? OutputTokens,
-    int? TotalTokens);
+    int? TotalTokens,
+    decimal? InputTokenPricePerMillionUsd = null,
+    decimal? OutputTokenPricePerMillionUsd = null,
+    decimal? EstimatedInputCostUsd = null,
+    decimal? EstimatedOutputCostUsd = null,
+    decimal? EstimatedTotalCostUsd = null);

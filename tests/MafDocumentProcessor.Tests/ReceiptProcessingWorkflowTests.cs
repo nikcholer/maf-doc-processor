@@ -34,6 +34,7 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.Empty(result.Warnings);
         Assert.Equal(2, result.ModelUsage.Calls.Count);
         Assert.Equal(15, result.ModelUsage.TotalTokens);
+        Assert.Equal(0.000006m, result.ModelUsage.EstimatedTotalCostUsd);
         Assert.Equal(0.91m, result.Metadata.ClassificationConfidence);
     }
 
@@ -153,7 +154,7 @@ public sealed class ReceiptProcessingWorkflowTests
                     confidence,
                     "test classification",
                     documentTypeDescription),
-                new ModelTokenUsage("classification", "test-classifier", 1, 2, 3)));
+                new ModelTokenUsage("classification", "test-classifier", 1, 2, 3, 0.20m, 0.50m, 0.0000002m, 0.000001m, 0.0000012m)));
         }
     }
 
@@ -165,7 +166,7 @@ public sealed class ReceiptProcessingWorkflowTests
         {
             return ValueTask.FromResult(new ModelResult<ReceiptData>(
                 receipt,
-                new ModelTokenUsage("receipt_extraction", "test-extractor", 4, 8, 12)));
+                new ModelTokenUsage("receipt_extraction", "test-extractor", 4, 8, 12, 0.20m, 0.50m, 0.0000008m, 0.000004m, 0.0000048m)));
         }
     }
 }

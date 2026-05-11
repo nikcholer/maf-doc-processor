@@ -62,6 +62,10 @@ public static class ApiConfigurationLoader
                 ?? defaults.ApiKeyEnvironmentVariable,
             section.GetValue<string>(nameof(ModelRoleSettings.ServiceId)) ?? defaults.ServiceId,
             section.GetValue<int?>(nameof(ModelRoleSettings.RequestTimeoutSeconds))
-                ?? defaults.RequestTimeoutSeconds);
+                ?? defaults.RequestTimeoutSeconds,
+            section.GetValue<decimal?>(nameof(ModelRoleSettings.InputTokenPricePerMillionUsd))
+                ?? defaults.InputTokenPricePerMillionUsd,
+            section.GetValue<decimal?>(nameof(ModelRoleSettings.OutputTokenPricePerMillionUsd))
+                ?? defaults.OutputTokenPricePerMillionUsd);
     }
 }

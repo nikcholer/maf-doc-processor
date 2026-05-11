@@ -6,7 +6,9 @@ public sealed record ModelRoleSettings(
     string ModelId,
     string ApiKeyEnvironmentVariable,
     string ServiceId,
-    int RequestTimeoutSeconds = 180);
+    int RequestTimeoutSeconds = 180,
+    decimal? InputTokenPricePerMillionUsd = null,
+    decimal? OutputTokenPricePerMillionUsd = null);
 
 public sealed record AiModelSettings(
     ModelRoleSettings ImageRecognition,

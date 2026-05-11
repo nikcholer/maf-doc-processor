@@ -13,6 +13,7 @@ const statusPill = document.querySelector("#statusPill");
 const categoryMetric = document.querySelector("#categoryMetric");
 const decisionMetric = document.querySelector("#decisionMetric");
 const tokensMetric = document.querySelector("#tokensMetric");
+const costMetric = document.querySelector("#costMetric");
 const extractedData = document.querySelector("#extractedData");
 const policyReasons = document.querySelector("#policyReasons");
 const jsonPanel = document.querySelector("#jsonPanel");
@@ -189,7 +190,8 @@ function renderSuccess(payload) {
   resultTitle.textContent = `${payload.category} processed`;
   categoryMetric.textContent = payload.category ?? "-";
   decisionMetric.textContent = decision;
-  tokensMetric.textContent = payload.modelUsage?.totalTokens ?? "-";
+  tokensMetric.textContent = formatInteger(payload.modelUsage?.totalTokens);
+  costMetric.textContent = formatUsdCost(payload.modelUsage?.estimatedTotalCostUsd);
   statusPill.textContent = decision;
   statusPill.className = `status-pill ${decision === "Approved" ? "approved" : "review"}`;
 
@@ -208,6 +210,7 @@ function renderError(error) {
   categoryMetric.textContent = "-";
   decisionMetric.textContent = error.code ?? "Error";
   tokensMetric.textContent = "-";
+  costMetric.textContent = "-";
   statusPill.textContent = "Error";
   statusPill.className = "status-pill error";
 
@@ -270,6 +273,50 @@ function formatValue(key, value) {
   }
 
   return String(value);
+}
+
+function formatInteger(value) {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString("en-US") : "-";
+}
+
+function formatUsdCost(value) {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return "-";
+  }
+
+  if (amount === 0) {
+    return "$0.00";
+  }
+
+  if (Math.abs(amount) < 0.01) {
+    return formatSubCentUsd(amount);
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4
+  }).format(amount);
+}
+
+function formatSubCentUsd(amount) {
+  const rendered = amount.toFixed(8);
+  if (Number(rendered) > 0) {
+    return `$${rendered.replace(/0+$/, "").replace(/\.$/, "")}`;
+  }
+
+  return "<$0.00000001";
 }
 
 function sentenceCase(value) {

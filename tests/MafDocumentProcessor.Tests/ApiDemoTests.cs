@@ -18,6 +18,8 @@ public sealed class ApiDemoTests
         Assert.Equal("https://api.together.ai/v1", settings.ImageRecognition.Endpoint);
         Assert.Equal("google/gemma-4-31B-it", settings.ImageRecognition.ModelId);
         Assert.Equal("TOGETHER_API_KEY", settings.ImageRecognition.ApiKeyEnvironmentVariable);
+        Assert.Equal(0.20m, settings.ImageRecognition.InputTokenPricePerMillionUsd);
+        Assert.Equal(0.50m, settings.ImageRecognition.OutputTokenPricePerMillionUsd);
         Assert.Equal("google/gemma-4-31B-it", settings.TextTesting.ModelId);
     }
 
@@ -61,6 +63,7 @@ public sealed class ApiDemoTests
         Assert.Equal(PolicyDecision.Approved, response.Document?.PolicyResult?.Decision);
         Assert.True(response.Document?.Validation.IsValid);
         Assert.Equal(12, response.ModelUsage.TotalTokens);
+        Assert.Equal(0.0000048m, response.ModelUsage.EstimatedTotalCostUsd);
     }
 
     private static ReceiptProcessingResult CreateWorkflowResult()
@@ -93,8 +96,8 @@ public sealed class ApiDemoTests
                 0.9m,
                 "receipt layout"),
             DocumentModelUsage.FromCalls([
-                new ModelTokenUsage("classification", "model", 2, 4, 6),
-                new ModelTokenUsage("receipt_extraction", "model", 2, 4, 6)
+                new ModelTokenUsage("classification", "model", 2, 4, 6, 0.20m, 0.50m, 0.0000004m, 0.000002m, 0.0000024m),
+                new ModelTokenUsage("receipt_extraction", "model", 2, 4, 6, 0.20m, 0.50m, 0.0000004m, 0.000002m, 0.0000024m)
             ]),
             receipt,
             policy,
