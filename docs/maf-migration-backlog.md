@@ -124,7 +124,7 @@ Initial package pins:
 - [x] Avoid production frontend concerns for this stage: no auth UI, no persistence UI, no workflow history UI, and no polished product IA.
 - [x] Return human-readable unsupported-document messages, e.g. "This appears to be a car registration document. This demo can only process receipts right now."
 - [x] Verify the local demo shell, `/health`, upload validation, and missing-key response.
-- [ ] Verify live model extraction with a known sample image and at least one ad hoc new image once `TOGETHER_API_KEY` is visible to the server.
+- [x] Verify live model extraction with a known sample image and at least one ad hoc new image once `TOGETHER_API_KEY` is visible to the server. Verified with a real supermarket receipt and a non-receipt technical infographic.
 
 ### P2 - Workflow Maturity
 
@@ -133,7 +133,11 @@ Initial package pins:
 - [ ] Add retry policy for transient model/provider failures.
 - [ ] Add validation-based repair or re-run flow.
 - [ ] Add workflow event logging.
-- [ ] Add token, latency, and model-call telemetry.
+- [ ] Add token, latency, and model-call telemetry:
+  - [x] Capture provider-reported input, output, and total token counts per model call.
+  - [x] Estimate per-run USD cost from configurable per-role pricing.
+  - [ ] Capture per-model-call latency.
+  - [ ] Emit structured workflow/model-call telemetry events.
 - [ ] Compare V1 and V2 outputs on representative fixtures.
 - [ ] Document migration differences from Semantic Kernel to Agent Framework.
 
