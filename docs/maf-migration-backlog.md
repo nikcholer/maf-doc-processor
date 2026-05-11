@@ -20,6 +20,8 @@ The target architecture should use:
 - Provider-specific packages selected after the model/provider decision.
 - Durable Task integration only after the in-memory workflow is working end to end.
 
+V2 will live in a separate repository so the Semantic Kernel implementation can be culled or archived later without affecting this codebase.
+
 ## Principles
 
 - Keep V1 Semantic Kernel behavior available as a reference while V2 is built.
@@ -32,34 +34,49 @@ The target architecture should use:
 
 ## Open Decisions
 
-| ID | Decision | Options | Current Lean |
+| ID | Decision | Status | Notes |
 | --- | --- | --- | --- |
-| D1 | Repository strategy | New V2 repo, branch in existing repo, side-by-side project | New V2 repo if we want a clean portfolio artifact; branch/side-by-side if we want easier comparison |
-| D2 | First document type | Current strongest use case, simplest sample, resume/CV, tax/finance document | Pick the use case with the clearest expected output schema |
-| D3 | Output schema | Summary only, extraction model, classification plus extraction, full report | Start with classification plus extraction/summary |
-| D4 | Model/provider | Azure OpenAI, OpenAI, Foundry Agent Service, multiple providers | Use one provider first behind `Microsoft.Extensions.AI` |
-| D5 | Hosting model | Console/CLI, web API, worker service, Azure Functions Durable | Console/API first, Durable later |
-| D6 | Human review trigger | Fixed confidence threshold, validation failures, user-configured policy | Validation failures plus confidence threshold once confidence is defined |
-| D7 | Multi-agent review | In MVP, post-MVP, optional quality mode | Post-MVP unless quality demands it early |
-| D8 | Durable backend | None initially, local emulator, Durable Task Scheduler, Azure Functions storage | Defer until workflow contracts are stable |
+| D1 | Repository strategy | Decided | Separate V2 repository. The SK repository must be disposable/archivable without impact. |
+| D2 | First document type | Decided | Receipts, matching the old repository. Shopping lists are the candidate second document type if a new type is needed. |
+| D3 | Output schema | Decided for MVP | Match what the old repository currently extracts from receipts. Inventory the old repo before finalizing record names. |
+| D4 | Model/provider | Decided for MVP | Keep model selection in config. Use Gemma 4 for image recognition and a GPT mini model for other testing. |
+| D5 | Hosting model | Decided for MVP | All local. Revisit hosting only if/when external access becomes useful. |
+| D6 | Human review trigger | Partly decided | Human review is required when the model is in doubt on categorization or other key fields. Some document types may require user ownership/attestation after parsing, e.g. an expense claim is submitted by the user, not by the model. |
+| D7 | Multi-agent review | Decided | Post-MVP quality layer, not part of the first vertical slice. |
+| D8 | Durability question | Open | The question is not "which cloud backend?" yet. It is: do we need durable pause/resume for local long-running jobs, and if so should we use MAF Durable Task locally, a lightweight local job store, or defer entirely until hosting exists? |
 
 ## Backlog
 
 ### P0 - Foundation
 
-- [ ] Create or choose the V2 working location.
+- [x] Create or choose the V2 working location.
+- [x] Locate V1 Semantic Kernel repository for reference: `C:\data\repo\csharp-semantic-document-processor`.
 - [ ] Preserve V1 Semantic Kernel repo/history and document its maintenance-mode status.
-- [ ] Confirm baseline build and test status before migration changes.
-- [ ] Inventory Semantic Kernel usage:
-  - [ ] `Kernel`
-  - [ ] `ChatCompletionAgent` or SK agent types
-  - [ ] `[KernelFunction]`
-  - [ ] prompt templates
-  - [ ] `PromptExecutionSettings`
-  - [ ] JSON parsing / structured response logic
-  - [ ] DI registrations
-- [ ] Decide target .NET version.
-- [ ] Pin initial Agent Framework package versions.
+- [x] Confirm baseline build and test status before migration changes.
+- [x] Inventory Semantic Kernel usage:
+  - [x] `Kernel`
+  - [x] SK agent types: none found
+  - [x] `[KernelFunction]`
+  - [x] prompt templates
+  - [x] `PromptExecutionSettings`
+  - [x] JSON parsing / structured response logic
+  - [x] DI registrations
+- [x] Inventory current receipt extraction fields from the old repository.
+- [x] Decide target .NET version.
+- [x] Pin initial Agent Framework package versions.
+- [ ] Define config shape for model selection:
+  - [ ] image recognition model, initially Gemma 4
+  - [ ] text/test model, initially a GPT mini model
+  - [ ] provider endpoints/keys outside source control
+- [x] Document that the V1 test project must currently be run directly because it is not included in the old solution.
+
+Initial package pins:
+
+- `Microsoft.Agents.AI` `1.4.0`
+- `Microsoft.Agents.AI.Workflows` `1.4.0`
+- `Microsoft.Agents.AI.OpenAI` `1.4.0`
+- `Microsoft.Extensions.AI` `10.5.2`
+- Target framework: `net8.0`
 
 ### P1 - Working Vertical Slice
 
@@ -73,8 +90,8 @@ The target architecture should use:
   - [ ] `FileRequest`
   - [ ] `DocumentText`
   - [ ] `DocumentClassification`
-  - [ ] `DocumentExtraction`
-  - [ ] `DocumentSummary`
+  - [ ] receipt extraction record matching the old repository
+  - [ ] optional `DocumentSummary`
   - [ ] `ValidationResult`
 - [ ] Port deterministic processing into executors:
   - [ ] text extraction executor
@@ -83,13 +100,15 @@ The target architecture should use:
   - [ ] validation executor
   - [ ] persistence/output executor
 - [ ] Build a first linear workflow with `WorkflowBuilder`.
-- [ ] Run one sample document end to end.
-- [ ] Add tests for the sample document workflow.
+- [ ] Run one sample receipt end to end.
+- [ ] Add tests for the sample receipt workflow.
 - [ ] Add structured output validation and clear failure messages.
+- [ ] Keep the workflow local-only with no external hosting dependency.
 
 ### P2 - Workflow Maturity
 
 - [ ] Add conditional routing by document type.
+- [ ] Add shopping list as a candidate second document type if a non-receipt type is needed.
 - [ ] Add retry policy for transient model/provider failures.
 - [ ] Add validation-based repair or re-run flow.
 - [ ] Add workflow event logging.
@@ -99,15 +118,19 @@ The target architecture should use:
 
 ### P3 - Long-Running Processing
 
-- [ ] Evaluate Durable Task integration against actual workflow needs.
-- [ ] Choose durable hosting/backend.
+- [ ] Decide whether local receipt/shopping-list processing actually needs durable pause/resume.
+- [ ] If durability is needed, compare:
+  - [ ] MAF Durable Task in a local setup
+  - [ ] lightweight local job store/checkpoint files
+  - [ ] deferring durability until external hosting exists
 - [ ] Add checkpointing for long-running document jobs.
 - [ ] Add resume/retry behavior for interrupted jobs.
 - [ ] Add operational documentation for durable runs.
 
 ### P4 - Human Review
 
-- [ ] Define confidence scoring or review policy.
+- [ ] Define confidence scoring or review policy for categorization and key extracted fields.
+- [ ] Define document-type ownership/attestation rules, especially for expense claims where the user owns the submission.
 - [ ] Add workflow pause/resume for human approval.
 - [ ] Add reviewer input model.
 - [ ] Add timeout/escalation behavior.
