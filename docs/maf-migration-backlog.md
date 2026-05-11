@@ -39,7 +39,7 @@ V2 will live in a separate repository so the Semantic Kernel implementation can 
 | D1 | Repository strategy | Decided | Separate V2 repository. The SK repository must be disposable/archivable without impact. |
 | D2 | First document type | Decided | Receipts, matching the old repository. Shopping lists are the candidate second document type if a new type is needed. |
 | D3 | Output schema | Decided for MVP | Match what the old repository currently extracts from receipts. Inventory the old repo before finalizing record names. |
-| D4 | Model/provider | Decided for MVP | Keep model selection in config. Use Gemma 4 for image recognition and a GPT mini model for other testing. |
+| D4 | Model/provider | Decided for MVP | Keep model selection in config. Use TogetherAI with Gemma 4 for both image recognition and text/testing initially, while preserving separate role settings so tasks can point to different models later. |
 | D5 | Hosting model | Decided for MVP | All local. Revisit hosting only if/when external access becomes useful. |
 | D6 | Human review trigger | Partly decided | Human review is required when the model is in doubt on categorization or other key fields. Some document types may require user ownership/attestation after parsing, e.g. an expense claim is submitted by the user, not by the model. |
 | D7 | Multi-agent review | Decided | Post-MVP quality layer, not part of the first vertical slice. |
@@ -52,7 +52,7 @@ V2 will live in a separate repository so the Semantic Kernel implementation can 
 
 - [x] Create or choose the V2 working location.
 - [x] Locate V1 Semantic Kernel repository for reference: `C:\data\repo\csharp-semantic-document-processor`.
-- [ ] Preserve V1 Semantic Kernel repo/history and document its maintenance-mode status.
+- [x] Preserve V1 Semantic Kernel repo/history and document its maintenance-mode status. The V1 repo remains a separate GitHub-backed reference/maintenance repository; V2 work happens here and culling/archive can wait until V2 covers the needed behavior.
 - [x] Confirm baseline build and test status before migration changes.
 - [x] Inventory Semantic Kernel usage:
   - [x] `Kernel`
@@ -77,6 +77,7 @@ Initial package pins:
 - `Microsoft.Agents.AI.Workflows` `1.4.0`
 - `Microsoft.Agents.AI.OpenAI` `1.4.0`
 - `Microsoft.Extensions.AI` `10.5.2`
+- `OpenAI` `2.10.0`
 - Target framework: `net8.0`
 
 ### P1 - Working Vertical Slice
@@ -104,7 +105,7 @@ Initial package pins:
 - [x] Add tests for the sample receipt workflow.
 - [x] Add structured output validation and clear failure messages.
 - [x] Keep the workflow local-only with no external hosting dependency.
-- [ ] Wire real configured model clients behind `IDocumentClassifier` and `IReceiptExtractor`.
+- [x] Wire real configured model clients behind `IDocumentClassifier` and `IReceiptExtractor`.
 
 ### P1.5 - Local API and Demo UI
 
