@@ -138,8 +138,6 @@ Initial package pins:
   - [x] Estimate per-run USD cost from configurable per-role pricing.
   - [ ] Capture per-model-call latency.
   - [ ] Emit structured workflow/model-call telemetry events.
-- [ ] Compare V1 and V2 outputs on representative fixtures.
-- [ ] Document migration differences from Semantic Kernel to Agent Framework.
 
 ### P3 - Long-Running Processing
 
