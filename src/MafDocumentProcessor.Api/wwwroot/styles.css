@@ -384,6 +384,14 @@ h3 {
   font-weight: 700;
 }
 
+.json-panel[open] summary {
+  color: var(--ink);
+}
+
+.json-panel[open] pre {
+  animation: json-pop 160ms ease-out;
+}
+
 pre {
   max-height: 360px;
   overflow: auto;
@@ -393,6 +401,18 @@ pre {
   color: #d8f1e8;
   font-size: 0.82rem;
   line-height: 1.5;
+}
+
+@keyframes json-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 860px) {

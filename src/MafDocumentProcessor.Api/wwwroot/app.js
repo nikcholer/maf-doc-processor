@@ -15,6 +15,7 @@ const decisionMetric = document.querySelector("#decisionMetric");
 const tokensMetric = document.querySelector("#tokensMetric");
 const extractedData = document.querySelector("#extractedData");
 const policyReasons = document.querySelector("#policyReasons");
+const jsonPanel = document.querySelector("#jsonPanel");
 const rawJson = document.querySelector("#rawJson");
 
 const fieldLabels = {
@@ -176,6 +177,7 @@ function setBusy(isBusy) {
     resultTitle.textContent = "Processing receipt";
     statusPill.textContent = "Running";
     statusPill.className = "status-pill";
+    jsonPanel.open = false;
   }
 }
 
@@ -198,6 +200,7 @@ function renderSuccess(payload) {
     ...(payload.errors ?? [])
   ]);
   rawJson.textContent = JSON.stringify(payload, null, 2);
+  jsonPanel.open = true;
 }
 
 function renderError(error) {
@@ -215,6 +218,7 @@ function renderError(error) {
   });
   renderReasons([error.message ?? "The request failed."]);
   rawJson.textContent = JSON.stringify(error, null, 2);
+  jsonPanel.open = true;
 }
 
 function renderData(data) {
