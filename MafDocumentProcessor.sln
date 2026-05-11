@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{97B22BE6
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MafDocumentProcessor.Tests", "tests\MafDocumentProcessor.Tests\MafDocumentProcessor.Tests.csproj", "{DF131ABC-277D-417A-8815-3BE45BE17378}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MafDocumentProcessor.Api", "src\MafDocumentProcessor.Api\MafDocumentProcessor.Api.csproj", "{0A9FB9C9-554E-4BCC-9BA8-EB0491C61B36}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,9 +30,14 @@ Global
 		{DF131ABC-277D-417A-8815-3BE45BE17378}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF131ABC-277D-417A-8815-3BE45BE17378}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF131ABC-277D-417A-8815-3BE45BE17378}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A9FB9C9-554E-4BCC-9BA8-EB0491C61B36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A9FB9C9-554E-4BCC-9BA8-EB0491C61B36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A9FB9C9-554E-4BCC-9BA8-EB0491C61B36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A9FB9C9-554E-4BCC-9BA8-EB0491C61B36}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8B6F1049-A4B9-4C83-8CB5-6BDA20C4F1FC} = {87FF9020-3C35-44C1-A61F-68979D7C6EB1}
 		{DF131ABC-277D-417A-8815-3BE45BE17378} = {97B22BE6-0009-4487-B364-5BD896E3310C}
+		{0A9FB9C9-554E-4BCC-9BA8-EB0491C61B36} = {87FF9020-3C35-44C1-A61F-68979D7C6EB1}
 	EndGlobalSection
 EndGlobal

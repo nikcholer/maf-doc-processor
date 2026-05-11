@@ -6,3 +6,4 @@ TestResults/
 *.userosscache
 *.sln.docstates
 .vs/
+.run/

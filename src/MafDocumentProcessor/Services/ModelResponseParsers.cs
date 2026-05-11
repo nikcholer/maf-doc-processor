@@ -22,8 +22,15 @@ public static class ModelResponseParsers
         var confidenceReasoning = GetOptionalString(root, "confidenceReasoning")
             ?? GetOptionalString(root, "reasoning")
             ?? "The model did not provide a confidence explanation.";
+        var documentTypeDescription = GetOptionalString(root, "documentTypeDescription")
+            ?? GetOptionalString(root, "documentType")
+            ?? GetOptionalString(root, "apparentDocumentType");
 
-        return new DocumentClassification(category, confidence, confidenceReasoning);
+        return new DocumentClassification(
+            category,
+            confidence,
+            confidenceReasoning,
+            documentTypeDescription);
     }
 
     public static ReceiptData ParseReceipt(string? content)
@@ -47,9 +54,11 @@ public static class ModelResponseParsers
                 $"The {operation} model returned an empty response.");
         }
 
+        var json = NormalizeJsonObject(content);
+
         try
         {
-            return JsonDocument.Parse(content);
+            return JsonDocument.Parse(json);
         }
         catch (JsonException ex)
         {
@@ -57,6 +66,36 @@ public static class ModelResponseParsers
                 $"The {operation} model returned invalid JSON.",
                 ex);
         }
+    }
+
+    private static string NormalizeJsonObject(string content)
+    {
+        var value = content.Trim();
+        if (value.StartsWith("```", StringComparison.Ordinal))
+        {
+            var firstLineBreak = value.IndexOf('\n');
+            if (firstLineBreak >= 0)
+            {
+                value = value[(firstLineBreak + 1)..];
+            }
+
+            var closingFence = value.LastIndexOf("```", StringComparison.Ordinal);
+            if (closingFence >= 0)
+            {
+                value = value[..closingFence];
+            }
+
+            value = value.Trim();
+        }
+
+        var objectStart = value.IndexOf('{');
+        var objectEnd = value.LastIndexOf('}');
+        if (objectStart >= 0 && objectEnd > objectStart)
+        {
+            value = value[objectStart..(objectEnd + 1)];
+        }
+
+        return value;
     }
 
     private static string GetRequiredString(JsonElement root, string propertyName, string operation)

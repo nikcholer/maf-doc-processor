@@ -14,14 +14,27 @@ public sealed class ReceiptProcessingWorkflow(
         FileRequest request,
         CancellationToken cancellationToken = default)
     {
-        var classificationExecutor = new DocumentClassificationExecutor(classifier);
         var extractionExecutor = new ReceiptExtractionExecutor(extractor);
         var validationExecutor = new ReceiptValidationExecutor();
         var policyExecutor = new ReceiptPolicyExecutor(policyOptions);
         var resultExecutor = new ReceiptResultExecutor();
 
-        var workflow = new WorkflowBuilder(classificationExecutor)
-            .AddEdge(classificationExecutor, extractionExecutor)
+        var classification = await classifier.ClassifyAsync(request, cancellationToken);
+        var classifiedDocument = new ClassifiedDocument(
+            request,
+            DocumentMetadata.FromRequest(
+                request,
+                classification.Usage.ModelId,
+                classification.Value.Confidence),
+            classification.Value,
+            classification.Usage);
+
+        if (classification.Value.Category != DocumentCategory.Receipt)
+        {
+            return CreateUnsupportedDocumentResult(classifiedDocument);
+        }
+
+        var workflow = new WorkflowBuilder(extractionExecutor)
             .AddEdge(extractionExecutor, validationExecutor)
             .AddEdge(validationExecutor, policyExecutor)
             .AddEdge(policyExecutor, resultExecutor)
@@ -32,7 +45,7 @@ public sealed class ReceiptProcessingWorkflow(
 
         var run = await InProcessExecution.RunAsync(
             workflow,
-            request,
+            classifiedDocument,
             cancellationToken: cancellationToken);
 
         var output = run.NewEvents
@@ -42,6 +55,70 @@ public sealed class ReceiptProcessingWorkflow(
             .LastOrDefault();
 
         return output ?? throw new InvalidOperationException(
-            "Receipt workflow completed without a receipt processing result.");
+            "Receipt workflow completed without a receipt processing result. The uploaded document may not have been classified as a receipt.");
+    }
+
+    private static ReceiptProcessingResult CreateUnsupportedDocumentResult(ClassifiedDocument document)
+    {
+        var message = BuildUnsupportedDocumentMessage(document.Classification);
+
+        return new ReceiptProcessingResult(
+            document.Classification.Category,
+            document.Metadata,
+            document.Classification,
+            DocumentModelUsage.FromCalls([document.ClassificationUsage]),
+            Receipt: null,
+            PolicyResult: null,
+            ValidationResult.Invalid(message),
+            IsSuccess: false,
+            Errors: [message],
+            Warnings: []);
+    }
+
+    private static string BuildUnsupportedDocumentMessage(DocumentClassification classification)
+    {
+        var description = NormalizeDocumentTypeDescription(classification);
+        var article = GetIndefiniteArticle(description);
+
+        return $"This appears to be {article} {description}. This demo can only process receipts right now.";
+    }
+
+    private static string NormalizeDocumentTypeDescription(DocumentClassification classification)
+    {
+        var description = classification.DocumentTypeDescription;
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            description = classification.Category switch
+            {
+                DocumentCategory.Invoice => "invoice",
+                DocumentCategory.Unknown => "unsupported document",
+                _ => classification.Category.ToString()
+            };
+        }
+
+        description = description.Trim().TrimEnd('.');
+        foreach (var prefix in new[] { "a ", "an ", "the " })
+        {
+            if (description.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                description = description[prefix.Length..];
+                break;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            description = "unsupported document";
+        }
+
+        return char.ToLowerInvariant(description[0]) + description[1..];
+    }
+
+    private static string GetIndefiniteArticle(string description)
+    {
+        return description.Length > 0
+            && "aeiou".Contains(char.ToLowerInvariant(description[0]))
+            ? "an"
+            : "a";
     }
 }

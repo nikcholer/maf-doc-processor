@@ -21,8 +21,8 @@ public sealed class ModelDocumentClassifier(
                     ModelChatMessage.CreateSystem("""
                     You classify document images for a local document processor.
                     Return only compact JSON with this shape:
-                    {"category":"Receipt|Invoice|Unknown","confidence":0.0,"confidenceReasoning":"short reason"}
-                    Use Unknown when the image is not clearly a receipt or invoice.
+                    {"category":"Receipt|Invoice|Unknown","confidence":0.0,"documentTypeDescription":"short human document type","confidenceReasoning":"short reason"}
+                    Use Unknown when the image is not clearly a receipt or invoice. If it is another recognizable type, name it in documentTypeDescription, for example "car registration document".
                     """),
                     ModelChatMessage.CreateUser(
                         new ModelTextContent(

@@ -47,7 +47,7 @@ public sealed class OpenAICompatibleModelChatClient : IModelChatClient
 
     private static ChatClient CreateClient(ModelRoleSettings settings)
     {
-        var apiKey = Environment.GetEnvironmentVariable(settings.ApiKeyEnvironmentVariable);
+        var apiKey = ApiKeyEnvironment.GetApiKey(settings.ApiKeyEnvironmentVariable);
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             throw new ModelConfigurationException(

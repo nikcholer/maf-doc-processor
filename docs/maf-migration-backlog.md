@@ -109,20 +109,22 @@ Initial package pins:
 
 ### P1.5 - Local API and Demo UI
 
-- [ ] Add a V2 ASP.NET Minimal API host project over the workflow library.
-- [ ] Serve static demo assets, using the old `wwwroot` app as the reference point.
-- [ ] Keep the UI scope deliberately small: upload one arbitrary PNG/JPEG, submit it, and show the parsed result.
-- [ ] Add `/health` with local readiness and configured model/provider visibility.
-- [ ] Add `/api/documents/process` as an adapter from multipart upload to `ReceiptProcessingWorkflow`.
-- [ ] Map V2 workflow output into a demo response that shows:
-  - [ ] document category
-  - [ ] extracted receipt fields
-  - [ ] policy/review decision and reasons
-  - [ ] model usage
-  - [ ] validation errors and warnings
-- [ ] Preserve upload validation from the old API where still relevant.
-- [ ] Avoid production frontend concerns for this stage: no auth UI, no persistence UI, no workflow history UI, and no polished product IA.
-- [ ] Verify the demo with a known sample image and at least one ad hoc new image.
+- [x] Add a V2 ASP.NET Minimal API host project over the workflow library.
+- [x] Serve static demo assets, using the old `wwwroot` app as the reference point.
+- [x] Keep the UI scope deliberately small: upload one arbitrary PNG/JPEG, submit it, and show the parsed result.
+- [x] Add `/health` with local readiness and configured model/provider visibility.
+- [x] Add `/api/documents/process` as an adapter from multipart upload to `ReceiptProcessingWorkflow`.
+- [x] Map V2 workflow output into a demo response that shows:
+  - [x] document category
+  - [x] extracted receipt fields
+  - [x] policy/review decision and reasons
+  - [x] model usage
+  - [x] validation errors and warnings
+- [x] Preserve upload validation from the old API where still relevant.
+- [x] Avoid production frontend concerns for this stage: no auth UI, no persistence UI, no workflow history UI, and no polished product IA.
+- [x] Return human-readable unsupported-document messages, e.g. "This appears to be a car registration document. This demo can only process receipts right now."
+- [x] Verify the local demo shell, `/health`, upload validation, and missing-key response.
+- [ ] Verify live model extraction with a known sample image and at least one ad hoc new image once `TOGETHER_API_KEY` is visible to the server.
 
 ### P2 - Workflow Maturity
 

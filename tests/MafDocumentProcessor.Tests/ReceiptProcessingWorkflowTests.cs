@@ -79,6 +79,54 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.Contains(result.Warnings, warning => warning.Contains("three-letter ISO-4217"));
     }
 
+    [Fact]
+    public async Task RunAsync_ReturnsHumanUnsupportedMessageForNonReceipt()
+    {
+        var workflow = new ReceiptProcessingWorkflow(
+            new FakeDocumentClassifier(
+                DocumentCategory.Unknown,
+                0.79m,
+                "car registration document"),
+            new FakeReceiptExtractor(new ReceiptData(
+                "Not used",
+                1m,
+                null,
+                null,
+                "GBP")),
+            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
+
+        var result = await workflow.RunAsync(CreateReceiptRequest());
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(DocumentCategory.Unknown, result.Category);
+        Assert.Null(result.Receipt);
+        Assert.Contains(
+            result.Errors,
+            error => error == "This appears to be a car registration document. This demo can only process receipts right now.");
+        Assert.Single(result.ModelUsage.Calls);
+    }
+
+    [Fact]
+    public async Task RunAsync_ReturnsHumanUnsupportedMessageForInvoice()
+    {
+        var workflow = new ReceiptProcessingWorkflow(
+            new FakeDocumentClassifier(DocumentCategory.Invoice, 0.95m),
+            new FakeReceiptExtractor(new ReceiptData(
+                "Not used",
+                1m,
+                null,
+                null,
+                "GBP")),
+            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
+
+        var result = await workflow.RunAsync(CreateReceiptRequest());
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(
+            result.Errors,
+            error => error == "This appears to be an invoice. This demo can only process receipts right now.");
+    }
+
     private static FileRequest CreateReceiptRequest()
     {
         return new FileRequest(
@@ -92,14 +140,19 @@ public sealed class ReceiptProcessingWorkflowTests
 
     private sealed class FakeDocumentClassifier(
         DocumentCategory category,
-        decimal? confidence) : IDocumentClassifier
+        decimal? confidence,
+        string? documentTypeDescription = null) : IDocumentClassifier
     {
         public ValueTask<ModelResult<DocumentClassification>> ClassifyAsync(
             FileRequest request,
             CancellationToken cancellationToken)
         {
             return ValueTask.FromResult(new ModelResult<DocumentClassification>(
-                new DocumentClassification(category, confidence, "test classification"),
+                new DocumentClassification(
+                    category,
+                    confidence,
+                    "test classification",
+                    documentTypeDescription),
                 new ModelTokenUsage("classification", "test-classifier", 1, 2, 3)));
         }
     }

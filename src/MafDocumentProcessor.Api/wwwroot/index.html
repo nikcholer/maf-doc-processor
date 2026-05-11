@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MAF Document Processor</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">Microsoft Agent Framework</p>
+        <h1>Receipt intake demo</h1>
+      </div>
+      <div class="health" aria-live="polite">
+        <span class="health-dot" id="healthDot"></span>
+        <span id="healthText">Checking API</span>
+      </div>
+    </header>
+
+    <section class="workspace" aria-label="Document processing workspace">
+      <form class="upload-surface" id="uploadForm">
+        <div class="drop-zone" id="dropZone">
+          <input id="imageInput" name="image" type="file" accept="image/png,image/jpeg">
+          <img class="preview" id="previewImage" alt="">
+          <div class="drop-copy" id="dropCopy">
+            <span class="file-mark" aria-hidden="true">+</span>
+            <div>
+              <h2>Drop a receipt image</h2>
+              <p>PNG or JPEG, up to the configured local API limit.</p>
+            </div>
+          </div>
+          <p class="selected-file" id="selectedFile">No file selected</p>
+        </div>
+
+        <label class="field">
+          <span>Source ID</span>
+          <input id="sourceId" name="sourceId" type="text" value="demo-upload" autocomplete="off">
+        </label>
+
+        <button class="primary-action" id="processButton" type="submit">
+          <span>Process receipt</span>
+        </button>
+      </form>
+
+      <section class="result-surface" aria-label="Processing result">
+        <div class="result-header">
+          <div>
+            <p class="eyebrow">Workflow Result</p>
+            <h2 id="resultTitle">Waiting for upload</h2>
+          </div>
+          <span class="status-pill" id="statusPill">Idle</span>
+        </div>
+
+        <div class="metrics-grid" aria-label="Result summary">
+          <div>
+            <span>Category</span>
+            <strong id="categoryMetric">-</strong>
+          </div>
+          <div>
+            <span>Decision</span>
+            <strong id="decisionMetric">-</strong>
+          </div>
+          <div>
+            <span>Total tokens</span>
+            <strong id="tokensMetric">-</strong>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <section>
+            <h3>Extracted Data</h3>
+            <dl id="extractedData" class="data-list">
+              <div><dt>Document</dt><dd>No result yet</dd></div>
+            </dl>
+          </section>
+
+          <section>
+            <h3>Review Reasons</h3>
+            <ul id="policyReasons" class="reason-list">
+              <li>Run a receipt to inspect validation and review reasoning.</li>
+            </ul>
+          </section>
+        </div>
+
+        <details class="json-panel">
+          <summary>Raw response JSON</summary>
+          <pre id="rawJson">{}</pre>
+        </details>
+      </section>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
