@@ -1,13 +1,20 @@
 using MafDocumentProcessor.Configuration;
 using MafDocumentProcessor.Domain;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OpenAI;
 using OpenAI.Chat;
 using System.ClientModel;
+using System.ClientModel.Primitives;
 
 namespace MafDocumentProcessor.Services;
 
-public sealed class OpenAICompatibleModelChatClient : IModelChatClient
+public sealed class OpenAICompatibleModelChatClient(
+    ILogger<OpenAICompatibleModelChatClient>? logger = null) : IModelChatClient
 {
+    private readonly ILogger<OpenAICompatibleModelChatClient> _logger =
+        logger ?? NullLogger<OpenAICompatibleModelChatClient>.Instance;
+
     private static readonly HashSet<string> SupportedProviders = new(StringComparer.OrdinalIgnoreCase)
     {
         AiModelSettingsDefaults.TogetherAiProvider,
@@ -26,23 +33,81 @@ public sealed class OpenAICompatibleModelChatClient : IModelChatClient
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(settings.RequestTimeoutSeconds));
 
-        ChatCompletion completion = await client.CompleteChatAsync(
-            request.Messages.Select(ConvertMessage),
-            new ChatCompletionOptions
-            {
-                MaxOutputTokenCount = request.MaxOutputTokens
-            },
-            timeout.Token);
+        _logger.LogInformation(
+            "Starting model operation {Operation} with {Provider}/{ModelId}. TimeoutSeconds={TimeoutSeconds}.",
+            request.Operation,
+            settings.Provider,
+            settings.ModelId,
+            settings.RequestTimeoutSeconds);
 
-        var content = string.Concat(completion.Content.Select(part => part.Text));
-        return new ModelChatResponse(
-            content,
-            new ModelTokenUsage(
+        try
+        {
+            ChatCompletion completion = await client.CompleteChatAsync(
+                request.Messages.Select(ConvertMessage),
+                new ChatCompletionOptions
+                {
+                    MaxOutputTokenCount = request.MaxOutputTokens
+                },
+                timeout.Token);
+
+            var content = string.Concat(completion.Content.Select(part => part.Text));
+            _logger.LogInformation(
+                "Completed model operation {Operation} with {Provider}/{ModelId}. ResponseChars={ResponseChars}.",
                 request.Operation,
+                settings.Provider,
                 settings.ModelId,
-                InputTokens: null,
-                OutputTokens: null,
-                TotalTokens: null));
+                content.Length);
+
+            return new ModelChatResponse(
+                content,
+                new ModelTokenUsage(
+                    request.Operation,
+                    settings.ModelId,
+                    InputTokens: null,
+                    OutputTokens: null,
+                    TotalTokens: null));
+        }
+        catch (AggregateException ex) when (IsTimeoutException(ex) && !cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                ex,
+                "Timed out model operation {Operation} with {Provider}/{ModelId} after {TimeoutSeconds} seconds.",
+                request.Operation,
+                settings.Provider,
+                settings.ModelId,
+                settings.RequestTimeoutSeconds);
+
+            throw new TimeoutException(
+                $"Model operation '{request.Operation}' exceeded {settings.RequestTimeoutSeconds} seconds.",
+                ex);
+        }
+        catch (OperationCanceledException ex) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                ex,
+                "Timed out model operation {Operation} with {Provider}/{ModelId} after {TimeoutSeconds} seconds.",
+                request.Operation,
+                settings.Provider,
+                settings.ModelId,
+                settings.RequestTimeoutSeconds);
+
+            throw new TimeoutException(
+                $"Model operation '{request.Operation}' exceeded {settings.RequestTimeoutSeconds} seconds.",
+                ex);
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                ex,
+                "Model operation {Operation} failed with {Provider}/{ModelId}.",
+                request.Operation,
+                settings.Provider,
+                settings.ModelId);
+
+            throw new ModelProviderException(
+                $"Model operation '{request.Operation}' failed while calling {settings.Provider}.",
+                ex);
+        }
     }
 
     private static ChatClient CreateClient(ModelRoleSettings settings)
@@ -59,8 +124,23 @@ public sealed class OpenAICompatibleModelChatClient : IModelChatClient
             new ApiKeyCredential(apiKey),
             new OpenAIClientOptions
             {
-                Endpoint = new Uri(settings.Endpoint)
+                Endpoint = new Uri(settings.Endpoint),
+                NetworkTimeout = TimeSpan.FromSeconds(settings.RequestTimeoutSeconds),
+                RetryPolicy = new ClientRetryPolicy(maxRetries: 0)
             });
+    }
+
+    private static bool IsTimeoutException(Exception ex)
+    {
+        return ex switch
+        {
+            TimeoutException => true,
+            TaskCanceledException => true,
+            OperationCanceledException => true,
+            AggregateException aggregate => aggregate.Flatten().InnerExceptions.Any(IsTimeoutException),
+            _ when ex.InnerException is not null => IsTimeoutException(ex.InnerException),
+            _ => false
+        };
     }
 
     private static void Validate(ModelRoleSettings settings)

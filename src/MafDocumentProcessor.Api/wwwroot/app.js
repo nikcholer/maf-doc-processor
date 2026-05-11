@@ -26,6 +26,8 @@ const fieldLabels = {
 };
 
 let previewUrl = null;
+const maxUploadBytes = 5 * 1024 * 1024;
+const requestTimeoutMs = 210 * 1000;
 
 checkHealth();
 
@@ -74,6 +76,16 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
+  if (file.size > maxUploadBytes) {
+    renderError({
+      code: "file_too_large",
+      message: `Choose an image smaller than ${formatBytes(maxUploadBytes)}.`,
+      target: "image",
+      traceId: "-"
+    });
+    return;
+  }
+
   const body = new FormData();
   body.append("image", file);
 
@@ -83,6 +95,8 @@ form.addEventListener("submit", async (event) => {
   }
 
   setBusy(true);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
 
   try {
     const response = await fetch("/api/documents/process", {
@@ -90,7 +104,8 @@ form.addEventListener("submit", async (event) => {
       headers: {
         "X-Correlation-ID": crypto.randomUUID()
       },
-      body
+      body,
+      signal: controller.signal
     });
     const payload = await response.json();
 
@@ -102,12 +117,17 @@ form.addEventListener("submit", async (event) => {
     renderSuccess(payload);
   } catch (error) {
     renderError({
-      code: "request_failed",
-      message: error instanceof Error ? error.message : "The request failed.",
+      code: error instanceof DOMException && error.name === "AbortError"
+        ? "request_timeout"
+        : "request_failed",
+      message: error instanceof DOMException && error.name === "AbortError"
+        ? "Processing exceeded three and a half minutes. Check the API terminal logs for the last completed stage."
+        : error instanceof Error ? error.message : "The request failed.",
       target: null,
       traceId: "-"
     });
   } finally {
+    clearTimeout(timeoutId);
     setBusy(false);
   }
 });
