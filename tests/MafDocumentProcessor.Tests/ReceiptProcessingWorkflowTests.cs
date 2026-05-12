@@ -20,7 +20,8 @@ public sealed class ReceiptProcessingWorkflowTests
                 "Visa",
                 "GBP")),
             shoppingListExtractor,
-            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
+            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"),
+            new PassThroughImagePreprocessor());
 
         var result = await workflow.RunAsync(CreateReceiptRequest());
 
@@ -95,7 +96,8 @@ public sealed class ReceiptProcessingWorkflowTests
             new FakeDocumentClassifier(DocumentCategory.ShoppingList, 0.88m),
             receiptExtractor,
             shoppingListExtractor,
-            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
+            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"),
+            new PassThroughImagePreprocessor());
 
         var result = await workflow.RunAsync(CreateReceiptRequest());
 
@@ -164,7 +166,8 @@ public sealed class ReceiptProcessingWorkflowTests
             classifier,
             receiptExtractor,
             new FakeShoppingListExtractor(CreateShoppingList()),
-            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"));
+            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"),
+            new PassThroughImagePreprocessor());
     }
 
     private static FileRequest CreateReceiptRequest()
@@ -235,6 +238,26 @@ public sealed class ReceiptProcessingWorkflowTests
             return ValueTask.FromResult(new ModelResult<ShoppingListData>(
                 shoppingList,
                 new ModelTokenUsage("shopping_list_extraction", "test-shopping-list-extractor", 4, 8, 12, 0.20m, 0.50m, 0.0000008m, 0.000004m, 0.0000048m)));
+        }
+    }
+
+    private sealed class PassThroughImagePreprocessor : IModelImagePreprocessor
+    {
+        public ValueTask<ModelImagePreprocessingResult> PreprocessAsync(
+            FileRequest request,
+            ModelImagePreprocessingPurpose purpose,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(new ModelImagePreprocessingResult(
+                request,
+                purpose,
+                WasResized: false,
+                OriginalWidth: 1,
+                OriginalHeight: 1,
+                Width: 1,
+                Height: 1,
+                request.FileSizeBytes,
+                request.FileSizeBytes));
         }
     }
 }

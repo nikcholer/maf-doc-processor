@@ -24,6 +24,27 @@ public sealed class ApiDemoTests
     }
 
     [Fact]
+    public void LoadModelImagePreprocessingSettings_UsesConfiguredValues()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ModelImagePreprocessing:Enabled"] = "true",
+                ["ModelImagePreprocessing:ClassificationMaxLongEdgePixels"] = "960",
+                ["ModelImagePreprocessing:ExtractionMaxLongEdgePixels"] = "1800",
+                ["ModelImagePreprocessing:JpegQuality"] = "82"
+            })
+            .Build();
+
+        var settings = ApiConfigurationLoader.LoadModelImagePreprocessingSettings(configuration);
+
+        Assert.True(settings.Enabled);
+        Assert.Equal(960, settings.ClassificationMaxLongEdgePixels);
+        Assert.Equal(1800, settings.ExtractionMaxLongEdgePixels);
+        Assert.Equal(82, settings.JpegQuality);
+    }
+
+    [Fact]
     public void DocumentImageValidator_AcceptsConfiguredPngUpload()
     {
         var validator = new DocumentImageValidator();

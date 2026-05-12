@@ -21,8 +21,10 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddSingleton(intakeSettings);
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadAiModelSettings(builder.Configuration));
+builder.Services.AddSingleton(ApiConfigurationLoader.LoadModelImagePreprocessingSettings(builder.Configuration));
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadReceiptPolicyOptions(builder.Configuration));
 builder.Services.AddSingleton<DocumentImageValidator>();
+builder.Services.AddSingleton<IModelImagePreprocessor, ModelImagePreprocessor>();
 builder.Services.AddSingleton<IModelChatClient, OpenAICompatibleModelChatClient>();
 builder.Services.AddScoped<IDocumentClassifier>(sp =>
 {

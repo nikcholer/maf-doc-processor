@@ -9,28 +9,62 @@ public sealed class DocumentProcessingWorkflow(
     IDocumentClassifier classifier,
     IReceiptExtractor receiptExtractor,
     IShoppingListExtractor shoppingListExtractor,
-    ReceiptPolicyOptions policyOptions)
+    ReceiptPolicyOptions policyOptions,
+    IModelImagePreprocessor? imagePreprocessor = null)
 {
+    private readonly IModelImagePreprocessor _imagePreprocessor =
+        imagePreprocessor ?? ModelImagePreprocessor.CreateDefault();
+
     public async Task<DocumentProcessingResult> RunAsync(
         FileRequest request,
         CancellationToken cancellationToken = default)
     {
-        var classification = await classifier.ClassifyAsync(request, cancellationToken);
-        var classifiedDocument = new ClassifiedDocument(
+        var classificationImage = await _imagePreprocessor.PreprocessAsync(
             request,
-            DocumentMetadata.FromRequest(
-                request,
-                classification.Usage.ModelId,
-                classification.Value.Confidence),
-            classification.Value,
-            classification.Usage);
+            ModelImagePreprocessingPurpose.Classification,
+            cancellationToken);
+        var classification = await classifier.ClassifyAsync(
+            classificationImage.Request,
+            cancellationToken);
+        var metadata = DocumentMetadata.FromRequest(
+            request,
+            classification.Usage.ModelId,
+            classification.Value.Confidence);
 
-        return classifiedDocument.Classification.Category switch
+        return classification.Value.Category switch
         {
-            DocumentCategory.Receipt => await RunReceiptWorkflowAsync(classifiedDocument, cancellationToken),
-            DocumentCategory.ShoppingList => await RunShoppingListWorkflowAsync(classifiedDocument, cancellationToken),
-            _ => CreateUnsupportedDocumentResult(classifiedDocument)
+            DocumentCategory.Receipt => await RunReceiptWorkflowAsync(
+                await CreateClassifiedDocumentForExtractionAsync(request, metadata, classification, cancellationToken),
+                cancellationToken),
+            DocumentCategory.ShoppingList => await RunShoppingListWorkflowAsync(
+                await CreateClassifiedDocumentForExtractionAsync(request, metadata, classification, cancellationToken),
+                cancellationToken),
+            _ => CreateUnsupportedDocumentResult(new ClassifiedDocument(
+                classificationImage.Request,
+                metadata,
+                classification.Value,
+                classification.Usage,
+                request))
         };
+    }
+
+    private async ValueTask<ClassifiedDocument> CreateClassifiedDocumentForExtractionAsync(
+        FileRequest originalRequest,
+        DocumentMetadata metadata,
+        ModelResult<DocumentClassification> classification,
+        CancellationToken cancellationToken)
+    {
+        var extractionImage = await _imagePreprocessor.PreprocessAsync(
+            originalRequest,
+            ModelImagePreprocessingPurpose.Extraction,
+            cancellationToken);
+
+        return new ClassifiedDocument(
+            extractionImage.Request,
+            metadata,
+            classification.Value,
+            classification.Usage,
+            originalRequest);
     }
 
     private async Task<DocumentProcessingResult> RunReceiptWorkflowAsync(
@@ -87,7 +121,17 @@ public sealed class DocumentProcessingWorkflow(
             classifiedDocument,
             cancellationToken: cancellationToken);
 
-        return run.NewEvents
+        var events = run.NewEvents.ToArray();
+        var error = events
+            .OfType<WorkflowErrorEvent>()
+            .LastOrDefault();
+        if (error is not null)
+        {
+            throw error.Exception
+                ?? new InvalidOperationException("Workflow failed without reporting an exception.");
+        }
+
+        return events
             .OfType<WorkflowOutputEvent>()
             .Select(evt => evt.Data)
             .OfType<DocumentProcessingResult>()

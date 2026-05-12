@@ -5,6 +5,7 @@ namespace MafDocumentProcessor.Api.Configuration;
 public static class ApiConfigurationLoader
 {
     private const string AiModelsSectionName = "AiModels";
+    private const string ModelImagePreprocessingSectionName = "ModelImagePreprocessing";
     private const string DocumentIntakeSectionName = "DocumentIntake";
     private const string ReceiptPolicySectionName = "ReceiptPolicy";
 
@@ -36,6 +37,23 @@ public static class ApiConfigurationLoader
                 .Get<string[]>()
                 ?? defaults.AllowedExtensions
         };
+    }
+
+    public static ModelImagePreprocessingSettings LoadModelImagePreprocessingSettings(
+        IConfiguration configuration)
+    {
+        var defaults = new ModelImagePreprocessingSettings();
+        var section = configuration.GetSection(ModelImagePreprocessingSectionName);
+
+        return new ModelImagePreprocessingSettings(
+            section.GetValue<bool?>(nameof(ModelImagePreprocessingSettings.Enabled))
+                ?? defaults.Enabled,
+            section.GetValue<int?>(nameof(ModelImagePreprocessingSettings.ClassificationMaxLongEdgePixels))
+                ?? defaults.ClassificationMaxLongEdgePixels,
+            section.GetValue<int?>(nameof(ModelImagePreprocessingSettings.ExtractionMaxLongEdgePixels))
+                ?? defaults.ExtractionMaxLongEdgePixels,
+            section.GetValue<int?>(nameof(ModelImagePreprocessingSettings.JpegQuality))
+                ?? defaults.JpegQuality);
     }
 
     public static ReceiptPolicyOptions LoadReceiptPolicyOptions(IConfiguration configuration)

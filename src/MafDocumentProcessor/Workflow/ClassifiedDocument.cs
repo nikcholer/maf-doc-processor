@@ -6,4 +6,5 @@ public sealed record ClassifiedDocument(
     FileRequest Request,
     DocumentMetadata Metadata,
     DocumentClassification Classification,
-    ModelTokenUsage ClassificationUsage);
+    ModelTokenUsage ClassificationUsage,
+    FileRequest? OriginalRequest = null);
