@@ -16,7 +16,7 @@ The target architecture should use:
 
 - `Microsoft.Agents.AI` for the core agent abstraction.
 - `Microsoft.Agents.AI.Workflows` for graph-based workflows and executors.
-- `Microsoft.Extensions.AI` as the shared AI abstraction layer.
+- A small local `IModelChatClient` abstraction for the MVP model boundary. `Microsoft.Extensions.AI` remains a possible later migration target, but is not used while TogetherAI-specific protocol options are required.
 - Provider-specific packages selected after the model/provider decision.
 - Durable Task integration only after the in-memory workflow is working end to end.
 
@@ -77,7 +77,6 @@ Initial package pins:
 - `Microsoft.Agents.AI` `1.4.0`
 - `Microsoft.Agents.AI.Workflows` `1.4.0`
 - `Microsoft.Agents.AI.OpenAI` `1.4.0`
-- `Microsoft.Extensions.AI` `10.5.2`
 - `OpenAI` `2.10.0`
 - Target framework: `net8.0`
 
@@ -87,7 +86,7 @@ Initial package pins:
 - [x] Add Agent Framework package references:
   - [x] `Microsoft.Agents.AI`
   - [x] `Microsoft.Agents.AI.Workflows`
-  - [x] `Microsoft.Extensions.AI`
+  - [x] selected provider client: `OpenAI`
   - [x] selected provider package: `Microsoft.Agents.AI.OpenAI`
 - [x] Define core domain records:
   - [x] `FileRequest`
@@ -133,22 +132,18 @@ Initial package pins:
 - [x] Add shopping list as a candidate second document type if a non-receipt type is needed.
 - [x] Add retry policy for transient model/provider failures.
 - [ ] Add validation-based repair or re-run flow.
-- [ ] Add workflow event logging.
+- [x] Add workflow event logging.
 - [ ] Add token, latency, and model-call telemetry:
   - [x] Capture provider-reported input, output, and total token counts per model call.
   - [x] Estimate per-run USD cost from configurable per-role pricing.
   - [x] Capture per-model-call latency.
-  - [ ] Emit structured workflow/model-call telemetry events.
-- [ ] Resolve the unused `DocumentClassificationExecutor`:
-  - [ ] delete it if classification remains outside the MAF graph, or
-  - [ ] use it in a single top-level workflow with conditional routing.
-- [ ] Decide whether `Microsoft.Extensions.AI` is a real abstraction target:
-  - [ ] migrate `IModelChatClient` toward `IChatClient`, or
-  - [ ] remove/defer the package and document the custom abstraction.
-- [ ] Reuse/cache OpenAI-compatible `ChatClient` instances per model settings key.
-- [ ] Thread request-scoped correlation or operation IDs through workflow and model-call logs.
-- [ ] Clarify the `TextTesting` model role by wiring its first text-only task or documenting it as reserved config.
-- [ ] Add a repo `README.md` for setup, running, test commands, config, and demo scope.
+  - [x] Emit structured workflow/model-call telemetry events.
+- [x] Resolve the unused `DocumentClassificationExecutor`: deleted because classification intentionally remains outside the MAF graph before routing to document-specific workflows.
+- [x] Decide whether `Microsoft.Extensions.AI` is a real abstraction target: deferred for now; V2 keeps the custom `IModelChatClient` abstraction because TogetherAI-specific protocol options are required.
+- [x] Reuse/cache OpenAI-compatible `ChatClient` instances per model settings key.
+- [x] Thread request-scoped correlation or operation IDs through workflow and model-call logs.
+- [x] Clarify the `TextTesting` model role by documenting it as reserved config.
+- [x] Add a repo `README.md` for setup, running, test commands, config, and demo scope.
 
 ### P2.5 - Hardening
 

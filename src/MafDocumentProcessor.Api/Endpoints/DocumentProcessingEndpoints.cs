@@ -28,6 +28,13 @@ public static class DocumentProcessingEndpoints
     {
         var logger = loggerFactory.CreateLogger("DocumentProcessing");
         var elapsed = Stopwatch.StartNew();
+        using var logScope = logger.BeginScope(new Dictionary<string, object?>
+        {
+            ["TraceId"] = request.HttpContext.TraceIdentifier,
+            ["CorrelationId"] = request.Headers.TryGetValue("X-Correlation-ID", out var correlationId)
+                ? correlationId.ToString()
+                : null
+        });
         logger.LogInformation(
             "Received document processing request {TraceId}. ContentLength={ContentLength}.",
             request.HttpContext.TraceIdentifier,

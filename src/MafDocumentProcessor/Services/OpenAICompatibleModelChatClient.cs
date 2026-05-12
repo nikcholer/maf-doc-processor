@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections.Concurrent;
 using MafDocumentProcessor.Configuration;
 using MafDocumentProcessor.Domain;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ public sealed class OpenAICompatibleModelChatClient(
 {
     private readonly ILogger<OpenAICompatibleModelChatClient> _logger =
         logger ?? NullLogger<OpenAICompatibleModelChatClient>.Instance;
+    private readonly ConcurrentDictionary<string, ChatClient> _clients = new(StringComparer.Ordinal);
     private static readonly JsonSerializerOptions ProtocolJsonOptions = new(JsonSerializerDefaults.Web);
 
     private static readonly HashSet<string> SupportedProviders = new(StringComparer.OrdinalIgnoreCase)
@@ -32,7 +34,7 @@ public sealed class OpenAICompatibleModelChatClient(
         var settings = request.Settings;
         Validate(settings);
 
-        var client = CreateClient(settings);
+        var client = GetClient(settings);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(settings.RequestTimeoutSeconds));
 
@@ -235,6 +237,22 @@ public sealed class OpenAICompatibleModelChatClient(
             _ => throw new ModelConfigurationException(
                 $"Unsupported chat content part '{part.GetType().Name}'.")
         };
+    }
+
+    private ChatClient GetClient(ModelRoleSettings settings)
+    {
+        return _clients.GetOrAdd(CreateClientCacheKey(settings), _ => CreateClient(settings));
+    }
+
+    private static string CreateClientCacheKey(ModelRoleSettings settings)
+    {
+        return string.Join(
+            '\u001f',
+            settings.Provider,
+            settings.Endpoint,
+            settings.ModelId,
+            settings.ApiKeyEnvironmentVariable,
+            settings.RequestTimeoutSeconds.ToString());
     }
 
     private static ChatClient CreateClient(ModelRoleSettings settings)

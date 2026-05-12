@@ -20,6 +20,8 @@ All roles use:
 
 Legacy `AiModels:ImageRecognition` config is still accepted as a fallback for classification and extraction, but new config should use `DocumentClassification` and `DocumentExtraction`.
 
+`TextTesting` is reserved configuration for future text-only experiments. The current demo path uses `DocumentClassification` and `DocumentExtraction`.
+
 Set the user-level API key in PowerShell:
 
 ```powershell

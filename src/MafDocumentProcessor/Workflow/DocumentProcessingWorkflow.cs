@@ -4,6 +4,8 @@ using MafDocumentProcessor.Configuration;
 using MafDocumentProcessor.Domain;
 using MafDocumentProcessor.Services;
 using Microsoft.Agents.AI.Workflows;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MafDocumentProcessor.Workflow;
 
@@ -12,10 +14,13 @@ public sealed class DocumentProcessingWorkflow(
     IReceiptExtractor receiptExtractor,
     IShoppingListExtractor shoppingListExtractor,
     ReceiptPolicyOptions policyOptions,
-    IModelImagePreprocessor? imagePreprocessor = null)
+    IModelImagePreprocessor? imagePreprocessor = null,
+    ILogger<DocumentProcessingWorkflow>? logger = null)
 {
     private readonly IModelImagePreprocessor _imagePreprocessor =
         imagePreprocessor ?? ModelImagePreprocessor.CreateDefault();
+    private readonly ILogger<DocumentProcessingWorkflow> _logger =
+        logger ?? NullLogger<DocumentProcessingWorkflow>.Instance;
 
     public async Task<DocumentProcessingResult> RunAsync(
         FileRequest request,
@@ -28,10 +33,20 @@ public sealed class DocumentProcessingWorkflow(
         var classification = await classifier.ClassifyAsync(
             classificationImage.Request,
             cancellationToken);
+        _logger.LogInformation(
+            "Document classified as {Category} with confidence {Confidence} using {ModelId}.",
+            classification.Value.Category,
+            classification.Value.Confidence,
+            classification.Usage.ModelId);
         var metadata = DocumentMetadata.FromRequest(
             request,
             classification.Usage.ModelId,
             classification.Value.Confidence);
+
+        _logger.LogInformation(
+            "Routing document {FileName} to {Category} workflow.",
+            request.FileName,
+            classification.Value.Category);
 
         return classification.Value.Category switch
         {
@@ -87,7 +102,7 @@ public sealed class DocumentProcessingWorkflow(
             .WithDescription("Extracts, validates, and evaluates a receipt image.")
             .Build();
 
-        return await RunWorkflowAsync(workflow, classifiedDocument, cancellationToken)
+        return await RunWorkflowAsync(workflow, "Receipt Processing", classifiedDocument, _logger, cancellationToken)
             ?? throw new InvalidOperationException(
                 "Receipt workflow completed without a document processing result.");
     }
@@ -108,22 +123,41 @@ public sealed class DocumentProcessingWorkflow(
             .WithDescription("Extracts and validates shopping list items from an image.")
             .Build();
 
-        return await RunWorkflowAsync(workflow, classifiedDocument, cancellationToken)
+        return await RunWorkflowAsync(workflow, "Shopping List Processing", classifiedDocument, _logger, cancellationToken)
             ?? throw new InvalidOperationException(
                 "Shopping list workflow completed without a document processing result.");
     }
 
     private static async Task<DocumentProcessingResult?> RunWorkflowAsync(
         Microsoft.Agents.AI.Workflows.Workflow workflow,
+        string workflowName,
         ClassifiedDocument classifiedDocument,
+        ILogger logger,
         CancellationToken cancellationToken)
     {
+        logger.LogInformation(
+            "Starting MAF workflow {WorkflowName} for {FileName}.",
+            workflowName,
+            classifiedDocument.OriginalRequest?.FileName ?? classifiedDocument.Request.FileName);
+
         var run = await InProcessExecution.RunAsync(
             workflow,
             classifiedDocument,
             cancellationToken: cancellationToken);
 
         var events = run.NewEvents.ToArray();
+        logger.LogInformation(
+            "MAF workflow {WorkflowName} emitted {EventCount} events.",
+            workflowName,
+            events.Length);
+        foreach (var evt in events)
+        {
+            logger.LogDebug(
+                "MAF workflow event {WorkflowName}: {EventType}.",
+                workflowName,
+                evt.GetType().Name);
+        }
+
         var error = events
             .OfType<WorkflowErrorEvent>()
             .LastOrDefault();
@@ -131,14 +165,24 @@ public sealed class DocumentProcessingWorkflow(
         {
             var exception = UnwrapWorkflowException(error.Exception)
                 ?? new InvalidOperationException("Workflow failed without reporting an exception.");
+            logger.LogWarning(
+                exception,
+                "MAF workflow {WorkflowName} reported an error event.",
+                workflowName);
             ExceptionDispatchInfo.Capture(exception).Throw();
         }
 
-        return events
+        var result = events
             .OfType<WorkflowOutputEvent>()
             .Select(evt => evt.Data)
             .OfType<DocumentProcessingResult>()
             .LastOrDefault();
+        logger.LogInformation(
+            "Completed MAF workflow {WorkflowName}. HasResult={HasResult}.",
+            workflowName,
+            result is not null);
+
+        return result;
     }
 
     private static Exception? UnwrapWorkflowException(Exception? exception)
