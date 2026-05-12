@@ -11,5 +11,9 @@ public sealed record ModelRoleSettings(
     decimal? OutputTokenPricePerMillionUsd = null);
 
 public sealed record AiModelSettings(
-    ModelRoleSettings ImageRecognition,
-    ModelRoleSettings TextTesting);
+    ModelRoleSettings DocumentClassification,
+    ModelRoleSettings DocumentExtraction,
+    ModelRoleSettings TextTesting)
+{
+    public ModelRoleSettings ImageRecognition => DocumentClassification;
+}

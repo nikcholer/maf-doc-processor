@@ -11,13 +11,14 @@ public static class HealthEndpoints
         endpoints.MapGet("/health", (AiModelSettings settings) =>
         {
             var apiKeyConfigured =
-                ApiKeyEnvironment.HasApiKey(settings.ImageRecognition.ApiKeyEnvironmentVariable)
+                ApiKeyEnvironment.HasApiKey(settings.DocumentClassification.ApiKeyEnvironmentVariable)
+                && ApiKeyEnvironment.HasApiKey(settings.DocumentExtraction.ApiKeyEnvironmentVariable)
                 && ApiKeyEnvironment.HasApiKey(settings.TextTesting.ApiKeyEnvironmentVariable);
 
             return Results.Ok(new HealthResponse(
                 apiKeyConfigured ? "ready" : "missing_api_key",
-                settings.ImageRecognition.Provider,
-                settings.ImageRecognition.ModelId,
+                settings.DocumentClassification.Provider,
+                settings.DocumentClassification.ModelId,
                 settings.TextTesting.ModelId,
                 apiKeyConfigured));
         });

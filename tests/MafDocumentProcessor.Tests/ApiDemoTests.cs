@@ -8,19 +8,43 @@ namespace MafDocumentProcessor.Tests;
 public sealed class ApiDemoTests
 {
     [Fact]
-    public void LoadAiModelSettings_UsesTogetherGemma4Defaults()
+    public void LoadAiModelSettings_UsesTogetherDefaults()
     {
         var configuration = new ConfigurationBuilder().Build();
 
         var settings = ApiConfigurationLoader.LoadAiModelSettings(configuration);
 
-        Assert.Equal("TogetherAI", settings.ImageRecognition.Provider);
-        Assert.Equal("https://api.together.ai/v1", settings.ImageRecognition.Endpoint);
-        Assert.Equal("google/gemma-4-31B-it", settings.ImageRecognition.ModelId);
-        Assert.Equal("TOGETHER_API_KEY", settings.ImageRecognition.ApiKeyEnvironmentVariable);
-        Assert.Equal(0.20m, settings.ImageRecognition.InputTokenPricePerMillionUsd);
-        Assert.Equal(0.50m, settings.ImageRecognition.OutputTokenPricePerMillionUsd);
+        Assert.Equal("TogetherAI", settings.DocumentClassification.Provider);
+        Assert.Equal("https://api.together.ai/v1", settings.DocumentClassification.Endpoint);
+        Assert.Equal("Qwen/Qwen3.5-9B", settings.DocumentClassification.ModelId);
+        Assert.Equal("TOGETHER_API_KEY", settings.DocumentClassification.ApiKeyEnvironmentVariable);
+        Assert.Equal(0.10m, settings.DocumentClassification.InputTokenPricePerMillionUsd);
+        Assert.Equal(0.15m, settings.DocumentClassification.OutputTokenPricePerMillionUsd);
+        Assert.Equal("google/gemma-4-31B-it", settings.DocumentExtraction.ModelId);
         Assert.Equal("google/gemma-4-31B-it", settings.TextTesting.ModelId);
+    }
+
+    [Fact]
+    public void LoadAiModelSettings_UsesLegacyImageRecognitionForClassificationAndExtraction()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AiModels:ImageRecognition:ModelId"] = "legacy/image-model",
+                ["AiModels:ImageRecognition:ServiceId"] = "legacy-image",
+                ["AiModels:ImageRecognition:InputTokenPricePerMillionUsd"] = "1.23",
+                ["AiModels:ImageRecognition:OutputTokenPricePerMillionUsd"] = "4.56"
+            })
+            .Build();
+
+        var settings = ApiConfigurationLoader.LoadAiModelSettings(configuration);
+
+        Assert.Equal("legacy/image-model", settings.DocumentClassification.ModelId);
+        Assert.Equal("legacy/image-model", settings.DocumentExtraction.ModelId);
+        Assert.Equal("legacy-image", settings.DocumentClassification.ServiceId);
+        Assert.Equal("legacy-image", settings.DocumentExtraction.ServiceId);
+        Assert.Equal(1.23m, settings.DocumentClassification.InputTokenPricePerMillionUsd);
+        Assert.Equal(4.56m, settings.DocumentExtraction.OutputTokenPricePerMillionUsd);
     }
 
     [Fact]

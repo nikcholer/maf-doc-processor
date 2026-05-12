@@ -11,11 +11,19 @@ public static class ApiConfigurationLoader
 
     public static AiModelSettings LoadAiModelSettings(IConfiguration configuration)
     {
-        var defaults = AiModelSettingsDefaults.CreateTogetherGemma4();
+        var defaults = AiModelSettingsDefaults.CreateTogetherDefaults();
         var section = configuration.GetSection(AiModelsSectionName);
+        var legacyImageRecognition = section.GetSection("ImageRecognition");
+        var classificationDefaults = legacyImageRecognition.Exists()
+            ? LoadModelRole(legacyImageRecognition, defaults.DocumentClassification)
+            : defaults.DocumentClassification;
+        var extractionDefaults = legacyImageRecognition.Exists()
+            ? LoadModelRole(legacyImageRecognition, defaults.DocumentExtraction)
+            : defaults.DocumentExtraction;
 
         return new AiModelSettings(
-            LoadModelRole(section.GetSection(nameof(AiModelSettings.ImageRecognition)), defaults.ImageRecognition),
+            LoadModelRole(section.GetSection(nameof(AiModelSettings.DocumentClassification)), classificationDefaults),
+            LoadModelRole(section.GetSection(nameof(AiModelSettings.DocumentExtraction)), extractionDefaults),
             LoadModelRole(section.GetSection(nameof(AiModelSettings.TextTesting)), defaults.TextTesting));
     }
 

@@ -31,21 +31,21 @@ builder.Services.AddScoped<IDocumentClassifier>(sp =>
     var settings = sp.GetRequiredService<AiModelSettings>();
     return new ModelDocumentClassifier(
         sp.GetRequiredService<IModelChatClient>(),
-        settings.ImageRecognition);
+        settings.DocumentClassification);
 });
 builder.Services.AddScoped<IReceiptExtractor>(sp =>
 {
     var settings = sp.GetRequiredService<AiModelSettings>();
     return new ModelReceiptExtractor(
         sp.GetRequiredService<IModelChatClient>(),
-        settings.ImageRecognition);
+        settings.DocumentExtraction);
 });
 builder.Services.AddScoped<IShoppingListExtractor>(sp =>
 {
     var settings = sp.GetRequiredService<AiModelSettings>();
     return new ModelShoppingListExtractor(
         sp.GetRequiredService<IModelChatClient>(),
-        settings.ImageRecognition);
+        settings.DocumentExtraction);
 });
 builder.Services.AddScoped<DocumentProcessingWorkflow>();
 

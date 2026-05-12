@@ -39,7 +39,7 @@ V2 will live in a separate repository so the Semantic Kernel implementation can 
 | D1 | Repository strategy | Decided | Separate V2 repository. The SK repository must be disposable/archivable without impact. |
 | D2 | First document type | Decided | Receipts, matching the old repository. Shopping lists are the candidate second document type if a new type is needed. |
 | D3 | Output schema | Decided for MVP | Match what the old repository currently extracts from receipts. Inventory the old repo before finalizing record names. |
-| D4 | Model/provider | Decided for MVP | Keep model selection in config. Use TogetherAI with Gemma 4 for both image recognition and text/testing initially, while preserving separate role settings so tasks can point to different models later. |
+| D4 | Model/provider | Decided for MVP | Keep model selection in config. Use TogetherAI with Qwen3.5 9B for document classification and Gemma 4 for extraction/text testing initially. |
 | D5 | Hosting model | Decided for MVP | All local. Revisit hosting only if/when external access becomes useful. |
 | D6 | Human review trigger | Partly decided | Human review is required when the model is in doubt on categorization or other key fields. Some document types may require user ownership/attestation after parsing, e.g. an expense claim is submitted by the user, not by the model. |
 | D7 | Multi-agent review | Decided | Post-MVP quality layer, not part of the first vertical slice. |
@@ -66,8 +66,9 @@ V2 will live in a separate repository so the Semantic Kernel implementation can 
 - [x] Decide target .NET version.
 - [x] Pin initial Agent Framework package versions.
 - [x] Define config shape for model selection:
-  - [x] image recognition model, initially Gemma 4
-  - [x] text/test model, initially a GPT mini model
+  - [x] document classification model, initially Qwen3.5 9B
+  - [x] document extraction model, initially Gemma 4
+  - [x] text/test model, initially Gemma 4
   - [x] provider endpoints/keys outside source control
 - [x] Document that the V1 test project must currently be run directly because it is not included in the old solution.
 

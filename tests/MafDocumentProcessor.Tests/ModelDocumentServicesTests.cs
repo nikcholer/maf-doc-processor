@@ -20,6 +20,7 @@ public sealed class ModelDocumentServicesTests
         Assert.Equal(0.87m, result.Value.Confidence);
         Assert.Equal("google/gemma-4-31B-it", result.Usage.ModelId);
         Assert.Equal("classification", chatClient.LastRequest?.Operation);
+        Assert.Equal(80, chatClient.LastRequest?.MaxOutputTokens);
         Assert.Equal(settings, chatClient.LastRequest?.Settings);
         Assert.Contains(
             chatClient.LastRequest!.Messages.SelectMany(message => message.Content),
@@ -60,17 +61,20 @@ public sealed class ModelDocumentServicesTests
     }
 
     [Fact]
-    public void CreateTogetherGemma4_PreservesSeparateRoleSettings()
+    public void CreateTogetherDefaults_PreservesSeparateRoleSettings()
     {
-        var settings = AiModelSettingsDefaults.CreateTogetherGemma4();
+        var settings = AiModelSettingsDefaults.CreateTogetherDefaults();
 
-        Assert.Equal("google/gemma-4-31B-it", settings.ImageRecognition.ModelId);
+        Assert.Equal("Qwen/Qwen3.5-9B", settings.DocumentClassification.ModelId);
+        Assert.Equal("google/gemma-4-31B-it", settings.DocumentExtraction.ModelId);
         Assert.Equal("google/gemma-4-31B-it", settings.TextTesting.ModelId);
-        Assert.NotEqual(settings.ImageRecognition.ServiceId, settings.TextTesting.ServiceId);
-        Assert.Equal("TOGETHER_API_KEY", settings.ImageRecognition.ApiKeyEnvironmentVariable);
+        Assert.NotEqual(settings.DocumentClassification.ServiceId, settings.DocumentExtraction.ServiceId);
+        Assert.NotEqual(settings.DocumentExtraction.ServiceId, settings.TextTesting.ServiceId);
+        Assert.Equal("TOGETHER_API_KEY", settings.DocumentClassification.ApiKeyEnvironmentVariable);
+        Assert.Equal("TOGETHER_API_KEY", settings.DocumentExtraction.ApiKeyEnvironmentVariable);
         Assert.Equal("TOGETHER_API_KEY", settings.TextTesting.ApiKeyEnvironmentVariable);
-        Assert.Equal(0.20m, settings.ImageRecognition.InputTokenPricePerMillionUsd);
-        Assert.Equal(0.50m, settings.ImageRecognition.OutputTokenPricePerMillionUsd);
+        Assert.Equal(0.10m, settings.DocumentClassification.InputTokenPricePerMillionUsd);
+        Assert.Equal(0.15m, settings.DocumentClassification.OutputTokenPricePerMillionUsd);
     }
 
     [Fact]

@@ -68,13 +68,14 @@ public static class DocumentProcessingEndpoints
             return BadRequest(request, validationError);
         }
 
-        if (!ApiKeyEnvironment.HasApiKey(aiModelSettings.ImageRecognition.ApiKeyEnvironmentVariable))
+        var missingModelRole = GetMissingModelRole(aiModelSettings);
+        if (missingModelRole is not null)
         {
             return ProcessingError(
                 request,
                 StatusCodes.Status500InternalServerError,
                 "model_configuration_invalid",
-                $"Environment variable '{aiModelSettings.ImageRecognition.ApiKeyEnvironmentVariable}' is required for model role '{aiModelSettings.ImageRecognition.ServiceId}'.");
+                $"Environment variable '{missingModelRole.ApiKeyEnvironmentVariable}' is required for model role '{missingModelRole.ServiceId}'.");
         }
 
         await using var imageStream = image.OpenReadStream();
@@ -205,5 +206,18 @@ public static class DocumentProcessingEndpoints
     private static string? NormalizeOptionalValue(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static ModelRoleSettings? GetMissingModelRole(AiModelSettings settings)
+    {
+        foreach (var role in new[] { settings.DocumentClassification, settings.DocumentExtraction })
+        {
+            if (!ApiKeyEnvironment.HasApiKey(role.ApiKeyEnvironmentVariable))
+            {
+                return role;
+            }
+        }
+
+        return null;
     }
 }

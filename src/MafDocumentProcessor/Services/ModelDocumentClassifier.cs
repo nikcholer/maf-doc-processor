@@ -32,7 +32,7 @@ public sealed class ModelDocumentClassifier(
                             $"Classify this uploaded document image. File: {request.FileName}; content type: {request.ContentType}."),
                         new ModelImageContent(request.Content, request.ContentType))
                 ],
-                MaxOutputTokens: 400),
+                MaxOutputTokens: 80),
             cancellationToken);
 
         return new ModelResult<DocumentClassification>(
