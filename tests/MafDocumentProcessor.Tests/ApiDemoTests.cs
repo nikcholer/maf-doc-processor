@@ -2,6 +2,8 @@ using MafDocumentProcessor.Api.Configuration;
 using MafDocumentProcessor.Api.Services;
 using MafDocumentProcessor.Domain;
 using Microsoft.Extensions.Configuration;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MafDocumentProcessor.Tests;
 
@@ -113,6 +115,20 @@ public sealed class ApiDemoTests
         Assert.Equal(12, response.ModelUsage.TotalTokens);
         Assert.Equal(0.0000048m, response.ModelUsage.EstimatedTotalCostUsd);
         Assert.Equal(1200, response.ModelUsage.TotalDurationMilliseconds);
+    }
+
+    [Fact]
+    public void DocumentProcessingResponseMapper_SerializesModelLatencyForDemoUi()
+    {
+        var response = DocumentProcessingResponseMapper.Map(CreateWorkflowResult());
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+
+        var json = JsonSerializer.Serialize(response, options);
+
+        Assert.Contains("\"totalDurationMilliseconds\":1200", json);
+        Assert.Contains("\"durationMilliseconds\":400", json);
+        Assert.Contains("\"durationMilliseconds\":800", json);
     }
 
     [Fact]

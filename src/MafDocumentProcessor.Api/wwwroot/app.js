@@ -200,9 +200,10 @@ function renderSuccess(payload) {
   resultTitle.textContent = `${payload.category} processed`;
   categoryMetric.textContent = payload.category ?? "-";
   decisionMetric.textContent = decision;
-  tokensMetric.textContent = formatInteger(payload.modelUsage?.totalTokens);
-  latencyMetric.textContent = formatDuration(payload.modelUsage?.totalDurationMilliseconds);
-  costMetric.textContent = formatUsdCost(payload.modelUsage?.estimatedTotalCostUsd);
+  const modelUsage = payload.modelUsage ?? {};
+  tokensMetric.textContent = formatInteger(modelUsage.totalTokens);
+  latencyMetric.textContent = formatDuration(getModelDuration(modelUsage));
+  costMetric.textContent = formatUsdCost(modelUsage.estimatedTotalCostUsd);
   statusPill.textContent = decision;
   statusPill.className = `status-pill ${decision === "Approved" ? "approved" : "review"}`;
 
@@ -372,6 +373,22 @@ function formatDuration(value) {
   return seconds < 10
     ? `${seconds.toFixed(1)} s`
     : `${Math.round(seconds)} s`;
+}
+
+function getModelDuration(modelUsage) {
+  if (modelUsage.totalDurationMilliseconds !== null
+    && modelUsage.totalDurationMilliseconds !== undefined) {
+    return modelUsage.totalDurationMilliseconds;
+  }
+
+  const calls = Array.isArray(modelUsage.calls) ? modelUsage.calls : [];
+  const durations = calls
+    .map((call) => Number(call.durationMilliseconds))
+    .filter(Number.isFinite);
+
+  return durations.length === 0
+    ? null
+    : durations.reduce((total, duration) => total + duration, 0);
 }
 
 function formatUsdCost(value) {
