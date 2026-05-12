@@ -46,9 +46,7 @@ public sealed class OpenAICompatibleModelChatClient(
         try
         {
             var elapsed = Stopwatch.StartNew();
-            var response = ShouldUseProtocolRequest(settings)
-                ? await CompleteWithProtocolAsync(client, request, timeout.Token)
-                : await CompleteWithTypedClientAsync(client, request, timeout.Token);
+            var response = await CompleteWithRetriesAsync(client, request, timeout.Token);
             elapsed.Stop();
             var content = response.Content ?? string.Empty;
             var usage = response.Usage with
@@ -310,6 +308,18 @@ public sealed class OpenAICompatibleModelChatClient(
                 $"RequestTimeoutSeconds must be greater than zero for model role '{settings.ServiceId}'.");
         }
 
+        if (settings.MaxRetryAttempts < 0)
+        {
+            throw new ModelConfigurationException(
+                $"MaxRetryAttempts must not be negative for model role '{settings.ServiceId}'.");
+        }
+
+        if (settings.RetryBaseDelayMilliseconds < 0)
+        {
+            throw new ModelConfigurationException(
+                $"RetryBaseDelayMilliseconds must not be negative for model role '{settings.ServiceId}'.");
+        }
+
         if (settings.InputTokenPricePerMillionUsd < 0)
         {
             throw new ModelConfigurationException(
@@ -320,6 +330,39 @@ public sealed class OpenAICompatibleModelChatClient(
         {
             throw new ModelConfigurationException(
                 $"OutputTokenPricePerMillionUsd must not be negative for model role '{settings.ServiceId}'.");
+        }
+    }
+
+    private async Task<ModelChatResponse> CompleteWithRetriesAsync(
+        ChatClient client,
+        ModelChatRequest request,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return ShouldUseProtocolRequest(request.Settings)
+                    ? await CompleteWithProtocolAsync(client, request, cancellationToken)
+                    : await CompleteWithTypedClientAsync(client, request, cancellationToken);
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested
+                && attempt <= request.Settings.MaxRetryAttempts
+                && IsTransientModelFailure(ex))
+            {
+                var delay = GetRetryDelay(request.Settings, attempt);
+                _logger.LogWarning(
+                    ex,
+                    "Transient model operation failure for {Operation} with {Provider}/{ModelId}. Attempt {Attempt} of {MaxAttempts}; retrying after {RetryDelayMilliseconds} ms.",
+                    request.Operation,
+                    request.Settings.Provider,
+                    request.Settings.ModelId,
+                    attempt,
+                    request.Settings.MaxRetryAttempts + 1,
+                    delay.TotalMilliseconds);
+
+                await Task.Delay(delay, cancellationToken);
+            }
         }
     }
 
@@ -381,6 +424,29 @@ public sealed class OpenAICompatibleModelChatClient(
             && property.TryGetInt32(out var value)
             ? value
             : null;
+    }
+
+    private static TimeSpan GetRetryDelay(ModelRoleSettings settings, int failedAttempt)
+    {
+        return TimeSpan.FromMilliseconds(settings.RetryBaseDelayMilliseconds * ((2 * failedAttempt) - 1));
+    }
+
+    private static bool IsTransientModelFailure(Exception ex)
+    {
+        return ex switch
+        {
+            ClientResultException clientResultException => IsTransientStatusCode(clientResultException.Status),
+            HttpRequestException => true,
+            IOException => true,
+            AggregateException aggregate => aggregate.Flatten().InnerExceptions.Any(IsTransientModelFailure),
+            _ when ex.InnerException is not null => IsTransientModelFailure(ex.InnerException),
+            _ => false
+        };
+    }
+
+    private static bool IsTransientStatusCode(int statusCode)
+    {
+        return statusCode is 0 or 408 or 429 or 500 or 502 or 503 or 504;
     }
 
     private static decimal? EstimateCost(int? tokens, decimal? pricePerMillionUsd)

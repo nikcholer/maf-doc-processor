@@ -89,6 +89,10 @@ public static class ApiConfigurationLoader
             section.GetValue<string>(nameof(ModelRoleSettings.ServiceId)) ?? defaults.ServiceId,
             section.GetValue<int?>(nameof(ModelRoleSettings.RequestTimeoutSeconds))
                 ?? defaults.RequestTimeoutSeconds,
+            section.GetValue<int?>(nameof(ModelRoleSettings.MaxRetryAttempts))
+                ?? defaults.MaxRetryAttempts,
+            section.GetValue<int?>(nameof(ModelRoleSettings.RetryBaseDelayMilliseconds))
+                ?? defaults.RetryBaseDelayMilliseconds,
             section.GetValue<decimal?>(nameof(ModelRoleSettings.InputTokenPricePerMillionUsd))
                 ?? defaults.InputTokenPricePerMillionUsd,
             section.GetValue<decimal?>(nameof(ModelRoleSettings.OutputTokenPricePerMillionUsd))

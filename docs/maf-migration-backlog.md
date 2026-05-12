@@ -131,7 +131,7 @@ Initial package pins:
 
 - [x] Add conditional routing by document type.
 - [x] Add shopping list as a candidate second document type if a non-receipt type is needed.
-- [ ] Add retry policy for transient model/provider failures.
+- [x] Add retry policy for transient model/provider failures.
 - [ ] Add validation-based repair or re-run flow.
 - [ ] Add workflow event logging.
 - [ ] Add token, latency, and model-call telemetry:

@@ -15,6 +15,8 @@ All roles use:
 - Provider: `TogetherAI`
 - Endpoint: `https://api.together.ai/v1`
 - API key environment variable: `TOGETHER_API_KEY`
+- Request timeout: `60` seconds
+- Transient retry policy: `2` retries, starting at `500` ms backoff
 
 Legacy `AiModels:ImageRecognition` config is still accepted as a fallback for classification and extraction, but new config should use `DocumentClassification` and `DocumentExtraction`.
 

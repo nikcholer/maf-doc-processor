@@ -7,6 +7,8 @@ public sealed record ModelRoleSettings(
     string ApiKeyEnvironmentVariable,
     string ServiceId,
     int RequestTimeoutSeconds = 60,
+    int MaxRetryAttempts = 2,
+    int RetryBaseDelayMilliseconds = 500,
     decimal? InputTokenPricePerMillionUsd = null,
     decimal? OutputTokenPricePerMillionUsd = null);
 

@@ -20,9 +20,15 @@ public sealed class ApiDemoTests
         Assert.Equal("https://api.together.ai/v1", settings.DocumentClassification.Endpoint);
         Assert.Equal("Qwen/Qwen3.5-9B", settings.DocumentClassification.ModelId);
         Assert.Equal("TOGETHER_API_KEY", settings.DocumentClassification.ApiKeyEnvironmentVariable);
+        Assert.Equal(60, settings.DocumentClassification.RequestTimeoutSeconds);
+        Assert.Equal(2, settings.DocumentClassification.MaxRetryAttempts);
+        Assert.Equal(500, settings.DocumentClassification.RetryBaseDelayMilliseconds);
         Assert.Equal(0.10m, settings.DocumentClassification.InputTokenPricePerMillionUsd);
         Assert.Equal(0.15m, settings.DocumentClassification.OutputTokenPricePerMillionUsd);
         Assert.Equal("Qwen/Qwen3.5-9B", settings.DocumentExtraction.ModelId);
+        Assert.Equal(60, settings.DocumentExtraction.RequestTimeoutSeconds);
+        Assert.Equal(2, settings.DocumentExtraction.MaxRetryAttempts);
+        Assert.Equal(500, settings.DocumentExtraction.RetryBaseDelayMilliseconds);
         Assert.Equal(0.10m, settings.DocumentExtraction.InputTokenPricePerMillionUsd);
         Assert.Equal(0.15m, settings.DocumentExtraction.OutputTokenPricePerMillionUsd);
         Assert.Equal("google/gemma-4-31B-it", settings.TextTesting.ModelId);
@@ -49,6 +55,25 @@ public sealed class ApiDemoTests
         Assert.Equal("legacy-image", settings.DocumentExtraction.ServiceId);
         Assert.Equal(1.23m, settings.DocumentClassification.InputTokenPricePerMillionUsd);
         Assert.Equal(4.56m, settings.DocumentExtraction.OutputTokenPricePerMillionUsd);
+    }
+
+    [Fact]
+    public void LoadAiModelSettings_UsesConfiguredRetryPolicy()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AiModels:DocumentClassification:MaxRetryAttempts"] = "3",
+                ["AiModels:DocumentClassification:RetryBaseDelayMilliseconds"] = "250"
+            })
+            .Build();
+
+        var settings = ApiConfigurationLoader.LoadAiModelSettings(configuration);
+
+        Assert.Equal(3, settings.DocumentClassification.MaxRetryAttempts);
+        Assert.Equal(250, settings.DocumentClassification.RetryBaseDelayMilliseconds);
+        Assert.Equal(2, settings.DocumentExtraction.MaxRetryAttempts);
+        Assert.Equal(500, settings.DocumentExtraction.RetryBaseDelayMilliseconds);
     }
 
     [Fact]
