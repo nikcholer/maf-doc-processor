@@ -11,7 +11,13 @@ public sealed class ReceiptValidationExecutor()
         IWorkflowContext context,
         CancellationToken cancellationToken = default)
     {
-        var receipt = message.Receipt;
+        var validation = Validate(message.Receipt);
+
+        return ValueTask.FromResult(new ValidatedReceiptExtraction(message, validation));
+    }
+
+    public static ValidationResult Validate(ReceiptData receipt)
+    {
         var reasons = new List<string>();
 
         if (string.IsNullOrWhiteSpace(receipt.StoreName))
@@ -29,10 +35,8 @@ public sealed class ReceiptValidationExecutor()
             reasons.Add("Receipt currency code must be a three-letter ISO-4217 code when present.");
         }
 
-        var validation = reasons.Count == 0
+        return reasons.Count == 0
             ? ValidationResult.Valid
             : new ValidationResult(false, reasons);
-
-        return ValueTask.FromResult(new ValidatedReceiptExtraction(message, validation));
     }
 }

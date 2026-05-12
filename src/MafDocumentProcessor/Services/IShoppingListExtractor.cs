@@ -6,5 +6,6 @@ public interface IShoppingListExtractor
 {
     ValueTask<ModelResult<ShoppingListData>> ExtractShoppingListAsync(
         FileRequest request,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        IReadOnlyList<string>? repairInstructions = null);
 }

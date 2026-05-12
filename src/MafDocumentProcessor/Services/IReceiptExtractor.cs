@@ -6,5 +6,6 @@ public interface IReceiptExtractor
 {
     ValueTask<ModelResult<ReceiptData>> ExtractReceiptAsync(
         FileRequest request,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        IReadOnlyList<string>? repairInstructions = null);
 }

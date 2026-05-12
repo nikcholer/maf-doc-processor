@@ -14,10 +14,7 @@ public sealed class ReceiptResultExecutor()
         var extraction = message.ValidatedExtraction.Extraction;
         var classifiedDocument = extraction.ClassifiedDocument;
         var modelUsage = DocumentModelUsage.FromCalls(
-            [
-                classifiedDocument.ClassificationUsage,
-                extraction.ExtractionUsage
-            ]);
+            [classifiedDocument.ClassificationUsage, .. extraction.ExtractionUsages]);
 
         var warnings = message.Validation.IsValid ? [] : message.Validation.Reasons;
 

@@ -45,6 +45,29 @@ public sealed class ModelDocumentServicesTests
     }
 
     [Fact]
+    public async Task ExtractReceiptAsync_IncludesRepairInstructionsWhenProvided()
+    {
+        var chatClient = new CapturingModelChatClient(
+            """{"storeName":"Corner Shop","totalAmount":12.34,"purchaseDate":"2026-05-11","paymentMethod":"Visa","currencyCode":"GBP"}""");
+        var settings = AiModelSettingsDefaults.CreateTogetherGemma4Role("text-testing");
+        var extractor = new ModelReceiptExtractor(chatClient, settings);
+
+        await extractor.ExtractReceiptAsync(
+            CreateReceiptRequest(),
+            CancellationToken.None,
+            ["Receipt store name is missing."]);
+
+        var userText = chatClient.LastRequest!.Messages
+            .Where(message => message.Role == ModelChatRole.User)
+            .SelectMany(message => message.Content)
+            .OfType<ModelTextContent>()
+            .Single()
+            .Text;
+        Assert.Contains("previous extraction failed validation", userText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Receipt store name is missing.", userText);
+    }
+
+    [Fact]
     public async Task ExtractShoppingListAsync_UsesConfiguredRoleAndParsesJson()
     {
         var chatClient = new CapturingModelChatClient(
@@ -58,6 +81,29 @@ public sealed class ModelDocumentServicesTests
         Assert.Equal("milk", result.Value.Items[0].Name);
         Assert.Equal("shopping_list_extraction", chatClient.LastRequest?.Operation);
         Assert.Equal(settings, chatClient.LastRequest?.Settings);
+    }
+
+    [Fact]
+    public async Task ExtractShoppingListAsync_IncludesRepairInstructionsWhenProvided()
+    {
+        var chatClient = new CapturingModelChatClient(
+            """{"title":"Weekly groceries","items":[{"name":"milk","quantity":2,"unit":"pints","isChecked":false}],"notes":null}""");
+        var settings = AiModelSettingsDefaults.CreateTogetherGemma4Role("text-testing");
+        var extractor = new ModelShoppingListExtractor(chatClient, settings);
+
+        await extractor.ExtractShoppingListAsync(
+            CreateReceiptRequest(),
+            CancellationToken.None,
+            ["Shopping list contains no readable items."]);
+
+        var userText = chatClient.LastRequest!.Messages
+            .Where(message => message.Role == ModelChatRole.User)
+            .SelectMany(message => message.Content)
+            .OfType<ModelTextContent>()
+            .Single()
+            .Text;
+        Assert.Contains("previous extraction failed validation", userText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Shopping list contains no readable items.", userText);
     }
 
     [Fact]

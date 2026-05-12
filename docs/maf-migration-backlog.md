@@ -131,9 +131,11 @@ Initial package pins:
 - [x] Add conditional routing by document type.
 - [x] Add shopping list as a candidate second document type if a non-receipt type is needed.
 - [x] Add retry policy for transient model/provider failures.
-- [ ] Add validation-based repair or re-run flow.
+- [x] Add validation-based repair or re-run flow.
+  - Added one bounded re-extraction attempt after validation failures for receipts and shopping lists.
+  - Repair prompts carry validation reasons back to the extractor and model usage includes both extraction calls.
 - [x] Add workflow event logging.
-- [ ] Add token, latency, and model-call telemetry:
+- [x] Add token, latency, and model-call telemetry:
   - [x] Capture provider-reported input, output, and total token counts per model call.
   - [x] Estimate per-run USD cost from configurable per-role pricing.
   - [x] Capture per-model-call latency.

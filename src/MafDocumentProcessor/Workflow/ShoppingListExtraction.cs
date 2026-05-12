@@ -5,4 +5,13 @@ namespace MafDocumentProcessor.Workflow;
 public sealed record ShoppingListExtraction(
     ClassifiedDocument ClassifiedDocument,
     ShoppingListData ShoppingList,
-    ModelTokenUsage ExtractionUsage);
+    IReadOnlyList<ModelTokenUsage> ExtractionUsages)
+{
+    public ShoppingListExtraction(
+        ClassifiedDocument classifiedDocument,
+        ShoppingListData shoppingList,
+        ModelTokenUsage extractionUsage)
+        : this(classifiedDocument, shoppingList, [extractionUsage])
+    {
+    }
+}

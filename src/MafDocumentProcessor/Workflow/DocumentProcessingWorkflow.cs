@@ -90,16 +90,18 @@ public sealed class DocumentProcessingWorkflow(
     {
         var extractionExecutor = new ReceiptExtractionExecutor(receiptExtractor);
         var validationExecutor = new ReceiptValidationExecutor();
+        var repairExecutor = new ReceiptValidationRepairExecutor(receiptExtractor);
         var policyExecutor = new ReceiptPolicyExecutor(policyOptions);
         var resultExecutor = new ReceiptResultExecutor();
 
         var workflow = new WorkflowBuilder(extractionExecutor)
             .AddEdge(extractionExecutor, validationExecutor)
-            .AddEdge(validationExecutor, policyExecutor)
+            .AddEdge(validationExecutor, repairExecutor)
+            .AddEdge(repairExecutor, policyExecutor)
             .AddEdge(policyExecutor, resultExecutor)
             .WithOutputFrom(resultExecutor)
             .WithName("Receipt Processing")
-            .WithDescription("Extracts, validates, and evaluates a receipt image.")
+            .WithDescription("Extracts, validates, repairs, and evaluates a receipt image.")
             .Build();
 
         return await RunWorkflowAsync(workflow, "Receipt Processing", classifiedDocument, _logger, cancellationToken)
@@ -113,14 +115,16 @@ public sealed class DocumentProcessingWorkflow(
     {
         var extractionExecutor = new ShoppingListExtractionExecutor(shoppingListExtractor);
         var validationExecutor = new ShoppingListValidationExecutor();
+        var repairExecutor = new ShoppingListValidationRepairExecutor(shoppingListExtractor);
         var resultExecutor = new ShoppingListResultExecutor();
 
         var workflow = new WorkflowBuilder(extractionExecutor)
             .AddEdge(extractionExecutor, validationExecutor)
-            .AddEdge(validationExecutor, resultExecutor)
+            .AddEdge(validationExecutor, repairExecutor)
+            .AddEdge(repairExecutor, resultExecutor)
             .WithOutputFrom(resultExecutor)
             .WithName("Shopping List Processing")
-            .WithDescription("Extracts and validates shopping list items from an image.")
+            .WithDescription("Extracts, validates, and repairs shopping list items from an image.")
             .Build();
 
         return await RunWorkflowAsync(workflow, "Shopping List Processing", classifiedDocument, _logger, cancellationToken)

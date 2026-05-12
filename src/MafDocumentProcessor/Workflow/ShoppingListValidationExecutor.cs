@@ -11,8 +11,15 @@ public sealed class ShoppingListValidationExecutor()
         IWorkflowContext context,
         CancellationToken cancellationToken = default)
     {
+        var validation = Validate(message.ShoppingList);
+
+        return ValueTask.FromResult(new ValidatedShoppingListExtraction(message, validation));
+    }
+
+    public static ValidationResult Validate(ShoppingListData shoppingList)
+    {
         var reasons = new List<string>();
-        var items = message.ShoppingList.Items;
+        var items = shoppingList.Items;
 
         if (items.Count == 0)
         {
@@ -24,10 +31,8 @@ public sealed class ShoppingListValidationExecutor()
             reasons.Add("Shopping list contains an item without a readable name.");
         }
 
-        var validation = reasons.Count == 0
+        return reasons.Count == 0
             ? ValidationResult.Valid
             : new ValidationResult(false, reasons);
-
-        return ValueTask.FromResult(new ValidatedShoppingListExtraction(message, validation));
     }
 }

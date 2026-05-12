@@ -14,10 +14,7 @@ public sealed class ShoppingListResultExecutor()
         var extraction = message.Extraction;
         var classifiedDocument = extraction.ClassifiedDocument;
         var modelUsage = DocumentModelUsage.FromCalls(
-            [
-                classifiedDocument.ClassificationUsage,
-                extraction.ExtractionUsage
-            ]);
+            [classifiedDocument.ClassificationUsage, .. extraction.ExtractionUsages]);
 
         return ValueTask.FromResult(new DocumentProcessingResult(
             classifiedDocument.Classification.Category,

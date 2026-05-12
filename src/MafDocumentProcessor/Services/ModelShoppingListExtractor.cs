@@ -11,7 +11,8 @@ public sealed class ModelShoppingListExtractor(
 
     public async ValueTask<ModelResult<ShoppingListData>> ExtractShoppingListAsync(
         FileRequest request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyList<string>? repairInstructions = null)
     {
         var response = await chatClient.CompleteAsync(
             new ModelChatRequest(
@@ -27,7 +28,7 @@ public sealed class ModelShoppingListExtractor(
                     """),
                     ModelChatMessage.CreateUser(
                         new ModelTextContent(
-                            $"Extract shopping list items from this uploaded image. File: {request.FileName}; content type: {request.ContentType}."),
+                            BuildUserInstruction(request, repairInstructions)),
                         new ModelImageContent(request.Content, request.ContentType))
                 ],
                 MaxOutputTokens: 700),
@@ -36,5 +37,24 @@ public sealed class ModelShoppingListExtractor(
         return new ModelResult<ShoppingListData>(
             ModelResponseParsers.ParseShoppingList(response.Content),
             response.Usage);
+    }
+
+    private static string BuildUserInstruction(
+        FileRequest request,
+        IReadOnlyList<string>? repairInstructions)
+    {
+        var instruction =
+            $"Extract shopping list items from this uploaded image. File: {request.FileName}; content type: {request.ContentType}.";
+        if (repairInstructions is not { Count: > 0 })
+        {
+            return instruction;
+        }
+
+        return string.Join(
+            Environment.NewLine,
+            instruction,
+            "A previous extraction failed validation for:",
+            string.Join(Environment.NewLine, repairInstructions.Select(reason => $"- {reason}")),
+            "Re-extract from the image, correcting those validation failures only when the document visibly supports the correction. Return JSON only.");
     }
 }

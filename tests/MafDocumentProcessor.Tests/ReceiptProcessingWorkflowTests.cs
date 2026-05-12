@@ -83,6 +83,37 @@ public sealed class ReceiptProcessingWorkflowTests
     }
 
     [Fact]
+    public async Task RunAsync_ReExtractsReceiptOnceWhenValidationFails()
+    {
+        var receiptExtractor = new SequenceReceiptExtractor(
+            new ReceiptData(
+                StoreName: "",
+                TotalAmount: 10.50m,
+                new DateOnly(2024, 6, 1),
+                "Visa",
+                CurrencyCode: "GB"),
+            new ReceiptData(
+                "Corner Shop",
+                10.50m,
+                new DateOnly(2024, 6, 1),
+                "Visa",
+                "GBP"));
+        var workflow = CreateWorkflow(
+            new FakeDocumentClassifier(DocumentCategory.Receipt, 0.82m),
+            receiptExtractor);
+
+        var result = await workflow.RunAsync(CreateReceiptRequest());
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Validation.IsValid);
+        Assert.Equal("Corner Shop", result.Receipt?.StoreName);
+        Assert.Equal(2, receiptExtractor.CallCount);
+        Assert.Contains(receiptExtractor.LastRepairInstructions, reason => reason.Contains("store name is missing"));
+        Assert.Equal(3, result.ModelUsage.Calls.Count);
+        Assert.Equal(27, result.ModelUsage.TotalTokens);
+    }
+
+    [Fact]
     public async Task RunAsync_RoutesShoppingListToShoppingListExtractor()
     {
         var receiptExtractor = new FakeReceiptExtractor(new ReceiptData(
@@ -110,6 +141,36 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.True(result.Validation.IsValid);
         Assert.Equal(1, shoppingListExtractor.CallCount);
         Assert.Equal(0, receiptExtractor.CallCount);
+    }
+
+    [Fact]
+    public async Task RunAsync_ReExtractsShoppingListOnceWhenValidationFails()
+    {
+        var receiptExtractor = new FakeReceiptExtractor(new ReceiptData(
+            "Not used",
+            1m,
+            null,
+            null,
+            "GBP"));
+        var shoppingListExtractor = new SequenceShoppingListExtractor(
+            new ShoppingListData(Title: null, Items: [], Notes: null),
+            CreateShoppingList());
+        var workflow = new DocumentProcessingWorkflow(
+            new FakeDocumentClassifier(DocumentCategory.ShoppingList, 0.88m),
+            receiptExtractor,
+            shoppingListExtractor,
+            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"),
+            new PassThroughImagePreprocessor());
+
+        var result = await workflow.RunAsync(CreateReceiptRequest());
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Validation.IsValid);
+        Assert.Equal(["milk", "bread"], result.ShoppingList?.Items.Select(item => item.Name).ToArray());
+        Assert.Equal(2, shoppingListExtractor.CallCount);
+        Assert.Contains(shoppingListExtractor.LastRepairInstructions, reason => reason.Contains("no readable items"));
+        Assert.Equal(3, result.ModelUsage.Calls.Count);
+        Assert.Equal(27, result.ModelUsage.TotalTokens);
     }
 
     [Fact]
@@ -239,7 +300,8 @@ public sealed class ReceiptProcessingWorkflowTests
 
         public ValueTask<ModelResult<ReceiptData>> ExtractReceiptAsync(
             FileRequest request,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
         {
             CallCount++;
             return ValueTask.FromResult(new ModelResult<ReceiptData>(
@@ -254,8 +316,57 @@ public sealed class ReceiptProcessingWorkflowTests
 
         public ValueTask<ModelResult<ShoppingListData>> ExtractShoppingListAsync(
             FileRequest request,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
         {
+            CallCount++;
+            return ValueTask.FromResult(new ModelResult<ShoppingListData>(
+                shoppingList,
+                new ModelTokenUsage("shopping_list_extraction", "test-shopping-list-extractor", 4, 8, 12, 0.20m, 0.50m, 0.0000008m, 0.000004m, 0.0000048m)));
+        }
+    }
+
+    private sealed class SequenceReceiptExtractor(params ReceiptData[] receipts) : IReceiptExtractor
+    {
+        public int CallCount { get; private set; }
+
+        public IReadOnlyList<string> LastRepairInstructions { get; private set; } = [];
+
+        public ValueTask<ModelResult<ReceiptData>> ExtractReceiptAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            if (repairInstructions is not null)
+            {
+                LastRepairInstructions = repairInstructions;
+            }
+
+            var receipt = receipts[Math.Min(CallCount, receipts.Length - 1)];
+            CallCount++;
+            return ValueTask.FromResult(new ModelResult<ReceiptData>(
+                receipt,
+                new ModelTokenUsage("receipt_extraction", "test-extractor", 4, 8, 12, 0.20m, 0.50m, 0.0000008m, 0.000004m, 0.0000048m)));
+        }
+    }
+
+    private sealed class SequenceShoppingListExtractor(params ShoppingListData[] shoppingLists) : IShoppingListExtractor
+    {
+        public int CallCount { get; private set; }
+
+        public IReadOnlyList<string> LastRepairInstructions { get; private set; } = [];
+
+        public ValueTask<ModelResult<ShoppingListData>> ExtractShoppingListAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            if (repairInstructions is not null)
+            {
+                LastRepairInstructions = repairInstructions;
+            }
+
+            var shoppingList = shoppingLists[Math.Min(CallCount, shoppingLists.Length - 1)];
             CallCount++;
             return ValueTask.FromResult(new ModelResult<ShoppingListData>(
                 shoppingList,
@@ -267,7 +378,8 @@ public sealed class ReceiptProcessingWorkflowTests
     {
         public ValueTask<ModelResult<ShoppingListData>> ExtractShoppingListAsync(
             FileRequest request,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
         {
             throw exception;
         }
