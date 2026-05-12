@@ -113,6 +113,28 @@ public sealed class ReceiptProcessingWorkflowTests
     }
 
     [Fact]
+    public async Task RunAsync_UnwrapsExecutorExceptions()
+    {
+        var expected = new DocumentModelResponseException("The shopping list extraction model returned invalid JSON.");
+        var workflow = new DocumentProcessingWorkflow(
+            new FakeDocumentClassifier(DocumentCategory.ShoppingList, 0.88m),
+            new FakeReceiptExtractor(new ReceiptData(
+                "Not used",
+                1m,
+                null,
+                null,
+                "GBP")),
+            new ThrowingShoppingListExtractor(expected),
+            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"),
+            new PassThroughImagePreprocessor());
+
+        var exception = await Assert.ThrowsAsync<DocumentModelResponseException>(
+            () => workflow.RunAsync(CreateReceiptRequest()));
+
+        Assert.Same(expected, exception);
+    }
+
+    [Fact]
     public async Task RunAsync_ReturnsHumanUnsupportedMessageForNonReceipt()
     {
         var workflow = CreateWorkflow(
@@ -238,6 +260,16 @@ public sealed class ReceiptProcessingWorkflowTests
             return ValueTask.FromResult(new ModelResult<ShoppingListData>(
                 shoppingList,
                 new ModelTokenUsage("shopping_list_extraction", "test-shopping-list-extractor", 4, 8, 12, 0.20m, 0.50m, 0.0000008m, 0.000004m, 0.0000048m)));
+        }
+    }
+
+    private sealed class ThrowingShoppingListExtractor(Exception exception) : IShoppingListExtractor
+    {
+        public ValueTask<ModelResult<ShoppingListData>> ExtractShoppingListAsync(
+            FileRequest request,
+            CancellationToken cancellationToken)
+        {
+            throw exception;
         }
     }
 

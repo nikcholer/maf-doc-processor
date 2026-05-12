@@ -20,6 +20,7 @@ public sealed class ModelShoppingListExtractor(
                 [
                     ModelChatMessage.CreateSystem("""
                     You extract shopping list items from document images.
+                    Do not explain, reason aloud, use markdown, or include any text outside the JSON object.
                     Return only compact JSON with this exact shape:
                     {"title":"string|null","items":[{"name":"string","quantity":0.0|null,"unit":"string|null","isChecked":true|null}],"notes":"string|null"}
                     Use null for optional fields that are not visible. Do not invent items.

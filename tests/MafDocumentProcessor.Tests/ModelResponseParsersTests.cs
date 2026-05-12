@@ -33,6 +33,16 @@ public sealed class ModelResponseParsersTests
     }
 
     [Fact]
+    public void ParseClassification_ParsesPlainTextGroceryListDescription()
+    {
+        var result = ModelResponseParsers.ParseClassification("Grocery list");
+
+        Assert.Equal(DocumentCategory.ShoppingList, result.Category);
+        Assert.Equal("Grocery list", result.DocumentTypeDescription);
+        Assert.Null(result.Confidence);
+    }
+
+    [Fact]
     public void ParseClassification_RejectsInvalidJson()
     {
         var exception = Assert.Throws<DocumentModelResponseException>(

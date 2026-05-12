@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Runtime.ExceptionServices;
 using MafDocumentProcessor.Configuration;
 using MafDocumentProcessor.Domain;
 using MafDocumentProcessor.Services;
@@ -127,8 +129,9 @@ public sealed class DocumentProcessingWorkflow(
             .LastOrDefault();
         if (error is not null)
         {
-            throw error.Exception
+            var exception = UnwrapWorkflowException(error.Exception)
                 ?? new InvalidOperationException("Workflow failed without reporting an exception.");
+            ExceptionDispatchInfo.Capture(exception).Throw();
         }
 
         return events
@@ -136,6 +139,16 @@ public sealed class DocumentProcessingWorkflow(
             .Select(evt => evt.Data)
             .OfType<DocumentProcessingResult>()
             .LastOrDefault();
+    }
+
+    private static Exception? UnwrapWorkflowException(Exception? exception)
+    {
+        while (exception is TargetInvocationException { InnerException: not null } invocationException)
+        {
+            exception = invocationException.InnerException;
+        }
+
+        return exception;
     }
 
     private static DocumentProcessingResult CreateUnsupportedDocumentResult(ClassifiedDocument document)

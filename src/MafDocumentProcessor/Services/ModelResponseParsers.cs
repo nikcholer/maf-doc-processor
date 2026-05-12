@@ -8,6 +8,11 @@ public static class ModelResponseParsers
 {
     public static DocumentClassification ParseClassification(string? content)
     {
+        if (TryParsePlainTextClassification(content, out var plainTextClassification))
+        {
+            return plainTextClassification;
+        }
+
         using var document = ParseJson(content, "classification");
         var root = document.RootElement;
 
@@ -74,9 +79,52 @@ public static class ModelResponseParsers
         catch (JsonException ex)
         {
             throw new DocumentModelResponseException(
-                $"The {operation} model returned invalid JSON.",
+                $"The {operation} model returned invalid JSON. Response preview: {CreatePreview(content)}",
                 ex);
         }
+    }
+
+    private static bool TryParsePlainTextClassification(
+        string? content,
+        out DocumentClassification classification)
+    {
+        classification = default!;
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return false;
+        }
+
+        var value = content.Trim().Trim('"', '\'', '.', ':').Trim();
+        if (value.Contains('{', StringComparison.Ordinal)
+            || value.Contains('}', StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var category = value switch
+        {
+            _ when ContainsAny(value, "shopping list", "grocery list", "packing list", "to-buy list") => DocumentCategory.ShoppingList,
+            _ when value.Contains("receipt", StringComparison.OrdinalIgnoreCase) => DocumentCategory.Receipt,
+            _ when value.Contains("invoice", StringComparison.OrdinalIgnoreCase) => DocumentCategory.Invoice,
+            _ => (DocumentCategory?)null
+        };
+
+        if (category is null)
+        {
+            return false;
+        }
+
+        classification = new DocumentClassification(
+            category.Value,
+            Confidence: null,
+            ConfidenceReasoning: "The model returned a plain-text document type description.",
+            DocumentTypeDescription: value);
+        return true;
+    }
+
+    private static bool ContainsAny(string value, params string[] terms)
+    {
+        return terms.Any(term => value.Contains(term, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string NormalizeJsonObject(string content)
@@ -107,6 +155,17 @@ public static class ModelResponseParsers
         }
 
         return value;
+    }
+
+    private static string CreatePreview(string content)
+    {
+        var preview = content.ReplaceLineEndings(" ").Trim();
+        if (preview.Length == 0)
+        {
+            return "(empty response)";
+        }
+
+        return preview.Length > 240 ? $"{preview[..240]}..." : preview;
     }
 
     private static string GetRequiredString(JsonElement root, string propertyName, string operation)

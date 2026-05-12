@@ -20,9 +20,11 @@ public sealed class ModelDocumentClassifier(
                 [
                     ModelChatMessage.CreateSystem("""
                     You classify document images for a local document processor.
+                    Do not explain, reason aloud, use markdown, or include any text outside the JSON object.
                     Return only compact JSON with this shape:
                     {"category":"Receipt|Invoice|ShoppingList|Unknown","confidence":0.0,"documentTypeDescription":"short human document type","confidenceReasoning":"short reason"}
                     Use ShoppingList for handwritten or printed shopping lists, grocery lists, packing lists, or to-buy lists.
+                    If the common description is "grocery list" or "shopping list", return category "ShoppingList".
                     Use Unknown when the image is not clearly a receipt, invoice, or shopping list. If it is another recognizable type, name it in documentTypeDescription, for example "car registration document".
                     """),
                     ModelChatMessage.CreateUser(
