@@ -66,7 +66,7 @@ public sealed class ModelDocumentServicesTests
         var settings = AiModelSettingsDefaults.CreateTogetherDefaults();
 
         Assert.Equal("Qwen/Qwen3.5-9B", settings.DocumentClassification.ModelId);
-        Assert.Equal("google/gemma-4-31B-it", settings.DocumentExtraction.ModelId);
+        Assert.Equal("Qwen/Qwen3.5-9B", settings.DocumentExtraction.ModelId);
         Assert.Equal("google/gemma-4-31B-it", settings.TextTesting.ModelId);
         Assert.NotEqual(settings.DocumentClassification.ServiceId, settings.DocumentExtraction.ServiceId);
         Assert.NotEqual(settings.DocumentExtraction.ServiceId, settings.TextTesting.ServiceId);
@@ -75,6 +75,8 @@ public sealed class ModelDocumentServicesTests
         Assert.Equal("TOGETHER_API_KEY", settings.TextTesting.ApiKeyEnvironmentVariable);
         Assert.Equal(0.10m, settings.DocumentClassification.InputTokenPricePerMillionUsd);
         Assert.Equal(0.15m, settings.DocumentClassification.OutputTokenPricePerMillionUsd);
+        Assert.Equal(0.10m, settings.DocumentExtraction.InputTokenPricePerMillionUsd);
+        Assert.Equal(0.15m, settings.DocumentExtraction.OutputTokenPricePerMillionUsd);
     }
 
     [Fact]

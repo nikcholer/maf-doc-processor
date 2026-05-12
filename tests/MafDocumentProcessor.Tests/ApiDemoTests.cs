@@ -20,7 +20,9 @@ public sealed class ApiDemoTests
         Assert.Equal("TOGETHER_API_KEY", settings.DocumentClassification.ApiKeyEnvironmentVariable);
         Assert.Equal(0.10m, settings.DocumentClassification.InputTokenPricePerMillionUsd);
         Assert.Equal(0.15m, settings.DocumentClassification.OutputTokenPricePerMillionUsd);
-        Assert.Equal("google/gemma-4-31B-it", settings.DocumentExtraction.ModelId);
+        Assert.Equal("Qwen/Qwen3.5-9B", settings.DocumentExtraction.ModelId);
+        Assert.Equal(0.10m, settings.DocumentExtraction.InputTokenPricePerMillionUsd);
+        Assert.Equal(0.15m, settings.DocumentExtraction.OutputTokenPricePerMillionUsd);
         Assert.Equal("google/gemma-4-31B-it", settings.TextTesting.ModelId);
     }
 

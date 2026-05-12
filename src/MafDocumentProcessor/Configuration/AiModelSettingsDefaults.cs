@@ -16,7 +16,7 @@ public static class AiModelSettingsDefaults
     {
         return new AiModelSettings(
             CreateTogetherQwen35NineBRole("document-classification"),
-            CreateTogetherGemma4Role("document-extraction"),
+            CreateTogetherQwen35NineBRole("document-extraction"),
             CreateTogetherGemma4Role("text-testing"));
     }
 
