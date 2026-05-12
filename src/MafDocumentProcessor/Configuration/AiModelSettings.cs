@@ -6,7 +6,7 @@ public sealed record ModelRoleSettings(
     string ModelId,
     string ApiKeyEnvironmentVariable,
     string ServiceId,
-    int RequestTimeoutSeconds = 600,
+    int RequestTimeoutSeconds = 60,
     decimal? InputTokenPricePerMillionUsd = null,
     decimal? OutputTokenPricePerMillionUsd = null);
 

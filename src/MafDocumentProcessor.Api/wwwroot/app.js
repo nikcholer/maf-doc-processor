@@ -33,7 +33,7 @@ const fieldLabels = {
 
 let previewUrl = null;
 const maxUploadBytes = 5 * 1024 * 1024;
-const requestTimeoutMs = 630 * 1000;
+const requestTimeoutMs = 65 * 1000;
 
 checkHealth();
 
@@ -133,7 +133,7 @@ form.addEventListener("submit", async (event) => {
         ? "request_timeout"
         : "request_failed",
       message: error instanceof DOMException && error.name === "AbortError"
-        ? "Processing exceeded ten and a half minutes. Check the API terminal logs for the last completed stage."
+        ? "Processing exceeded 65 seconds. Check the API terminal logs for the last completed stage."
         : error instanceof Error ? error.message : "The request failed.",
       target: null,
       traceId: "-"
