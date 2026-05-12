@@ -138,6 +138,23 @@ Initial package pins:
   - [x] Estimate per-run USD cost from configurable per-role pricing.
   - [ ] Capture per-model-call latency.
   - [ ] Emit structured workflow/model-call telemetry events.
+- [ ] Resolve the unused `DocumentClassificationExecutor`:
+  - [ ] delete it if classification remains outside the MAF graph, or
+  - [ ] use it in a single top-level workflow with conditional routing.
+- [ ] Decide whether `Microsoft.Extensions.AI` is a real abstraction target:
+  - [ ] migrate `IModelChatClient` toward `IChatClient`, or
+  - [ ] remove/defer the package and document the custom abstraction.
+- [ ] Reuse/cache OpenAI-compatible `ChatClient` instances per model settings key.
+- [ ] Thread request-scoped correlation or operation IDs through workflow and model-call logs.
+- [ ] Clarify the `TextTesting` model role by wiring its first text-only task or documenting it as reserved config.
+- [ ] Add a repo `README.md` for setup, running, test commands, config, and demo scope.
+
+### P2.5 - Hardening
+
+- [ ] Add API integration tests with `WebApplicationFactory`.
+- [ ] Add cancellation propagation tests from HTTP request through workflow/model calls.
+- [ ] Formalize API error contract documentation, including error codes and status codes.
+- [ ] Define success/failure semantics per document type, especially validation warnings vs errors.
 
 ### P3 - Long-Running Processing
 
