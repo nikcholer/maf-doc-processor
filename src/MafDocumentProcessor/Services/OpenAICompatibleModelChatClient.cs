@@ -6,6 +6,7 @@ using OpenAI;
 using OpenAI.Chat;
 using System.ClientModel;
 using System.ClientModel.Primitives;
+using System.Text.Json;
 
 namespace MafDocumentProcessor.Services;
 
@@ -14,6 +15,7 @@ public sealed class OpenAICompatibleModelChatClient(
 {
     private readonly ILogger<OpenAICompatibleModelChatClient> _logger =
         logger ?? NullLogger<OpenAICompatibleModelChatClient>.Instance;
+    private static readonly JsonSerializerOptions ProtocolJsonOptions = new(JsonSerializerDefaults.Web);
 
     private static readonly HashSet<string> SupportedProviders = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -42,16 +44,12 @@ public sealed class OpenAICompatibleModelChatClient(
 
         try
         {
-            ChatCompletion completion = await client.CompleteChatAsync(
-                request.Messages.Select(ConvertMessage),
-                new ChatCompletionOptions
-                {
-                    MaxOutputTokenCount = request.MaxOutputTokens
-                },
-                timeout.Token);
+            var response = ShouldUseProtocolRequest(settings)
+                ? await CompleteWithProtocolAsync(client, request, timeout.Token)
+                : await CompleteWithTypedClientAsync(client, request, timeout.Token);
+            var content = response.Content ?? string.Empty;
+            var usage = response.Usage;
 
-            var content = string.Concat(completion.Content.Select(part => part.Text));
-            var usage = MapUsage(request.Operation, settings, completion.Usage);
             _logger.LogInformation(
                 "Completed model operation {Operation} with {Provider}/{ModelId}. ResponseChars={ResponseChars}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, EstimatedCostUsd={EstimatedCostUsd}.",
                 request.Operation,
@@ -109,6 +107,131 @@ public sealed class OpenAICompatibleModelChatClient(
         }
     }
 
+    private static async Task<ModelChatResponse> CompleteWithTypedClientAsync(
+        ChatClient client,
+        ModelChatRequest request,
+        CancellationToken cancellationToken)
+    {
+        ChatCompletion completion = await client.CompleteChatAsync(
+            request.Messages.Select(ConvertMessage),
+            new ChatCompletionOptions
+            {
+                MaxOutputTokenCount = request.MaxOutputTokens
+            },
+            cancellationToken);
+
+        return new ModelChatResponse(
+            string.Concat(completion.Content.Select(part => part.Text)),
+            MapUsage(request.Operation, request.Settings, completion.Usage));
+    }
+
+    private async Task<ModelChatResponse> CompleteWithProtocolAsync(
+        ChatClient client,
+        ModelChatRequest request,
+        CancellationToken cancellationToken)
+    {
+        var protocolRequest = CreateProtocolRequest(request);
+        using var content = BinaryContent.Create(BinaryData.FromObjectAsJson(
+            protocolRequest,
+            ProtocolJsonOptions));
+        var options = new RequestOptions
+        {
+            CancellationToken = cancellationToken
+        };
+
+        ClientResult result = await client.CompleteChatAsync(content, options);
+        var rawResponse = result.GetRawResponse().Content.ToString();
+        using var document = JsonDocument.Parse(rawResponse);
+        var responseContent = ExtractProtocolContent(document.RootElement);
+
+        if (string.IsNullOrWhiteSpace(responseContent))
+        {
+            _logger.LogWarning(
+                "Model operation {Operation} with {Provider}/{ModelId} returned empty content. RawResponsePreview={RawResponsePreview}",
+                request.Operation,
+                request.Settings.Provider,
+                request.Settings.ModelId,
+                CreatePreview(rawResponse));
+        }
+
+        return new ModelChatResponse(
+            responseContent,
+            MapUsage(request.Operation, request.Settings, document.RootElement));
+    }
+
+    private static Dictionary<string, object?> CreateProtocolRequest(ModelChatRequest request)
+    {
+        var body = new Dictionary<string, object?>
+        {
+            ["model"] = request.Settings.ModelId,
+            ["messages"] = request.Messages.Select(message => ConvertMessageForProtocol(message, request.Operation)).ToArray(),
+            ["max_tokens"] = request.MaxOutputTokens
+        };
+
+        if (ShouldDisableThinking(request.Settings))
+        {
+            body["temperature"] = 0;
+            body["chat_template_kwargs"] = new Dictionary<string, object?>
+            {
+                ["enable_thinking"] = false
+            };
+        }
+
+        return body;
+    }
+
+    private static Dictionary<string, object?> ConvertMessageForProtocol(
+        ModelChatMessage message,
+        string operation)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["role"] = message.Role switch
+            {
+                ModelChatRole.System => "system",
+                ModelChatRole.User => "user",
+                _ => throw new ModelConfigurationException($"Unsupported chat role '{message.Role}'.")
+            },
+            ["content"] = ConvertMessageContentForProtocol(message.Content, operation)
+        };
+    }
+
+    private static object ConvertMessageContentForProtocol(
+        IReadOnlyList<ModelChatContent> content,
+        string operation)
+    {
+        return content.All(part => part is ModelTextContent)
+            ? string.Concat(content.OfType<ModelTextContent>().Select(part => part.Text))
+            : content.Select(part => ConvertContentPartForProtocol(part, operation)).ToArray();
+    }
+
+    private static Dictionary<string, object?> ConvertContentPartForProtocol(
+        ModelChatContent part,
+        string operation)
+    {
+        return part switch
+        {
+            ModelTextContent text => new Dictionary<string, object?>
+            {
+                ["type"] = "text",
+                ["text"] = text.Text
+            },
+            ModelImageContent image => new Dictionary<string, object?>
+            {
+                ["type"] = "image_url",
+                ["image_url"] = new Dictionary<string, object?>
+                {
+                    ["url"] = $"data:{image.ContentType};base64,{Convert.ToBase64String(image.Content)}",
+                    ["detail"] = string.Equals(operation, "classification", StringComparison.OrdinalIgnoreCase)
+                        ? "low"
+                        : "high"
+                }
+            },
+            _ => throw new ModelConfigurationException(
+                $"Unsupported chat content part '{part.GetType().Name}'.")
+        };
+    }
+
     private static ChatClient CreateClient(ModelRoleSettings settings)
     {
         var apiKey = ApiKeyEnvironment.GetApiKey(settings.ApiKeyEnvironmentVariable);
@@ -127,6 +250,18 @@ public sealed class OpenAICompatibleModelChatClient(
                 NetworkTimeout = TimeSpan.FromSeconds(settings.RequestTimeoutSeconds),
                 RetryPolicy = new ClientRetryPolicy(maxRetries: 0)
             });
+    }
+
+    private static bool ShouldUseProtocolRequest(ModelRoleSettings settings)
+    {
+        return string.Equals(settings.Provider, AiModelSettingsDefaults.TogetherAiProvider, StringComparison.OrdinalIgnoreCase)
+            && settings.ModelId.Contains("Qwen", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool ShouldDisableThinking(ModelRoleSettings settings)
+    {
+        return string.Equals(settings.Provider, AiModelSettingsDefaults.TogetherAiProvider, StringComparison.OrdinalIgnoreCase)
+            && settings.ModelId.Contains("Qwen", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsTimeoutException(Exception ex)
@@ -204,6 +339,43 @@ public sealed class OpenAICompatibleModelChatClient(
             SumCosts(estimatedInputCost, estimatedOutputCost));
     }
 
+    private static ModelTokenUsage MapUsage(
+        string operation,
+        ModelRoleSettings settings,
+        JsonElement root)
+    {
+        var usage = root.TryGetProperty("usage", out var usageElement)
+            ? usageElement
+            : default;
+        var inputTokens = GetOptionalInt32(usage, "prompt_tokens");
+        var outputTokens = GetOptionalInt32(usage, "completion_tokens");
+        var totalTokens = GetOptionalInt32(usage, "total_tokens");
+        var estimatedInputCost = EstimateCost(inputTokens, settings.InputTokenPricePerMillionUsd);
+        var estimatedOutputCost = EstimateCost(outputTokens, settings.OutputTokenPricePerMillionUsd);
+
+        return new ModelTokenUsage(
+            operation,
+            settings.ModelId,
+            inputTokens,
+            outputTokens,
+            totalTokens,
+            settings.InputTokenPricePerMillionUsd,
+            settings.OutputTokenPricePerMillionUsd,
+            estimatedInputCost,
+            estimatedOutputCost,
+            SumCosts(estimatedInputCost, estimatedOutputCost));
+    }
+
+    private static int? GetOptionalInt32(JsonElement root, string propertyName)
+    {
+        return root.ValueKind == JsonValueKind.Object
+            && root.TryGetProperty(propertyName, out var property)
+            && property.ValueKind == JsonValueKind.Number
+            && property.TryGetInt32(out var value)
+            ? value
+            : null;
+    }
+
     private static decimal? EstimateCost(int? tokens, decimal? pricePerMillionUsd)
     {
         if (!tokens.HasValue || !pricePerMillionUsd.HasValue)
@@ -242,5 +414,54 @@ public sealed class OpenAICompatibleModelChatClient(
             _ => throw new ModelConfigurationException(
                 $"Unsupported chat content part '{part.GetType().Name}'.")
         });
+    }
+
+    private static string ExtractProtocolContent(JsonElement root)
+    {
+        if (!root.TryGetProperty("choices", out var choices)
+            || choices.ValueKind != JsonValueKind.Array
+            || choices.GetArrayLength() == 0)
+        {
+            return string.Empty;
+        }
+
+        var firstChoice = choices[0];
+        if (!firstChoice.TryGetProperty("message", out var message)
+            || !message.TryGetProperty("content", out var content))
+        {
+            return string.Empty;
+        }
+
+        return content.ValueKind switch
+        {
+            JsonValueKind.String => content.GetString() ?? string.Empty,
+            JsonValueKind.Array => string.Concat(content.EnumerateArray().Select(ExtractProtocolContentPart)),
+            _ => string.Empty
+        };
+    }
+
+    private static string ExtractProtocolContentPart(JsonElement part)
+    {
+        if (part.ValueKind == JsonValueKind.String)
+        {
+            return part.GetString() ?? string.Empty;
+        }
+
+        return part.ValueKind == JsonValueKind.Object
+            && part.TryGetProperty("text", out var text)
+            && text.ValueKind == JsonValueKind.String
+            ? text.GetString() ?? string.Empty
+            : string.Empty;
+    }
+
+    private static string CreatePreview(string value)
+    {
+        var preview = value.ReplaceLineEndings(" ").Trim();
+        if (preview.Length == 0)
+        {
+            return "(empty response)";
+        }
+
+        return preview.Length > 500 ? $"{preview[..500]}..." : preview;
     }
 }
