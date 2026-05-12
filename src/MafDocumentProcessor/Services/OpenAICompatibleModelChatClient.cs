@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MafDocumentProcessor.Configuration;
 using MafDocumentProcessor.Domain;
 using Microsoft.Extensions.Logging;
@@ -44,20 +45,26 @@ public sealed class OpenAICompatibleModelChatClient(
 
         try
         {
+            var elapsed = Stopwatch.StartNew();
             var response = ShouldUseProtocolRequest(settings)
                 ? await CompleteWithProtocolAsync(client, request, timeout.Token)
                 : await CompleteWithTypedClientAsync(client, request, timeout.Token);
+            elapsed.Stop();
             var content = response.Content ?? string.Empty;
-            var usage = response.Usage;
+            var usage = response.Usage with
+            {
+                DurationMilliseconds = elapsed.ElapsedMilliseconds
+            };
 
             _logger.LogInformation(
-                "Completed model operation {Operation} with {Provider}/{ModelId}. ResponseChars={ResponseChars}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, EstimatedCostUsd={EstimatedCostUsd}.",
+                "Completed model operation {Operation} with {Provider}/{ModelId}. ResponseChars={ResponseChars}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, DurationMilliseconds={DurationMilliseconds}, EstimatedCostUsd={EstimatedCostUsd}.",
                 request.Operation,
                 settings.Provider,
                 settings.ModelId,
                 content.Length,
                 usage.InputTokens,
                 usage.OutputTokens,
+                usage.DurationMilliseconds,
                 usage.EstimatedTotalCostUsd);
 
             return new ModelChatResponse(

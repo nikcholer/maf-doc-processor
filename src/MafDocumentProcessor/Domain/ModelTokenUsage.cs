@@ -10,4 +10,5 @@ public sealed record ModelTokenUsage(
     decimal? OutputTokenPricePerMillionUsd = null,
     decimal? EstimatedInputCostUsd = null,
     decimal? EstimatedOutputCostUsd = null,
-    decimal? EstimatedTotalCostUsd = null);
+    decimal? EstimatedTotalCostUsd = null,
+    long? DurationMilliseconds = null);

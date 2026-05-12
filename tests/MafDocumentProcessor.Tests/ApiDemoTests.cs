@@ -112,6 +112,7 @@ public sealed class ApiDemoTests
         Assert.True(response.Document?.Validation.IsValid);
         Assert.Equal(12, response.ModelUsage.TotalTokens);
         Assert.Equal(0.0000048m, response.ModelUsage.EstimatedTotalCostUsd);
+        Assert.Equal(1200, response.ModelUsage.TotalDurationMilliseconds);
     }
 
     [Fact]
@@ -172,8 +173,8 @@ public sealed class ApiDemoTests
                 0.9m,
                 "receipt layout"),
             DocumentModelUsage.FromCalls([
-                new ModelTokenUsage("classification", "model", 2, 4, 6, 0.20m, 0.50m, 0.0000004m, 0.000002m, 0.0000024m),
-                new ModelTokenUsage("receipt_extraction", "model", 2, 4, 6, 0.20m, 0.50m, 0.0000004m, 0.000002m, 0.0000024m)
+                new ModelTokenUsage("classification", "model", 2, 4, 6, 0.20m, 0.50m, 0.0000004m, 0.000002m, 0.0000024m, 400),
+                new ModelTokenUsage("receipt_extraction", "model", 2, 4, 6, 0.20m, 0.50m, 0.0000004m, 0.000002m, 0.0000024m, 800)
             ]),
             receipt,
             ShoppingList: null,

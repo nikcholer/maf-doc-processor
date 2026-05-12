@@ -13,6 +13,7 @@ const statusPill = document.querySelector("#statusPill");
 const categoryMetric = document.querySelector("#categoryMetric");
 const decisionMetric = document.querySelector("#decisionMetric");
 const tokensMetric = document.querySelector("#tokensMetric");
+const latencyMetric = document.querySelector("#latencyMetric");
 const costMetric = document.querySelector("#costMetric");
 const extractedData = document.querySelector("#extractedData");
 const policyReasons = document.querySelector("#policyReasons");
@@ -200,6 +201,7 @@ function renderSuccess(payload) {
   categoryMetric.textContent = payload.category ?? "-";
   decisionMetric.textContent = decision;
   tokensMetric.textContent = formatInteger(payload.modelUsage?.totalTokens);
+  latencyMetric.textContent = formatDuration(payload.modelUsage?.totalDurationMilliseconds);
   costMetric.textContent = formatUsdCost(payload.modelUsage?.estimatedTotalCostUsd);
   statusPill.textContent = decision;
   statusPill.className = `status-pill ${decision === "Approved" ? "approved" : "review"}`;
@@ -219,6 +221,7 @@ function renderError(error) {
   categoryMetric.textContent = "-";
   decisionMetric.textContent = error.code ?? "Error";
   tokensMetric.textContent = "-";
+  latencyMetric.textContent = "-";
   costMetric.textContent = "-";
   statusPill.textContent = "Error";
   statusPill.className = "status-pill error";
@@ -349,6 +352,26 @@ function formatInteger(value) {
 
   const number = Number(value);
   return Number.isFinite(number) ? number.toLocaleString("en-US") : "-";
+}
+
+function formatDuration(value) {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  const milliseconds = Number(value);
+  if (!Number.isFinite(milliseconds)) {
+    return "-";
+  }
+
+  if (milliseconds < 1000) {
+    return `${Math.round(milliseconds)} ms`;
+  }
+
+  const seconds = milliseconds / 1000;
+  return seconds < 10
+    ? `${seconds.toFixed(1)} s`
+    : `${Math.round(seconds)} s`;
 }
 
 function formatUsdCost(value) {

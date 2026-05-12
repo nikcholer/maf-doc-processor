@@ -137,7 +137,7 @@ Initial package pins:
 - [ ] Add token, latency, and model-call telemetry:
   - [x] Capture provider-reported input, output, and total token counts per model call.
   - [x] Estimate per-run USD cost from configurable per-role pricing.
-  - [ ] Capture per-model-call latency.
+  - [x] Capture per-model-call latency.
   - [ ] Emit structured workflow/model-call telemetry events.
 - [ ] Resolve the unused `DocumentClassificationExecutor`:
   - [ ] delete it if classification remains outside the MAF graph, or
