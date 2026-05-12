@@ -112,14 +112,20 @@ form.addEventListener("submit", async (event) => {
       body,
       signal: controller.signal
     });
-    const payload = await response.json();
+    const responseText = await response.text();
+    const parsedPayload = parseJsonPayload(responseText);
 
-    if (!response.ok) {
-      renderError(payload);
+    if (!parsedPayload.ok) {
+      renderError(buildNonJsonResponseError(response, responseText));
       return;
     }
 
-    renderSuccess(payload);
+    if (!response.ok) {
+      renderError(parsedPayload.value);
+      return;
+    }
+
+    renderSuccess(parsedPayload.value);
   } catch (error) {
     renderError({
       code: error instanceof DOMException && error.name === "AbortError"
@@ -225,6 +231,38 @@ function renderError(error) {
   renderReasons([error.message ?? "The request failed."]);
   rawJson.textContent = JSON.stringify(error, null, 2);
   jsonPanel.open = true;
+}
+
+function parseJsonPayload(responseText) {
+  if (!responseText) {
+    return { ok: true, value: {} };
+  }
+
+  try {
+    return { ok: true, value: JSON.parse(responseText) };
+  } catch {
+    return { ok: false, value: null };
+  }
+}
+
+function buildNonJsonResponseError(response, responseText) {
+  const status = response.status > 0 ? `HTTP ${response.status}` : "the request";
+  const preview = summarizeResponseText(responseText);
+  return {
+    code: response.ok ? "invalid_api_response" : "request_failed",
+    message: `The API returned ${status} with a non-JSON response: ${preview}`,
+    target: null,
+    traceId: response.headers.get("x-trace-id") ?? "-"
+  };
+}
+
+function summarizeResponseText(value) {
+  const preview = value.replace(/\s+/g, " ").trim();
+  if (preview.length === 0) {
+    return "(empty response)";
+  }
+
+  return preview.length > 240 ? `${preview.slice(0, 240)}...` : preview;
 }
 
 function renderData(data) {

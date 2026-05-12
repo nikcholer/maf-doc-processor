@@ -165,6 +165,15 @@ public static class DocumentProcessingEndpoints
                 "document_processing_failed",
                 ex.Message);
         }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected document workflow failure for uploaded image {FileName}.", fileName);
+            return ProcessingError(
+                request,
+                StatusCodes.Status500InternalServerError,
+                "document_processing_unhandled",
+                $"Document processing failed unexpectedly. Check the API logs for details. Error type: {ex.GetType().Name}.");
+        }
     }
 
     private static IResult BadRequest(
