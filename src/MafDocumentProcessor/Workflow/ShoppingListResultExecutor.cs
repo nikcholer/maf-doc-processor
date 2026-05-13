@@ -29,6 +29,7 @@ public sealed class ShoppingListResultExecutor()
             modelUsage,
             Receipt: null,
             extraction.ShoppingList,
+            SujikoPuzzle: null,
             PolicyResult: null,
             message.Validation,
             humanReview,

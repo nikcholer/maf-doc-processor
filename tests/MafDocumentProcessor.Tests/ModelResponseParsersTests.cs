@@ -43,6 +43,16 @@ public sealed class ModelResponseParsersTests
     }
 
     [Fact]
+    public void ParseClassification_ParsesPlainTextSujikoDescription()
+    {
+        var result = ModelResponseParsers.ParseClassification("Sujiko puzzle");
+
+        Assert.Equal(DocumentCategory.SujikoPuzzle, result.Category);
+        Assert.Equal("Sujiko puzzle", result.DocumentTypeDescription);
+        Assert.Null(result.Confidence);
+    }
+
+    [Fact]
     public void ParseClassification_RejectsInvalidJson()
     {
         var exception = Assert.Throws<DocumentModelResponseException>(
@@ -151,5 +161,57 @@ public sealed class ModelResponseParsersTests
             () => ModelResponseParsers.ParseShoppingList("""{"title":"Weekly groceries"}"""));
 
         Assert.Contains("items", exception.Message);
+    }
+
+    [Fact]
+    public void ParseSujikoPuzzle_ParsesTotalsAndGivenCells()
+    {
+        var result = ModelResponseParsers.ParseSujikoPuzzle("""
+            {
+              "quadrantTotals": {
+                "topLeft": 21,
+                "topRight": "12",
+                "bottomLeft": 21,
+                "bottomRight": 17
+              },
+              "givenCells": [
+                { "row": 2, "column": 2, "value": 1 },
+                { "row": 3, "column": 2, "value": 8 }
+              ]
+            }
+            """);
+
+        Assert.Equal(21, result.QuadrantTotals.TopLeft);
+        Assert.Equal(12, result.QuadrantTotals.TopRight);
+        Assert.Equal(21, result.QuadrantTotals.BottomLeft);
+        Assert.Equal(17, result.QuadrantTotals.BottomRight);
+        Assert.Equal(new SujikoCellValue(2, 2, 1), result.GivenCells[0]);
+        Assert.Equal(new SujikoCellValue(3, 2, 8), result.GivenCells[1]);
+    }
+
+    [Fact]
+    public void ParseSujikoPuzzle_AllowsMissingGivenCells()
+    {
+        var result = ModelResponseParsers.ParseSujikoPuzzle("""
+            {
+              "quadrantTotals": {
+                "topLeft": 21,
+                "topRight": 12,
+                "bottomLeft": 21,
+                "bottomRight": 17
+              }
+            }
+            """);
+
+        Assert.Empty(result.GivenCells);
+    }
+
+    [Fact]
+    public void ParseSujikoPuzzle_RejectsMissingQuadrantTotals()
+    {
+        var exception = Assert.Throws<DocumentModelResponseException>(
+            () => ModelResponseParsers.ParseSujikoPuzzle("""{"givenCells":[]}"""));
+
+        Assert.Contains("quadrantTotals", exception.Message);
     }
 }

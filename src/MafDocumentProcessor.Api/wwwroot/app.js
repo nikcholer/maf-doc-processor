@@ -28,7 +28,9 @@ const fieldLabels = {
   currencyCode: "Currency",
   title: "Title",
   items: "Items",
-  notes: "Notes"
+  notes: "Notes",
+  quadrantTotals: "Quadrant totals",
+  givenCells: "Given cells"
 };
 
 let previewUrl = null;
@@ -326,11 +328,21 @@ function formatValue(key, value) {
       : value.map(formatArrayItem).join(", ");
   }
 
+  if (typeof value === "object") {
+    return Object.entries(value)
+      .map(([entryKey, entryValue]) => `${fieldLabels[entryKey] ?? sentenceCase(entryKey)}: ${formatValue(entryKey, entryValue)}`)
+      .join(", ");
+  }
+
   return String(value);
 }
 
 function formatArrayItem(value) {
   if (value && typeof value === "object" && !Array.isArray(value)) {
+    if ("row" in value && "column" in value && "value" in value) {
+      return `r${value.row}c${value.column}=${value.value}`;
+    }
+
     const name = value.name ?? value.item ?? "Item";
     const quantity = value.quantity === null || value.quantity === undefined
       ? null

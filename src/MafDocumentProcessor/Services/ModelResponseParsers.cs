@@ -62,6 +62,16 @@ public static class ModelResponseParsers
             GetOptionalString(root, "notes"));
     }
 
+    public static SujikoPuzzleData ParseSujikoPuzzle(string? content)
+    {
+        using var document = ParseJson(content, "Sujiko puzzle extraction");
+        var root = document.RootElement;
+
+        return new SujikoPuzzleData(
+            GetSujikoQuadrantTotals(root),
+            GetSujikoGivenCells(root));
+    }
+
     private static JsonDocument ParseJson(string? content, string operation)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -103,6 +113,7 @@ public static class ModelResponseParsers
 
         var category = value switch
         {
+            _ when ContainsAny(value, "sujiko") => DocumentCategory.SujikoPuzzle,
             _ when ContainsAny(value, "shopping list", "grocery list", "packing list", "to-buy list") => DocumentCategory.ShoppingList,
             _ when value.Contains("receipt", StringComparison.OrdinalIgnoreCase) => DocumentCategory.Receipt,
             _ when value.Contains("invoice", StringComparison.OrdinalIgnoreCase) => DocumentCategory.Invoice,
@@ -192,6 +203,18 @@ public static class ModelResponseParsers
         return value.Value;
     }
 
+    private static int GetRequiredInt(JsonElement root, string propertyName, string operation)
+    {
+        var value = GetOptionalInt(root, propertyName);
+        if (value is null)
+        {
+            throw new DocumentModelResponseException(
+                $"The {operation} model response did not include a valid '{propertyName}'.");
+        }
+
+        return value.Value;
+    }
+
     private static string? GetOptionalString(JsonElement root, string propertyName)
     {
         if (!root.TryGetProperty(propertyName, out var property)
@@ -225,6 +248,33 @@ public static class ModelResponseParsers
             && decimal.TryParse(
                 property.GetString(),
                 NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var stringValue))
+        {
+            return stringValue;
+        }
+
+        return null;
+    }
+
+    private static int? GetOptionalInt(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var property)
+            || property.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (property.ValueKind == JsonValueKind.Number
+            && property.TryGetInt32(out var numericValue))
+        {
+            return numericValue;
+        }
+
+        if (property.ValueKind == JsonValueKind.String
+            && int.TryParse(
+                property.GetString(),
+                NumberStyles.Integer,
                 CultureInfo.InvariantCulture,
                 out var stringValue))
         {
@@ -281,6 +331,48 @@ public static class ModelResponseParsers
         }
 
         return items;
+    }
+
+    private static SujikoQuadrantTotals GetSujikoQuadrantTotals(JsonElement root)
+    {
+        if (!root.TryGetProperty("quadrantTotals", out var totals)
+            || totals.ValueKind != JsonValueKind.Object)
+        {
+            throw new DocumentModelResponseException(
+                "The Sujiko puzzle extraction model response did not include a 'quadrantTotals' object.");
+        }
+
+        return new SujikoQuadrantTotals(
+            GetRequiredInt(totals, "topLeft", "Sujiko puzzle extraction"),
+            GetRequiredInt(totals, "topRight", "Sujiko puzzle extraction"),
+            GetRequiredInt(totals, "bottomLeft", "Sujiko puzzle extraction"),
+            GetRequiredInt(totals, "bottomRight", "Sujiko puzzle extraction"));
+    }
+
+    private static IReadOnlyList<SujikoCellValue> GetSujikoGivenCells(JsonElement root)
+    {
+        if (!root.TryGetProperty("givenCells", out var cellsProperty)
+            && !root.TryGetProperty("cells", out cellsProperty))
+        {
+            return [];
+        }
+
+        if (cellsProperty.ValueKind != JsonValueKind.Array)
+        {
+            throw new DocumentModelResponseException(
+                "The Sujiko puzzle extraction model response included given cells, but they were not an array.");
+        }
+
+        var cells = new List<SujikoCellValue>();
+        foreach (var cellProperty in cellsProperty.EnumerateArray())
+        {
+            cells.Add(new SujikoCellValue(
+                GetRequiredInt(cellProperty, "row", "Sujiko puzzle extraction"),
+                GetRequiredInt(cellProperty, "column", "Sujiko puzzle extraction"),
+                GetRequiredInt(cellProperty, "value", "Sujiko puzzle extraction")));
+        }
+
+        return cells;
     }
 
     private static bool? GetOptionalBool(JsonElement root, string propertyName)

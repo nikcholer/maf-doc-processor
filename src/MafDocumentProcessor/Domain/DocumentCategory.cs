@@ -5,5 +5,6 @@ public enum DocumentCategory
     Invoice,
     Receipt,
     ShoppingList,
+    SujikoPuzzle,
     Unknown
 }

@@ -225,7 +225,7 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.Equal(HumanReviewStatus.Required, result.HumanReview.Status);
         Assert.Contains(
             result.Errors,
-            error => error == "This appears to be a car registration document. This demo can process receipts and shopping lists right now.");
+            error => error == "This appears to be a car registration document. This demo can process receipts, shopping lists, and Sujiko puzzles right now.");
         Assert.Single(result.ModelUsage.Calls);
     }
 
@@ -247,7 +247,7 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.Equal(HumanReviewStatus.Required, result.HumanReview.Status);
         Assert.Contains(
             result.Errors,
-            error => error == "This appears to be an invoice. This demo can process receipts and shopping lists right now.");
+            error => error == "This appears to be an invoice. This demo can process receipts, shopping lists, and Sujiko puzzles right now.");
     }
 
     [Fact]
@@ -267,6 +267,72 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.True(result.IsSuccess);
         Assert.Equal(HumanReviewStatus.Recommended, result.HumanReview.Status);
         Assert.Contains(result.HumanReview.Reasons, reason => reason.Contains("below normal processing threshold"));
+    }
+
+    [Fact]
+    public async Task RunAsync_RoutesSujikoPuzzleToSujikoExtractor()
+    {
+        var receiptExtractor = new FakeReceiptExtractor(new ReceiptData(
+            "Not used",
+            1m,
+            null,
+            null,
+            "GBP"));
+        var shoppingListExtractor = new FakeShoppingListExtractor(CreateShoppingList());
+        var sujikoExtractor = new FakeSujikoPuzzleExtractor(CreateSujikoPuzzle());
+        var workflow = new DocumentProcessingWorkflow(
+            new FakeDocumentClassifier(DocumentCategory.SujikoPuzzle, 0.93m),
+            receiptExtractor,
+            shoppingListExtractor,
+            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"),
+            new PassThroughImagePreprocessor(),
+            sujikoExtractor);
+
+        var result = await workflow.RunAsync(CreateReceiptRequest());
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(DocumentCategory.SujikoPuzzle, result.Category);
+        Assert.Null(result.Receipt);
+        Assert.Null(result.ShoppingList);
+        Assert.Null(result.PolicyResult);
+        Assert.Equal(21, result.SujikoPuzzle?.QuadrantTotals.TopLeft);
+        Assert.Equal(12, result.SujikoPuzzle?.QuadrantTotals.TopRight);
+        Assert.Equal(new SujikoCellValue(2, 2, 1), result.SujikoPuzzle?.GivenCells[0]);
+        Assert.Equal(1, sujikoExtractor.CallCount);
+        Assert.Equal(0, receiptExtractor.CallCount);
+        Assert.Equal(0, shoppingListExtractor.CallCount);
+        Assert.Equal(HumanReviewStatus.NotRequired, result.HumanReview.Status);
+    }
+
+    [Fact]
+    public async Task RunAsync_ReExtractsSujikoPuzzleOnceWhenValidationFails()
+    {
+        var sujikoExtractor = new SequenceSujikoPuzzleExtractor(
+            new SujikoPuzzleData(
+                new SujikoQuadrantTotals(21, 12, 21, 17),
+                [new SujikoCellValue(Row: 4, Column: 2, Value: 8)]),
+            CreateSujikoPuzzle());
+        var workflow = new DocumentProcessingWorkflow(
+            new FakeDocumentClassifier(DocumentCategory.SujikoPuzzle, 0.93m),
+            new FakeReceiptExtractor(new ReceiptData(
+                "Not used",
+                1m,
+                null,
+                null,
+                "GBP")),
+            new FakeShoppingListExtractor(CreateShoppingList()),
+            new ReceiptPolicyOptions(ReviewThreshold: 50m, DefaultCurrencyCode: "GBP"),
+            new PassThroughImagePreprocessor(),
+            sujikoExtractor);
+
+        var result = await workflow.RunAsync(CreateReceiptRequest());
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Validation.IsValid);
+        Assert.Equal(2, sujikoExtractor.CallCount);
+        Assert.Contains(sujikoExtractor.LastRepairInstructions, reason => reason.Contains("outside the 1-3 grid"));
+        Assert.Equal(new SujikoCellValue(3, 2, 8), result.SujikoPuzzle?.GivenCells[1]);
+        Assert.Equal(3, result.ModelUsage.Calls.Count);
     }
 
     private static DocumentProcessingWorkflow CreateWorkflow(
@@ -301,6 +367,16 @@ public sealed class ReceiptProcessingWorkflowTests
                 new ShoppingListItem("bread", null, null, null)
             ],
             Notes: null);
+    }
+
+    private static SujikoPuzzleData CreateSujikoPuzzle()
+    {
+        return new SujikoPuzzleData(
+            new SujikoQuadrantTotals(21, 12, 21, 17),
+            [
+                new SujikoCellValue(2, 2, 1),
+                new SujikoCellValue(3, 2, 8)
+            ]);
     }
 
     private sealed class FakeDocumentClassifier(
@@ -354,6 +430,22 @@ public sealed class ReceiptProcessingWorkflowTests
         }
     }
 
+    private sealed class FakeSujikoPuzzleExtractor(SujikoPuzzleData puzzle) : ISujikoPuzzleExtractor
+    {
+        public int CallCount { get; private set; }
+
+        public ValueTask<ModelResult<SujikoPuzzleData>> ExtractSujikoPuzzleAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            CallCount++;
+            return ValueTask.FromResult(new ModelResult<SujikoPuzzleData>(
+                puzzle,
+                new ModelTokenUsage("sujiko_puzzle_extraction", "test-sujiko-extractor", 4, 8, 12, 0.20m, 0.50m, 0.0000008m, 0.000004m, 0.0000048m)));
+        }
+    }
+
     private sealed class SequenceReceiptExtractor(params ReceiptData[] receipts) : IReceiptExtractor
     {
         public int CallCount { get; private set; }
@@ -399,6 +491,30 @@ public sealed class ReceiptProcessingWorkflowTests
             return ValueTask.FromResult(new ModelResult<ShoppingListData>(
                 shoppingList,
                 new ModelTokenUsage("shopping_list_extraction", "test-shopping-list-extractor", 4, 8, 12, 0.20m, 0.50m, 0.0000008m, 0.000004m, 0.0000048m)));
+        }
+    }
+
+    private sealed class SequenceSujikoPuzzleExtractor(params SujikoPuzzleData[] puzzles) : ISujikoPuzzleExtractor
+    {
+        public int CallCount { get; private set; }
+
+        public IReadOnlyList<string> LastRepairInstructions { get; private set; } = [];
+
+        public ValueTask<ModelResult<SujikoPuzzleData>> ExtractSujikoPuzzleAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            if (repairInstructions is not null)
+            {
+                LastRepairInstructions = repairInstructions;
+            }
+
+            var puzzle = puzzles[Math.Min(CallCount, puzzles.Length - 1)];
+            CallCount++;
+            return ValueTask.FromResult(new ModelResult<SujikoPuzzleData>(
+                puzzle,
+                new ModelTokenUsage("sujiko_puzzle_extraction", "test-sujiko-extractor", 4, 8, 12, 0.20m, 0.50m, 0.0000008m, 0.000004m, 0.0000048m)));
         }
     }
 

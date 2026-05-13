@@ -39,6 +39,7 @@ Receipts and shopping lists in the local demo do not require formal attestation.
 | --- | --- |
 | Receipt reference/demo | User may inspect or discard result. No submission attestation required. |
 | Shopping list/demo | User may inspect or discard result. No submission attestation required. |
+| Sujiko puzzle/demo | User may inspect, solve, or discard result. No submission attestation required. |
 | Expense claim | User must attest that the claim is theirs, that parsed fields are acceptable, and that submission is intentional. |
 | Compliance, financial, or legal submission | Require explicit user or reviewer ownership before downstream action. |
 

@@ -7,6 +7,7 @@ public sealed record DocumentProcessingResult(
     DocumentModelUsage ModelUsage,
     ReceiptData? Receipt,
     ShoppingListData? ShoppingList,
+    SujikoPuzzleData? SujikoPuzzle,
     ReceiptPolicyResult? PolicyResult,
     ValidationResult Validation,
     HumanReviewResult HumanReview,

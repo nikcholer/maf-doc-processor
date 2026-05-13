@@ -47,6 +47,13 @@ builder.Services.AddScoped<IShoppingListExtractor>(sp =>
         sp.GetRequiredService<IModelChatClient>(),
         settings.DocumentExtraction);
 });
+builder.Services.AddScoped<ISujikoPuzzleExtractor>(sp =>
+{
+    var settings = sp.GetRequiredService<AiModelSettings>();
+    return new ModelSujikoPuzzleExtractor(
+        sp.GetRequiredService<IModelChatClient>(),
+        settings.DocumentExtraction);
+});
 builder.Services.AddScoped<DocumentProcessingWorkflow>();
 
 var app = builder.Build();

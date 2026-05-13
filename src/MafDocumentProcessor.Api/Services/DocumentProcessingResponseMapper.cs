@@ -35,6 +35,7 @@ public static class DocumentProcessingResponseMapper
         {
             DocumentCategory.Receipt => result.Receipt,
             DocumentCategory.ShoppingList => result.ShoppingList,
+            DocumentCategory.SujikoPuzzle => result.SujikoPuzzle,
             _ => null
         };
     }

@@ -35,12 +35,23 @@ Shopping lists are successful only when the parsed list is structurally usable.
 
 Shopping-list validation currently requires at least one readable item and no blank item names.
 
+## Sujiko Puzzle
+
+Sujiko puzzles are successful only when the starting state is structurally usable.
+
+| Condition | `IsSuccess` | `Errors` | `Warnings` |
+| --- | --- | --- | --- |
+| Four quadrant totals and valid given cells | `true` | Empty | Empty |
+| Puzzle still invalid after repair | `false` | Validation reasons | Empty |
+
+The extracted starting state contains the four required quadrant totals and zero or more given cells. Cell coordinates are 1-based: row `1`, column `1` is the top-left cell. Sujiko validation currently requires positive quadrant totals, given cell rows and columns in the 1-3 grid, given values in the 1-9 range, and no duplicate given-cell locations.
+
 ## Unsupported Document Types
 
 Unsupported documents return a normal workflow response with `IsSuccess=false`, no parsed document payload, and a human-readable error such as:
 
 ```text
-This appears to be a car registration document. This demo can process receipts and shopping lists right now.
+This appears to be a car registration document. This demo can process receipts, shopping lists, and Sujiko puzzles right now.
 ```
 
 This is not an API failure. It means the system recognized the request and deliberately declined to process that document type.

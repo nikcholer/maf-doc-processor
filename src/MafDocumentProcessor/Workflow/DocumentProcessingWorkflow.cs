@@ -15,6 +15,7 @@ public sealed class DocumentProcessingWorkflow(
     IShoppingListExtractor shoppingListExtractor,
     ReceiptPolicyOptions policyOptions,
     IModelImagePreprocessor? imagePreprocessor = null,
+    ISujikoPuzzleExtractor? sujikoPuzzleExtractor = null,
     ILogger<DocumentProcessingWorkflow>? logger = null)
 {
     private readonly IModelImagePreprocessor _imagePreprocessor =
@@ -54,6 +55,9 @@ public sealed class DocumentProcessingWorkflow(
                 await CreateClassifiedDocumentForExtractionAsync(request, metadata, classification, cancellationToken),
                 cancellationToken),
             DocumentCategory.ShoppingList => await RunShoppingListWorkflowAsync(
+                await CreateClassifiedDocumentForExtractionAsync(request, metadata, classification, cancellationToken),
+                cancellationToken),
+            DocumentCategory.SujikoPuzzle => await RunSujikoPuzzleWorkflowAsync(
                 await CreateClassifiedDocumentForExtractionAsync(request, metadata, classification, cancellationToken),
                 cancellationToken),
             _ => CreateUnsupportedDocumentResult(new ClassifiedDocument(
@@ -130,6 +134,34 @@ public sealed class DocumentProcessingWorkflow(
         return await RunWorkflowAsync(workflow, "Shopping List Processing", classifiedDocument, _logger, cancellationToken)
             ?? throw new InvalidOperationException(
                 "Shopping list workflow completed without a document processing result.");
+    }
+
+    private async Task<DocumentProcessingResult> RunSujikoPuzzleWorkflowAsync(
+        ClassifiedDocument classifiedDocument,
+        CancellationToken cancellationToken)
+    {
+        if (sujikoPuzzleExtractor is null)
+        {
+            throw new InvalidOperationException("Sujiko puzzle extraction is not configured.");
+        }
+
+        var extractionExecutor = new SujikoPuzzleExtractionExecutor(sujikoPuzzleExtractor, cancellationToken);
+        var validationExecutor = new SujikoPuzzleValidationExecutor();
+        var repairExecutor = new SujikoPuzzleValidationRepairExecutor(sujikoPuzzleExtractor, cancellationToken);
+        var resultExecutor = new SujikoPuzzleResultExecutor();
+
+        var workflow = new WorkflowBuilder(extractionExecutor)
+            .AddEdge(extractionExecutor, validationExecutor)
+            .AddEdge(validationExecutor, repairExecutor)
+            .AddEdge(repairExecutor, resultExecutor)
+            .WithOutputFrom(resultExecutor)
+            .WithName("Sujiko Puzzle Processing")
+            .WithDescription("Extracts, validates, and repairs a Sujiko puzzle starting state from an image.")
+            .Build();
+
+        return await RunWorkflowAsync(workflow, "Sujiko Puzzle Processing", classifiedDocument, _logger, cancellationToken)
+            ?? throw new InvalidOperationException(
+                "Sujiko puzzle workflow completed without a document processing result.");
     }
 
     private static async Task<DocumentProcessingResult?> RunWorkflowAsync(
@@ -215,6 +247,7 @@ public sealed class DocumentProcessingWorkflow(
             DocumentModelUsage.FromCalls([document.ClassificationUsage]),
             Receipt: null,
             ShoppingList: null,
+            SujikoPuzzle: null,
             PolicyResult: null,
             ValidationResult.Invalid(message),
             HumanReviewEvaluator.Evaluate(
@@ -232,7 +265,7 @@ public sealed class DocumentProcessingWorkflow(
         var description = NormalizeDocumentTypeDescription(classification);
         var article = GetIndefiniteArticle(description);
 
-        return $"This appears to be {article} {description}. This demo can process receipts and shopping lists right now.";
+        return $"This appears to be {article} {description}. This demo can process receipts, shopping lists, and Sujiko puzzles right now.";
     }
 
     private static string NormalizeDocumentTypeDescription(DocumentClassification classification)
@@ -244,6 +277,7 @@ public sealed class DocumentProcessingWorkflow(
             {
                 DocumentCategory.Invoice => "invoice",
                 DocumentCategory.ShoppingList => "shopping list",
+                DocumentCategory.SujikoPuzzle => "Sujiko puzzle",
                 DocumentCategory.Unknown => "unsupported document",
                 _ => classification.Category.ToString()
             };

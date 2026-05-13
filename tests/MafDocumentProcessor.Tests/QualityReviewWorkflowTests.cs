@@ -92,6 +92,7 @@ public sealed class QualityReviewWorkflowTests
                 "Visa",
                 "GBP"),
             ShoppingList: null,
+            SujikoPuzzle: null,
             new ReceiptPolicyResult(
                 IsWithinReviewThreshold: true,
                 HasPaymentMethod: true,

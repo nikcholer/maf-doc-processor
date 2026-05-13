@@ -68,8 +68,9 @@ Supported document types:
 
 - Receipts
 - Shopping lists
+- Sujiko puzzles
 
-Unsupported but recognized document types return a human-readable message, for example: "This appears to be a car registration document. This demo can process receipts and shopping lists right now."
+Unsupported but recognized document types return a human-readable message, for example: "This appears to be a car registration document. This demo can process receipts, shopping lists, and Sujiko puzzles right now."
 
 The demo is local-only. It does not include authentication, persistence, user workflow history, human-review screens, or external hosting.
 

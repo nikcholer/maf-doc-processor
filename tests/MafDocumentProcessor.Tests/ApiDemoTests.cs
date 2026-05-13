@@ -196,6 +196,7 @@ public sealed class ApiDemoTests
                 "Weekly groceries",
                 [new ShoppingListItem("milk", 2, "pints", false)],
                 Notes: null),
+            SujikoPuzzle: null,
             PolicyResult: null,
             ValidationResult.Valid,
             HumanReviewResult.NotRequired,
@@ -211,6 +212,47 @@ public sealed class ApiDemoTests
         Assert.Equal("milk", shoppingList.Items[0].Name);
         Assert.Null(response.Document?.PolicyResult);
     }
+
+    [Fact]
+    public void DocumentProcessingResponseMapper_MapsSujikoWorkflowResultForDemoUi()
+    {
+        var metadata = CreateMetadata("sujiko.png");
+        var result = new DocumentProcessingResult(
+            DocumentCategory.SujikoPuzzle,
+            metadata,
+            new DocumentClassification(
+                DocumentCategory.SujikoPuzzle,
+                0.93m,
+                "Sujiko grid layout"),
+            DocumentModelUsage.FromCalls([
+                new ModelTokenUsage("classification", "model", 2, 4, 6),
+                new ModelTokenUsage("sujiko_puzzle_extraction", "model", 2, 4, 6)
+            ]),
+            Receipt: null,
+            ShoppingList: null,
+            new SujikoPuzzleData(
+                new SujikoQuadrantTotals(21, 12, 21, 17),
+                [
+                    new SujikoCellValue(2, 2, 1),
+                    new SujikoCellValue(3, 2, 8)
+                ]),
+            PolicyResult: null,
+            ValidationResult.Valid,
+            HumanReviewResult.NotRequired,
+            IsSuccess: true,
+            Errors: [],
+            Warnings: []);
+
+        var response = DocumentProcessingResponseMapper.Map(result);
+
+        var puzzle = Assert.IsType<SujikoPuzzleData>(response.Document?.Data);
+        Assert.Equal(DocumentCategory.SujikoPuzzle, response.Category);
+        Assert.Equal(21, puzzle.QuadrantTotals.TopLeft);
+        Assert.Equal(17, puzzle.QuadrantTotals.BottomRight);
+        Assert.Equal(new SujikoCellValue(3, 2, 8), puzzle.GivenCells[1]);
+        Assert.Null(response.Document?.PolicyResult);
+    }
+
 
     private static DocumentProcessingResult CreateWorkflowResult()
     {
@@ -240,6 +282,7 @@ public sealed class ApiDemoTests
             ]),
             receipt,
             ShoppingList: null,
+            SujikoPuzzle: null,
             policy,
             ValidationResult.Valid,
             HumanReviewResult.NotRequired,
