@@ -51,6 +51,15 @@ public sealed class SujikoPuzzleValidationExecutor()
             reasons.Add($"Sujiko given cell {location} was returned more than once.");
         }
 
+        var duplicateValues = puzzle.GivenCells
+            .GroupBy(cell => cell.Value)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key);
+        foreach (var value in duplicateValues)
+        {
+            reasons.Add($"Sujiko given value {value} was returned more than once.");
+        }
+
         return reasons.Count == 0
             ? ValidationResult.Valid
             : new ValidationResult(false, reasons);

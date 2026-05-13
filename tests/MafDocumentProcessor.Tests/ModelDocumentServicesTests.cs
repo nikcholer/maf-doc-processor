@@ -127,6 +127,9 @@ public sealed class ModelDocumentServicesTests
         Assert.Contains("mentally deskew", systemText);
         Assert.Contains("not from the camera frame", systemText);
         Assert.Contains("centre of the printed digit", systemText);
+        Assert.Contains("above the first interior horizontal line is row 1", systemText);
+        Assert.Contains("circles sit on grid intersections and are not cells", systemText);
+        Assert.Contains("Do not include alternate row or column guesses", systemText);
     }
 
     [Fact]
