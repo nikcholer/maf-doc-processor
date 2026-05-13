@@ -193,6 +193,12 @@ Initial package pins:
 - [ ] Add export/copy affordances for structured document results.
 - [ ] Build a small golden sample set for receipts, shopping lists, Sujiko puzzles, and unsupported documents.
 - [ ] Add optional live quality-review runs against the golden sample set to measure whether the Analyst/Critic layer earns its extra calls.
+- [ ] Consider public demo hosting for recruiters/clients now that TogetherAI usage is very low cost:
+  - [ ] Add a request flow for short-lived demo access keys.
+  - [ ] Issue keys with a fixed allowance, initially 50 document-processing uses.
+  - [ ] Track remaining uses, expiry, and basic abuse signals.
+  - [ ] Keep provider API keys server-side only; demo keys must never expose TogetherAI credentials.
+  - [ ] Add a lightweight admin/revocation path before sharing publicly.
 
 ## Stable vs Preview-Aware Scope
 
