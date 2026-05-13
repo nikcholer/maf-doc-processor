@@ -41,7 +41,7 @@ V2 will live in a separate repository so the Semantic Kernel implementation can 
 | D3 | Output schema | Decided for MVP | Match what the old repository currently extracts from receipts. Inventory the old repo before finalizing record names. |
 | D4 | Model/provider | Decided for MVP | Keep model selection in config. Use TogetherAI with Qwen3.5 9B for document classification and extraction, with Gemma 4 retained for reserved text testing initially. |
 | D5 | Hosting model | Decided for MVP | All local. Revisit hosting only if/when external access becomes useful. |
-| D6 | Human review trigger | Partly decided | Human review is required when the model is in doubt on categorization or other key fields. Some document types may require user ownership/attestation after parsing, e.g. an expense claim is submitted by the user, not by the model. |
+| D6 | Human review trigger | Decided for MVP | Review is a quality/ownership state, not an API failure. Low or missing classification confidence, policy exceptions, validation issues, and future user-owned submissions require review or attestation according to `docs/human-review-policy.md`. |
 | D7 | Multi-agent review | Decided | Post-MVP quality layer, not part of the first vertical slice. |
 | D8 | Durability question | Decided for MVP | Defer durable pause/resume for the local demo. Current processing is bounded, cancellable foreground HTTP work. Revisit when background jobs, human review waits, hosting, or restart-safe workflow history become real requirements. |
 | D9 | Frontend scope | Decided for MVP | Port or recreate the old static web app only as a reassuring local demo for human consumption with an arbitrary new image. A proper user-facing frontend is a separate future effort. |
@@ -167,8 +167,8 @@ Initial package pins:
 
 ### P4 - Human Review
 
-- [ ] Define confidence scoring or review policy for categorization and key extracted fields.
-- [ ] Define document-type ownership/attestation rules, especially for expense claims where the user owns the submission.
+- [x] Define confidence scoring or review policy for categorization and key extracted fields.
+- [x] Define document-type ownership/attestation rules, especially for expense claims where the user owns the submission.
 - [ ] Add workflow pause/resume for human approval.
 - [ ] Add reviewer input model.
 - [ ] Add timeout/escalation behavior.
