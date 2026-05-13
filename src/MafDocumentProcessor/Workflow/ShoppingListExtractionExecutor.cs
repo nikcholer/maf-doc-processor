@@ -4,7 +4,9 @@ using Microsoft.Agents.AI.Workflows;
 
 namespace MafDocumentProcessor.Workflow;
 
-public sealed class ShoppingListExtractionExecutor(IShoppingListExtractor extractor)
+public sealed class ShoppingListExtractionExecutor(
+    IShoppingListExtractor extractor,
+    CancellationToken workflowCancellationToken = default)
     : Executor<ClassifiedDocument, ShoppingListExtraction>("ShoppingListExtraction")
 {
     public override async ValueTask<ShoppingListExtraction> HandleAsync(
@@ -18,7 +20,10 @@ public sealed class ShoppingListExtractionExecutor(IShoppingListExtractor extrac
                 $"Shopping list extraction received a {message.Classification.Category} document.");
         }
 
-        var extraction = await extractor.ExtractShoppingListAsync(message.Request, cancellationToken);
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            workflowCancellationToken);
+        var extraction = await extractor.ExtractShoppingListAsync(message.Request, linkedCancellation.Token);
         return new ShoppingListExtraction(
             message,
             extraction.Value,

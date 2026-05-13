@@ -3,7 +3,9 @@ using Microsoft.Agents.AI.Workflows;
 
 namespace MafDocumentProcessor.Workflow;
 
-public sealed class ShoppingListValidationRepairExecutor(IShoppingListExtractor extractor)
+public sealed class ShoppingListValidationRepairExecutor(
+    IShoppingListExtractor extractor,
+    CancellationToken workflowCancellationToken = default)
     : Executor<ValidatedShoppingListExtraction, ValidatedShoppingListExtraction>("ShoppingListValidationRepair")
 {
     public override async ValueTask<ValidatedShoppingListExtraction> HandleAsync(
@@ -17,9 +19,12 @@ public sealed class ShoppingListValidationRepairExecutor(IShoppingListExtractor 
         }
 
         var extraction = message.Extraction;
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            workflowCancellationToken);
         var repaired = await extractor.ExtractShoppingListAsync(
             extraction.ClassifiedDocument.Request,
-            cancellationToken,
+            linkedCancellation.Token,
             message.Validation.Reasons);
 
         var repairedExtraction = extraction with

@@ -3,7 +3,9 @@ using Microsoft.Agents.AI.Workflows;
 
 namespace MafDocumentProcessor.Workflow;
 
-public sealed class ReceiptValidationRepairExecutor(IReceiptExtractor extractor)
+public sealed class ReceiptValidationRepairExecutor(
+    IReceiptExtractor extractor,
+    CancellationToken workflowCancellationToken = default)
     : Executor<ValidatedReceiptExtraction, ValidatedReceiptExtraction>("ReceiptValidationRepair")
 {
     public override async ValueTask<ValidatedReceiptExtraction> HandleAsync(
@@ -17,9 +19,12 @@ public sealed class ReceiptValidationRepairExecutor(IReceiptExtractor extractor)
         }
 
         var extraction = message.Extraction;
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            workflowCancellationToken);
         var repaired = await extractor.ExtractReceiptAsync(
             extraction.ClassifiedDocument.Request,
-            cancellationToken,
+            linkedCancellation.Token,
             message.Validation.Reasons);
 
         var repairedExtraction = extraction with

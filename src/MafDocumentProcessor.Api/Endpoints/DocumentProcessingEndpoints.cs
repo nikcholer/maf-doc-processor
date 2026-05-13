@@ -17,7 +17,7 @@ public static class DocumentProcessingEndpoints
         return endpoints;
     }
 
-    private static async Task<IResult> ProcessDocumentAsync(
+    public static async Task<IResult> ProcessDocumentAsync(
         HttpRequest request,
         DocumentIntakeSettings intakeSettings,
         AiModelSettings aiModelSettings,
@@ -163,6 +163,13 @@ public static class DocumentProcessingEndpoints
                 StatusCodes.Status502BadGateway,
                 "model_provider_failed",
                 ex.Message);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            logger.LogInformation(
+                "Document workflow was canceled for uploaded image {FileName}.",
+                fileName);
+            throw;
         }
         catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
         {

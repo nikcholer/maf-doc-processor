@@ -4,7 +4,9 @@ using Microsoft.Agents.AI.Workflows;
 
 namespace MafDocumentProcessor.Workflow;
 
-public sealed class ReceiptExtractionExecutor(IReceiptExtractor extractor)
+public sealed class ReceiptExtractionExecutor(
+    IReceiptExtractor extractor,
+    CancellationToken workflowCancellationToken = default)
     : Executor<ClassifiedDocument, ReceiptExtraction>("ReceiptExtraction")
 {
     public override async ValueTask<ReceiptExtraction> HandleAsync(
@@ -18,7 +20,10 @@ public sealed class ReceiptExtractionExecutor(IReceiptExtractor extractor)
                 $"Receipt extraction received a {message.Classification.Category} document.");
         }
 
-        var extraction = await extractor.ExtractReceiptAsync(message.Request, cancellationToken);
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            workflowCancellationToken);
+        var extraction = await extractor.ExtractReceiptAsync(message.Request, linkedCancellation.Token);
         return new ReceiptExtraction(
             message,
             extraction.Value,

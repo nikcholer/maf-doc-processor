@@ -88,9 +88,9 @@ public sealed class DocumentProcessingWorkflow(
         ClassifiedDocument classifiedDocument,
         CancellationToken cancellationToken)
     {
-        var extractionExecutor = new ReceiptExtractionExecutor(receiptExtractor);
+        var extractionExecutor = new ReceiptExtractionExecutor(receiptExtractor, cancellationToken);
         var validationExecutor = new ReceiptValidationExecutor();
-        var repairExecutor = new ReceiptValidationRepairExecutor(receiptExtractor);
+        var repairExecutor = new ReceiptValidationRepairExecutor(receiptExtractor, cancellationToken);
         var policyExecutor = new ReceiptPolicyExecutor(policyOptions);
         var resultExecutor = new ReceiptResultExecutor();
 
@@ -113,9 +113,9 @@ public sealed class DocumentProcessingWorkflow(
         ClassifiedDocument classifiedDocument,
         CancellationToken cancellationToken)
     {
-        var extractionExecutor = new ShoppingListExtractionExecutor(shoppingListExtractor);
+        var extractionExecutor = new ShoppingListExtractionExecutor(shoppingListExtractor, cancellationToken);
         var validationExecutor = new ShoppingListValidationExecutor();
-        var repairExecutor = new ShoppingListValidationRepairExecutor(shoppingListExtractor);
+        var repairExecutor = new ShoppingListValidationRepairExecutor(shoppingListExtractor, cancellationToken);
         var resultExecutor = new ShoppingListResultExecutor();
 
         var workflow = new WorkflowBuilder(extractionExecutor)
@@ -185,6 +185,11 @@ public sealed class DocumentProcessingWorkflow(
             "Completed MAF workflow {WorkflowName}. HasResult={HasResult}.",
             workflowName,
             result is not null);
+
+        if (result is null)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
 
         return result;
     }

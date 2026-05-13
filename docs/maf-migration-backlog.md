@@ -149,10 +149,10 @@ Initial package pins:
 
 ### P2.5 - Hardening
 
-- [ ] Add API integration tests with `WebApplicationFactory`.
-- [ ] Add cancellation propagation tests from HTTP request through workflow/model calls.
-- [ ] Formalize API error contract documentation, including error codes and status codes.
-- [ ] Define success/failure semantics per document type, especially validation warnings vs errors.
+- [x] Add API integration tests with `WebApplicationFactory`.
+- [x] Add cancellation propagation tests from HTTP request through workflow/model calls.
+- [x] Formalize API error contract documentation, including error codes and status codes.
+- [x] Define success/failure semantics per document type, especially validation warnings vs errors.
 
 ### P3 - Long-Running Processing
 
