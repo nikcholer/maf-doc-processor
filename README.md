@@ -87,3 +87,4 @@ The demo is local-only. It does not include authentication, persistence, user wo
 - [Document result semantics](docs/document-result-semantics.md)
 - [Human review policy](docs/human-review-policy.md)
 - [Durability decision](docs/durability-decision.md)
+- [Multi-agent quality prototype](docs/multi-agent-quality-prototype.md)

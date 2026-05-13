@@ -176,11 +176,11 @@ Initial package pins:
 
 ### P5 - Multi-Agent Quality Layer
 
-- [ ] Prototype AnalystAgent and CriticAgent workflow.
+- [x] Prototype AnalystAgent and CriticAgent workflow.
 - [ ] Measure quality improvement against baseline single-agent output.
-- [ ] Measure added cost and latency.
-- [ ] Decide whether multi-agent review is default, optional, or rejected.
-- [ ] Add tests for disagreement and hallucination-detection scenarios.
+- [x] Measure added cost and latency.
+- [x] Decide whether multi-agent review is default, optional, or rejected.
+- [x] Add tests for disagreement and hallucination-detection scenarios.
 
 ## Stable vs Preview-Aware Scope
 
