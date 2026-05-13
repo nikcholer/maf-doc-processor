@@ -43,7 +43,7 @@ V2 will live in a separate repository so the Semantic Kernel implementation can 
 | D5 | Hosting model | Decided for MVP | All local. Revisit hosting only if/when external access becomes useful. |
 | D6 | Human review trigger | Partly decided | Human review is required when the model is in doubt on categorization or other key fields. Some document types may require user ownership/attestation after parsing, e.g. an expense claim is submitted by the user, not by the model. |
 | D7 | Multi-agent review | Decided | Post-MVP quality layer, not part of the first vertical slice. |
-| D8 | Durability question | Open | The question is not "which cloud backend?" yet. It is: do we need durable pause/resume for local long-running jobs, and if so should we use MAF Durable Task locally, a lightweight local job store, or defer entirely until hosting exists? |
+| D8 | Durability question | Decided for MVP | Defer durable pause/resume for the local demo. Current processing is bounded, cancellable foreground HTTP work. Revisit when background jobs, human review waits, hosting, or restart-safe workflow history become real requirements. |
 | D9 | Frontend scope | Decided for MVP | Port or recreate the old static web app only as a reassuring local demo for human consumption with an arbitrary new image. A proper user-facing frontend is a separate future effort. |
 
 ## Backlog
@@ -156,14 +156,14 @@ Initial package pins:
 
 ### P3 - Long-Running Processing
 
-- [ ] Decide whether local receipt/shopping-list processing actually needs durable pause/resume.
-- [ ] If durability is needed, compare:
-  - [ ] MAF Durable Task in a local setup
-  - [ ] lightweight local job store/checkpoint files
-  - [ ] deferring durability until external hosting exists
-- [ ] Add checkpointing for long-running document jobs.
-- [ ] Add resume/retry behavior for interrupted jobs.
-- [ ] Add operational documentation for durable runs.
+- [x] Decide whether local receipt/shopping-list processing actually needs durable pause/resume.
+- [x] If durability is needed, compare:
+  - [x] MAF Durable Task in a local setup
+  - [x] lightweight local job store/checkpoint files
+  - [x] deferring durability until external hosting exists
+- [x] Defer checkpointing for local foreground document jobs until durability reopen criteria are met.
+- [x] Defer resume/retry behavior for interrupted local jobs; failed or canceled requests are safe to resubmit.
+- [x] Add operational documentation for durability decisions and reopen criteria.
 
 ### P4 - Human Review
 

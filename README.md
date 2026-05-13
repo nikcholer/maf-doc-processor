@@ -77,4 +77,5 @@ The demo is local-only. It does not include authentication, persistence, user wo
 
 - Classification intentionally happens before the MAF workflow graph so the app can route into a document-specific workflow.
 - The model boundary is a local `IModelChatClient` abstraction rather than `Microsoft.Extensions.AI` for now, because TogetherAI-specific protocol options are required to disable Qwen thinking mode.
-- Transient model/provider failures are retried with a short bounded backoff. Structured extraction or validation failures are not retried automatically yet.
+- Transient model/provider failures are retried with a short bounded backoff. Structural validation failures get one bounded repair extraction attempt.
+- Durable pause/resume is deliberately deferred for the local demo. Failed or canceled requests are safe to resubmit.
