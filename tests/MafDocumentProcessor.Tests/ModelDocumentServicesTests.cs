@@ -107,6 +107,29 @@ public sealed class ModelDocumentServicesTests
     }
 
     [Fact]
+    public async Task ExtractSujikoPuzzleAsync_IncludesDeskewingGuidance()
+    {
+        var chatClient = new CapturingModelChatClient(
+            """{"quadrantTotals":{"topLeft":20,"topRight":11,"bottomLeft":24,"bottomRight":23},"givenCells":[{"row":1,"column":3,"value":3},{"row":3,"column":2,"value":7}]}""");
+        var settings = AiModelSettingsDefaults.CreateTogetherGemma4Role("text-testing");
+        var extractor = new ModelSujikoPuzzleExtractor(chatClient, settings);
+
+        var result = await extractor.ExtractSujikoPuzzleAsync(CreateReceiptRequest(), CancellationToken.None);
+
+        Assert.Equal(20, result.Value.QuadrantTotals.TopLeft);
+        Assert.Equal(new SujikoCellValue(3, 2, 7), result.Value.GivenCells[1]);
+        var systemText = chatClient.LastRequest!.Messages
+            .Where(message => message.Role == ModelChatRole.System)
+            .SelectMany(message => message.Content)
+            .OfType<ModelTextContent>()
+            .Single()
+            .Text;
+        Assert.Contains("mentally deskew", systemText);
+        Assert.Contains("not from the camera frame", systemText);
+        Assert.Contains("centre of the printed digit", systemText);
+    }
+
+    [Fact]
     public void CreateTogetherDefaults_PreservesSeparateRoleSettings()
     {
         var settings = AiModelSettingsDefaults.CreateTogetherDefaults();

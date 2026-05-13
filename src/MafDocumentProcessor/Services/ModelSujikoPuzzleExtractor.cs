@@ -24,6 +24,9 @@ public sealed class ModelSujikoPuzzleExtractor(
                     A Sujiko puzzle is a 3x3 grid. Four circled quadrant totals appear at the internal grid intersections.
                     The quadrant totals are named topLeft, topRight, bottomLeft, and bottomRight by their position in the 2x2 set of circled totals.
                     Zero or more given cell values may appear in the 3x3 cells. Cell row and column numbers are 1-based from top-left to bottom-right.
+                    Images may be rotated, skewed, or photographed at an angle. First mentally deskew the puzzle grid and identify the puzzle's own top edge, left edge, rows, and columns.
+                    Assign row and column from the deskewed 3x3 puzzle grid, not from the camera frame or page angle. Count rows from the puzzle's top row to bottom row and columns from the puzzle's left column to right column.
+                    Be especially careful with given cell values near a horizontal grid line: use the centre of the printed digit within its cell after deskewing to decide which row it belongs to.
                     Do not solve the puzzle or infer missing cell values.
                     Return only compact JSON with this exact shape:
                     {"quadrantTotals":{"topLeft":0,"topRight":0,"bottomLeft":0,"bottomRight":0},"givenCells":[{"row":1,"column":1,"value":0}]}
