@@ -182,6 +182,18 @@ Initial package pins:
 - [x] Decide whether multi-agent review is default, optional, or rejected.
 - [x] Add tests for disagreement and hallucination-detection scenarios.
 
+### Icebox - Future Ideas
+
+- [ ] Add Sujiko puzzle solving after extraction:
+  - [ ] Validate that the extracted starting state has exactly four quadrant totals and zero or more given cells.
+  - [ ] Solve the 3x3 grid using deterministic puzzle constraints rather than a model.
+  - [ ] Verify each quadrant total against the solved grid.
+  - [ ] Surface contradictions, multiple solutions, or impossible puzzles as validation/review reasons.
+  - [ ] Show the starting state and solved grid in the demo UI.
+- [ ] Add export/copy affordances for structured document results.
+- [ ] Build a small golden sample set for receipts, shopping lists, Sujiko puzzles, and unsupported documents.
+- [ ] Add optional live quality-review runs against the golden sample set to measure whether the Analyst/Critic layer earns its extra calls.
+
 ## Stable vs Preview-Aware Scope
 
 Use stable core features for the migration:
