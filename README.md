@@ -79,3 +79,11 @@ The demo is local-only. It does not include authentication, persistence, user wo
 - The model boundary is a local `IModelChatClient` abstraction rather than `Microsoft.Extensions.AI` for now, because TogetherAI-specific protocol options are required to disable Qwen thinking mode.
 - Transient model/provider failures are retried with a short bounded backoff. Structural validation failures get one bounded repair extraction attempt.
 - Durable pause/resume is deliberately deferred for the local demo. Failed or canceled requests are safe to resubmit.
+
+## Further Docs
+
+- [Adding a document type](docs/adding-document-types.md)
+- [API error contract](docs/api-error-contract.md)
+- [Document result semantics](docs/document-result-semantics.md)
+- [Human review policy](docs/human-review-policy.md)
+- [Durability decision](docs/durability-decision.md)
