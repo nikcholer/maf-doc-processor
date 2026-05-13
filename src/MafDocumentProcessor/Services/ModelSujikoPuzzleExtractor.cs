@@ -27,6 +27,9 @@ public sealed class ModelSujikoPuzzleExtractor(
                     Images may be rotated, skewed, or photographed at an angle. First mentally deskew the puzzle grid and identify the puzzle's own top edge, left edge, rows, and columns.
                     Assign row and column from the deskewed 3x3 puzzle grid, not from the camera frame or page angle. Count rows from the puzzle's top row to bottom row and columns from the puzzle's left column to right column.
                     Be especially careful with given cell values near a horizontal grid line: use the centre of the printed digit within its cell after deskewing to decide which row it belongs to.
+                    To assign a row, extend the two interior horizontal grid lines all the way across the deskewed puzzle: a digit centre above the first interior horizontal line is row 1, between the two interior horizontal lines is row 2, and below the second interior horizontal line is row 3.
+                    Ignore the nearby circled totals when deciding cell rows and columns; circles sit on grid intersections and are not cells.
+                    Each printed given cell digit must produce exactly one givenCells entry. Do not include alternate row or column guesses for the same printed digit.
                     Do not solve the puzzle or infer missing cell values.
                     Return only compact JSON with this exact shape:
                     {"quadrantTotals":{"topLeft":0,"topRight":0,"bottomLeft":0,"bottomRight":0},"givenCells":[{"row":1,"column":1,"value":0}]}

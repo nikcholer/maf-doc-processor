@@ -26,4 +26,10 @@
     <ProjectReference Include="..\..\src\MafDocumentProcessor.Api\MafDocumentProcessor.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="assets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

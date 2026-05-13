@@ -310,7 +310,10 @@ public sealed class ReceiptProcessingWorkflowTests
         var sujikoExtractor = new SequenceSujikoPuzzleExtractor(
             new SujikoPuzzleData(
                 new SujikoQuadrantTotals(21, 12, 21, 17),
-                [new SujikoCellValue(Row: 4, Column: 2, Value: 8)]),
+                [
+                    new SujikoCellValue(Row: 4, Column: 2, Value: 8),
+                    new SujikoCellValue(Row: 3, Column: 2, Value: 8)
+                ]),
             CreateSujikoPuzzle());
         var workflow = new DocumentProcessingWorkflow(
             new FakeDocumentClassifier(DocumentCategory.SujikoPuzzle, 0.93m),
@@ -331,6 +334,7 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.True(result.Validation.IsValid);
         Assert.Equal(2, sujikoExtractor.CallCount);
         Assert.Contains(sujikoExtractor.LastRepairInstructions, reason => reason.Contains("outside the 1-3 grid"));
+        Assert.Contains(sujikoExtractor.LastRepairInstructions, reason => reason.Contains("given value 8"));
         Assert.Equal(new SujikoCellValue(3, 2, 8), result.SujikoPuzzle?.GivenCells[1]);
         Assert.Equal(3, result.ModelUsage.Calls.Count);
     }
