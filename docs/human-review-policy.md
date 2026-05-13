@@ -46,9 +46,14 @@ Receipts and shopping lists in the local demo do not require formal attestation.
 
 Durable pause/resume and reviewer queues are deferred until the app has a real human-review surface or background job model.
 
-When that point arrives, add:
+The codebase now has lightweight domain records for the future review surface:
 
-- Reviewer input model.
+- `HumanReviewResult` is returned with every workflow result.
+- `ReviewerInput` models a future human decision.
+- `ReviewDecisionLogEntry` models the audit event to persist once a review endpoint or queue exists.
+
+When a review surface exists, add:
+
 - Review state transitions.
 - Timeout/escalation rules.
-- Audit log for reviewer decisions and user attestations.
+- Persistent audit logging for reviewer decisions and user attestations.

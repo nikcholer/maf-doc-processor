@@ -217,6 +217,11 @@ public sealed class DocumentProcessingWorkflow(
             ShoppingList: null,
             PolicyResult: null,
             ValidationResult.Invalid(message),
+            HumanReviewEvaluator.Evaluate(
+                document.Classification,
+                policyResult: null,
+                errors: [message],
+                warnings: []),
             IsSuccess: false,
             Errors: [message],
             Warnings: []);

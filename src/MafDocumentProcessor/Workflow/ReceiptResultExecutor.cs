@@ -17,6 +17,11 @@ public sealed class ReceiptResultExecutor()
             [classifiedDocument.ClassificationUsage, .. extraction.ExtractionUsages]);
 
         var warnings = message.Validation.IsValid ? [] : message.Validation.Reasons;
+        var humanReview = HumanReviewEvaluator.Evaluate(
+            classifiedDocument.Classification,
+            message.PolicyResult,
+            errors: [],
+            warnings);
 
         return ValueTask.FromResult(new DocumentProcessingResult(
             classifiedDocument.Classification.Category,
@@ -27,6 +32,7 @@ public sealed class ReceiptResultExecutor()
             ShoppingList: null,
             message.PolicyResult,
             message.Validation,
+            humanReview,
             IsSuccess: true,
             Errors: [],
             Warnings: warnings));

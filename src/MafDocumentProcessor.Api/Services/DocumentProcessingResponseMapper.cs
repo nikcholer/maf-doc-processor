@@ -22,6 +22,7 @@ public static class DocumentProcessingResponseMapper
             result.Metadata,
             result.Classification,
             result.ModelUsage,
+            result.HumanReview,
             document,
             result.IsSuccess,
             result.Errors,

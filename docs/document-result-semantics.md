@@ -8,6 +8,7 @@ The workflow returns `DocumentProcessingResult` for every successfully handled d
 - `Classification` records the classifier confidence and reasoning.
 - `ModelUsage` includes every model call used by the workflow, including repair attempts.
 - `Validation` describes whether the parsed document is structurally usable.
+- `HumanReview` describes whether a person should inspect, approve, or attest to the result.
 - `Errors` are blocking issues for the returned document type.
 - `Warnings` are review or policy reasons that do not prevent returning parsed data.
 
@@ -43,3 +44,13 @@ This appears to be a car registration document. This demo can process receipts a
 ```
 
 This is not an API failure. It means the system recognized the request and deliberately declined to process that document type.
+
+## Human Review
+
+`HumanReview.Status` is one of:
+
+- `NotRequired`: no human review reasons were identified.
+- `Recommended`: processing succeeded, but confidence or non-blocking validation reasons deserve human inspection.
+- `Required`: the result has blocking errors, policy review reasons, very low/missing confidence, or user attestation requirements.
+
+The local demo does not pause for review. It returns the review state and reasons immediately so the UI and future review endpoints can display or persist them.

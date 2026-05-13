@@ -33,6 +33,7 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.True(result.PolicyResult?.IsWithinReviewThreshold);
         Assert.True(result.PolicyResult?.HasPaymentMethod);
         Assert.True(result.Validation.IsValid);
+        Assert.Equal(HumanReviewStatus.NotRequired, result.HumanReview.Status);
         Assert.Empty(result.Errors);
         Assert.Empty(result.Warnings);
         Assert.Equal(2, result.ModelUsage.Calls.Count);
@@ -59,6 +60,8 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.True(result.IsSuccess);
         Assert.False(result.Validation.IsValid);
         Assert.Equal(PolicyDecision.NeedsReview, result.PolicyResult?.Decision);
+        Assert.Equal(HumanReviewStatus.Required, result.HumanReview.Status);
+        Assert.Contains(result.HumanReview.Reasons, reason => reason.Contains("payment method is missing"));
         Assert.Contains(result.Warnings, warning => warning.Contains("payment method is missing"));
     }
 
@@ -78,6 +81,7 @@ public sealed class ReceiptProcessingWorkflowTests
 
         Assert.True(result.IsSuccess);
         Assert.False(result.Validation.IsValid);
+        Assert.Equal(HumanReviewStatus.Recommended, result.HumanReview.Status);
         Assert.Contains(result.Warnings, warning => warning.Contains("store name is missing"));
         Assert.Contains(result.Warnings, warning => warning.Contains("three-letter ISO-4217"));
     }
@@ -106,6 +110,7 @@ public sealed class ReceiptProcessingWorkflowTests
 
         Assert.True(result.IsSuccess);
         Assert.True(result.Validation.IsValid);
+        Assert.Equal(HumanReviewStatus.NotRequired, result.HumanReview.Status);
         Assert.Equal("Corner Shop", result.Receipt?.StoreName);
         Assert.Equal(2, receiptExtractor.CallCount);
         Assert.Contains(receiptExtractor.LastRepairInstructions, reason => reason.Contains("store name is missing"));
@@ -139,6 +144,7 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.Equal("Weekly groceries", result.ShoppingList?.Title);
         Assert.Equal(["milk", "bread"], result.ShoppingList?.Items.Select(item => item.Name).ToArray());
         Assert.True(result.Validation.IsValid);
+        Assert.Equal(HumanReviewStatus.NotRequired, result.HumanReview.Status);
         Assert.Equal(1, shoppingListExtractor.CallCount);
         Assert.Equal(0, receiptExtractor.CallCount);
     }
@@ -166,6 +172,7 @@ public sealed class ReceiptProcessingWorkflowTests
 
         Assert.True(result.IsSuccess);
         Assert.True(result.Validation.IsValid);
+        Assert.Equal(HumanReviewStatus.NotRequired, result.HumanReview.Status);
         Assert.Equal(["milk", "bread"], result.ShoppingList?.Items.Select(item => item.Name).ToArray());
         Assert.Equal(2, shoppingListExtractor.CallCount);
         Assert.Contains(shoppingListExtractor.LastRepairInstructions, reason => reason.Contains("no readable items"));
@@ -215,6 +222,7 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.False(result.IsSuccess);
         Assert.Equal(DocumentCategory.Unknown, result.Category);
         Assert.Null(result.Receipt);
+        Assert.Equal(HumanReviewStatus.Required, result.HumanReview.Status);
         Assert.Contains(
             result.Errors,
             error => error == "This appears to be a car registration document. This demo can process receipts and shopping lists right now.");
@@ -236,9 +244,29 @@ public sealed class ReceiptProcessingWorkflowTests
         var result = await workflow.RunAsync(CreateReceiptRequest());
 
         Assert.False(result.IsSuccess);
+        Assert.Equal(HumanReviewStatus.Required, result.HumanReview.Status);
         Assert.Contains(
             result.Errors,
             error => error == "This appears to be an invoice. This demo can process receipts and shopping lists right now.");
+    }
+
+    [Fact]
+    public async Task RunAsync_RecommendsReviewForLowConfidenceSupportedClassification()
+    {
+        var workflow = CreateWorkflow(
+            new FakeDocumentClassifier(DocumentCategory.Receipt, 0.72m),
+            new FakeReceiptExtractor(new ReceiptData(
+                "Corner Shop",
+                10.50m,
+                new DateOnly(2024, 6, 1),
+                "Visa",
+                "GBP")));
+
+        var result = await workflow.RunAsync(CreateReceiptRequest());
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(HumanReviewStatus.Recommended, result.HumanReview.Status);
+        Assert.Contains(result.HumanReview.Reasons, reason => reason.Contains("below normal processing threshold"));
     }
 
     private static DocumentProcessingWorkflow CreateWorkflow(

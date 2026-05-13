@@ -195,7 +195,9 @@ function setBusy(isBusy) {
 function renderSuccess(payload) {
   const document = payload.document;
   const policy = document?.policyResult;
-  const decision = policy?.decision ?? (payload.isSuccess ? "Complete" : "NeedsReview");
+  const humanReview = payload.humanReview;
+  const hasHumanReview = humanReview?.status && humanReview.status !== "NotRequired";
+  const decision = policy?.decision ?? (hasHumanReview ? humanReview.status : (payload.isSuccess ? "Complete" : "NeedsReview"));
 
   resultTitle.textContent = `${payload.category} processed`;
   categoryMetric.textContent = payload.category ?? "-";
@@ -205,10 +207,11 @@ function renderSuccess(payload) {
   latencyMetric.textContent = formatDuration(getModelDuration(modelUsage));
   costMetric.textContent = formatUsdCost(modelUsage.estimatedTotalCostUsd);
   statusPill.textContent = decision;
-  statusPill.className = `status-pill ${decision === "Approved" ? "approved" : "review"}`;
+  statusPill.className = `status-pill ${decision === "Approved" || decision === "Complete" ? "approved" : "review"}`;
 
   renderData(document?.data ?? {});
   renderReasons([
+    ...(humanReview?.reasons ?? []),
     ...(policy?.reasons ?? []),
     ...(payload.warnings ?? []),
     ...(payload.errors ?? [])

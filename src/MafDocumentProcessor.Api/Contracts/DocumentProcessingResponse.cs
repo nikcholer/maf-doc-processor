@@ -7,6 +7,7 @@ public sealed record DocumentProcessingResponse(
     DocumentMetadata Metadata,
     DocumentClassification Classification,
     DocumentModelUsage ModelUsage,
+    HumanReviewResult HumanReview,
     ProcessedDocumentResponse? Document,
     bool IsSuccess,
     IReadOnlyList<string> Errors,

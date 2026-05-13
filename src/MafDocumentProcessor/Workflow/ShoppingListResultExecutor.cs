@@ -15,6 +15,12 @@ public sealed class ShoppingListResultExecutor()
         var classifiedDocument = extraction.ClassifiedDocument;
         var modelUsage = DocumentModelUsage.FromCalls(
             [classifiedDocument.ClassificationUsage, .. extraction.ExtractionUsages]);
+        var errors = message.Validation.IsValid ? [] : message.Validation.Reasons;
+        var humanReview = HumanReviewEvaluator.Evaluate(
+            classifiedDocument.Classification,
+            policyResult: null,
+            errors,
+            warnings: []);
 
         return ValueTask.FromResult(new DocumentProcessingResult(
             classifiedDocument.Classification.Category,
@@ -25,8 +31,9 @@ public sealed class ShoppingListResultExecutor()
             extraction.ShoppingList,
             PolicyResult: null,
             message.Validation,
+            humanReview,
             IsSuccess: message.Validation.IsValid,
-            Errors: message.Validation.IsValid ? [] : message.Validation.Reasons,
+            Errors: errors,
             Warnings: []));
     }
 }

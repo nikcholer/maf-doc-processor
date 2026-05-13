@@ -136,10 +136,30 @@ public sealed class ApiDemoTests
         var receipt = Assert.IsType<ReceiptData>(response.Document?.Data);
         Assert.Equal("Corner Shop", receipt.StoreName);
         Assert.Equal(PolicyDecision.Approved, response.Document?.PolicyResult?.Decision);
+        Assert.Equal(HumanReviewStatus.NotRequired, response.HumanReview.Status);
         Assert.True(response.Document?.Validation.IsValid);
         Assert.Equal(12, response.ModelUsage.TotalTokens);
         Assert.Equal(0.0000048m, response.ModelUsage.EstimatedTotalCostUsd);
         Assert.Equal(1200, response.ModelUsage.TotalDurationMilliseconds);
+    }
+
+    [Fact]
+    public void DocumentProcessingResponseMapper_MapsHumanReviewForDemoUi()
+    {
+        var result = CreateWorkflowResult() with
+        {
+            HumanReview = new HumanReviewResult(
+                HumanReviewStatus.Required,
+                ["Receipt payment method is missing."],
+                RequiresUserAttestation: false,
+                AttestationPrompt: null)
+        };
+
+        var response = DocumentProcessingResponseMapper.Map(result);
+
+        Assert.Equal(HumanReviewStatus.Required, response.HumanReview.Status);
+        Assert.True(response.HumanReview.IsRequired);
+        Assert.Contains("payment method is missing", response.HumanReview.Reasons[0]);
     }
 
     [Fact]
@@ -178,6 +198,7 @@ public sealed class ApiDemoTests
                 Notes: null),
             PolicyResult: null,
             ValidationResult.Valid,
+            HumanReviewResult.NotRequired,
             IsSuccess: true,
             Errors: [],
             Warnings: []);
@@ -221,6 +242,7 @@ public sealed class ApiDemoTests
             ShoppingList: null,
             policy,
             ValidationResult.Valid,
+            HumanReviewResult.NotRequired,
             IsSuccess: true,
             Errors: [],
             Warnings: []);

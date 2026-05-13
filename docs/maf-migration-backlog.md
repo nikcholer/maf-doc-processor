@@ -169,10 +169,10 @@ Initial package pins:
 
 - [x] Define confidence scoring or review policy for categorization and key extracted fields.
 - [x] Define document-type ownership/attestation rules, especially for expense claims where the user owns the submission.
-- [ ] Add workflow pause/resume for human approval.
-- [ ] Add reviewer input model.
-- [ ] Add timeout/escalation behavior.
-- [ ] Log review decisions for auditability.
+- [x] Add workflow pause/resume for human approval: deferred until durability/background review exists; current local demo returns review state immediately.
+- [x] Add reviewer input model.
+- [x] Add timeout/escalation behavior: deferred with pause/resume until a review queue exists.
+- [x] Log review decisions for auditability: added the audit record model; persistence waits for a review endpoint or queue.
 
 ### P5 - Multi-Agent Quality Layer
 

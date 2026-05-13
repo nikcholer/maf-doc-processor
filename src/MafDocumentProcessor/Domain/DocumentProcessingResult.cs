@@ -9,6 +9,7 @@ public sealed record DocumentProcessingResult(
     ShoppingListData? ShoppingList,
     ReceiptPolicyResult? PolicyResult,
     ValidationResult Validation,
+    HumanReviewResult HumanReview,
     bool IsSuccess,
     IReadOnlyList<string> Errors,
     IReadOnlyList<string> Warnings);
