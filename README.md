@@ -83,6 +83,7 @@ The demo is local-only. It does not include authentication, persistence, user wo
 
 ## Further Docs
 
+- [Technical process flow](docs/technical-process-flow.md)
 - [Adding a document type](docs/adding-document-types.md)
 - [API error contract](docs/api-error-contract.md)
 - [Document result semantics](docs/document-result-semantics.md)

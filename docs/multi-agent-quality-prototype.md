@@ -4,6 +4,25 @@
 
 The codebase includes an opt-in `DocumentQualityReviewWorkflow` prototype. It is not wired into the default API or demo UI.
 
+The prototype exists to test whether a second model-review layer catches mistakes that the main extraction workflow misses. It should be treated as an experiment harness, not as part of the current production path.
+
+## Object Map
+
+- `DocumentProcessingResult`
+  - The structured output from the normal document workflow. It includes classification, extracted data, validation, human-review state, and model usage.
+- `DocumentQualityReviewWorkflow`
+  - The opt-in wrapper that runs the quality review steps over an existing `DocumentProcessingResult`.
+- `QualityAnalystExecutor`
+  - A MAF-style executor that asks the model for a concise risk analysis of the structured result.
+- `QualityAnalysis`
+  - The intermediate output from the analyst step. It carries the original document result, the analyst summary, and analyst model usage.
+- `QualityCriticExecutor`
+  - A MAF-style executor that reads the analyst summary and document result, then returns a structured decision.
+- `QualityReviewResult`
+  - The final quality-layer result. It includes `Accept`, `NeedsHumanReview`, or `Reject`, a list of findings, and the quality-layer model usage.
+- `QualityReviewFinding`
+  - One critic finding with `Info`, `Warning`, or `Error` severity.
+
 The prototype runs two model-backed workflow executors over an existing structured `DocumentProcessingResult`:
 
 1. `QualityAnalystExecutor`
@@ -27,6 +46,20 @@ Reasons:
 - The local demo should stay reassuringly responsive.
 
 Treat the prototype as an experiment harness. Wire it into the API only after measuring real benefit on representative documents.
+
+## Invocation
+
+The default image-submission path does not invoke this prototype.
+
+To use it in future code, the expected shape is:
+
+```csharp
+var documentResult = await documentProcessingWorkflow.RunAsync(fileRequest, cancellationToken);
+var qualityWorkflow = new DocumentQualityReviewWorkflow(chatClient, modelSettings.TextTesting);
+var qualityResult = await qualityWorkflow.RunAsync(documentResult, cancellationToken);
+```
+
+The model role is deliberately a caller decision. Use `TextTesting` or a future dedicated quality-review role until measurement proves this should become product behavior.
 
 ## Measurement Plan
 
