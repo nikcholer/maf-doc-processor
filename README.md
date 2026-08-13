@@ -1,13 +1,25 @@
 # MAF Document Processor
 
-Local Microsoft Agent Framework document-processing demo for receipt and shopping-list images.
+Local Microsoft Agent Framework (MAF) document-processing demo for receipt, shopping-list, and Sujiko puzzle images.
 
-The current slice is deliberately small: upload one PNG/JPEG through the local web UI, classify the document, route it to the matching workflow, extract structured data, and show model usage, latency, estimated cost, validation, and raw JSON.
+Upload one PNG or JPEG through the web UI or HTTP API. The application classifies the image, routes it to a document-specific MAF workflow, extracts structured data, validates it, makes one bounded repair attempt when needed, and returns model usage, latency, estimated cost, human-review state, and raw JSON.
+
+## Project Status
+
+The local vertical slice is complete and covered by unit and API integration tests. It supports:
+
+- Receipts, including policy checks for payment method and review threshold.
+- Shopping lists, including item validation.
+- Sujiko puzzles, including quadrant-total and given-cell validation. The current scope extracts the starting state; it does not solve the puzzle.
+- Human-review recommendations returned with the response. There is no reviewer queue or pause/resume flow yet.
+- An opt-in Analyst/Critic quality-review prototype. It is not part of the default API path because its quality benefit has not yet been measured against a representative sample set.
+
+The committed [migration backlog](docs/maf-migration-backlog.md) records the completed milestones and future ideas. The main remaining work is summarized under [Outstanding Work](#outstanding-work).
 
 ## Prerequisites
 
-- .NET SDK `8.0.419` or compatible `8.0.x` SDK. The repo pins this in `global.json`.
-- A TogetherAI API key in `TOGETHER_API_KEY`.
+- .NET SDK `8.0.419` or a compatible `8.0.x` SDK. The repository pins this in `global.json`.
+- A TogetherAI API key in `TOGETHER_API_KEY` for live processing.
 
 Set the API key for your Windows user:
 
@@ -15,78 +27,111 @@ Set the API key for your Windows user:
 [Environment]::SetEnvironmentVariable("TOGETHER_API_KEY", "<your-key>", "User")
 ```
 
-Or for the current terminal only:
+Or set it for the current terminal only:
 
 ```powershell
 $env:TOGETHER_API_KEY = "<your-key>"
 ```
 
-## Run
+## Run Locally
 
-From the repo root:
+From the repository root:
 
 ```powershell
-dotnet build .\src\MafDocumentProcessor.Api\MafDocumentProcessor.Api.csproj
-dotnet run --project .\src\MafDocumentProcessor.Api\MafDocumentProcessor.Api.csproj --urls http://127.0.0.1:5095
+dotnet restore .\MafDocumentProcessor.sln
+dotnet run --project .\src\MafDocumentProcessor.Api\MafDocumentProcessor.Api.csproj
 ```
 
-Then open:
-
-```text
-http://127.0.0.1:5095/
-```
+Then open <http://127.0.0.1:5095/>. The launch profile binds to that address by default.
 
 If the API is already running, stop it before rebuilding so Windows does not keep the output executable locked.
 
-## Test
+## API
+
+- `GET /health` reports API-key readiness and configured model information.
+- `POST /api/documents/process` accepts `multipart/form-data` with an image in the `image` field and an optional `sourceId` value.
+
+The default upload limit is 5 MiB. Accepted types are PNG and JPEG with `.png`, `.jpg`, or `.jpeg` extensions.
+
+Example:
 
 ```powershell
-dotnet test .\MafDocumentProcessor.sln --no-restore
+curl.exe -F "image=@C:\path\to\receipt.jpg" -F "sourceId=manual-test" http://127.0.0.1:5095/api/documents/process
 ```
 
-For local runs while the API executable is open, this alternate output path avoids the locked apphost:
+Unsupported document types return a normal workflow response with `isSuccess: false` and a human-readable explanation. Intake, configuration, provider, timeout, and model-response failures use the documented API error contract.
+
+## Test
+
+Run the normal offline suite:
+
+```powershell
+dotnet test .\MafDocumentProcessor.sln
+```
+
+If the API executable is open, use an alternate output path to avoid a locked apphost:
 
 ```powershell
 dotnet test .\MafDocumentProcessor.sln --no-restore -p:UseAppHost=false -p:OutDir=.build\test\
 ```
 
+The repository also includes a real rotated Sujiko image. Its provider-backed regression assertion is disabled by default. To run it with TogetherAI:
+
+```powershell
+$env:MAF_RUN_LIVE_ASSET_TESTS = "1"
+dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~SujikoAssetRegressionTests
+```
+
 ## Configuration
 
-Model roles live under `AiModels` in [appsettings.json](src/MafDocumentProcessor.Api/appsettings.json):
+Runtime settings live in [appsettings.json](src/MafDocumentProcessor.Api/appsettings.json):
 
-- `DocumentClassification`: Qwen vision model for categorization.
-- `DocumentExtraction`: Qwen vision model for receipt/shopping-list extraction.
-- `TextTesting`: reserved for future text-only experiments.
+- `AiModels:DocumentClassification`: Qwen vision model used before workflow routing.
+- `AiModels:DocumentExtraction`: Qwen vision model used by all supported document extractors.
+- `AiModels:TextTesting`: reserved model role used only when explicitly constructing experimental text/quality workflows.
+- `ModelImagePreprocessing`: classification/extraction resize limits and JPEG quality.
+- `DocumentIntake`: upload field name, size limit, content types, and extensions.
+- `ReceiptPolicy`: review threshold and default currency.
 
-Each role includes provider, endpoint, model id, API key environment variable, timeout, retry policy, and token pricing. Pricing is used only for local estimated-cost display.
+Each model role includes its provider, endpoint, model ID, API-key environment variable, timeout, retry policy, and token pricing. Pricing is used only for local estimated-cost reporting. Legacy `AiModels:ImageRecognition` configuration is still accepted as a fallback, but new configuration should use the separate classification and extraction roles.
 
-Image preprocessing lives under `ModelImagePreprocessing`. The server keeps the uploaded image intact for intake, but sends downscaled JPEGs to the model when configured.
+See [TogetherAI local setup](docs/together-ai-local-setup.md) for the current model defaults.
 
-## Current Scope
+## Processing Design
 
-Supported document types:
+Classification intentionally happens before the MAF workflow graph so the application can route into a receipt, shopping-list, or Sujiko-specific workflow. Each workflow uses deterministic executors around model extraction, validation, one repair pass, and result construction.
 
-- Receipts
-- Shopping lists
-- Sujiko puzzles
+The provider boundary is a local `IModelChatClient` abstraction. It is retained because TogetherAI-specific protocol options are required to disable Qwen thinking mode. OpenAI-compatible clients are cached by model settings, and transient provider failures use bounded retries.
 
-Unsupported but recognized document types return a human-readable message, for example: "This appears to be a car registration document. This demo can process receipts, shopping lists, and Sujiko puzzles right now."
+The demo is local-only. It has no authentication, persistence, workflow history, reviewer UI, or external hosting. Durable pause/resume is deliberately deferred while processing remains bounded foreground HTTP work; failed or canceled requests are safe to resubmit.
 
-The demo is local-only. It does not include authentication, persistence, user workflow history, human-review screens, or external hosting.
+## Repository Layout
 
-## Notes
+```text
+src/MafDocumentProcessor/       Domain models, model services, and MAF workflows
+src/MafDocumentProcessor.Api/   Minimal API and static demo UI
+tests/MafDocumentProcessor.Tests/ Unit, workflow, parser, image, and API tests
+docs/                           Architecture, contracts, policy, and backlog
+```
 
-- Classification intentionally happens before the MAF workflow graph so the app can route into a document-specific workflow.
-- The model boundary is a local `IModelChatClient` abstraction rather than `Microsoft.Extensions.AI` for now, because TogetherAI-specific protocol options are required to disable Qwen thinking mode.
-- Transient model/provider failures are retried with a short bounded backoff. Structural validation failures get one bounded repair extraction attempt.
-- Durable pause/resume is deliberately deferred for the local demo. Failed or canceled requests are safe to resubmit.
+## Outstanding Work
 
-## Further Docs
+The core local demo has no incomplete required milestone. The remaining work is maintenance, evaluation, or optional product scope:
 
+- Build a representative golden sample set and measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
+- Refresh pinned dependencies deliberately. The current pins trail newer MAF, OpenAI, ImageSharp, and test-tooling releases; ImageSharp's available update is a major-version change and should be regression-tested.
+- Update the xUnit/test dependency chain. A current `dotnet list package --vulnerable --include-transitive` audit reports high-severity advisories on `System.Net.Http 4.3.0` and `System.Text.RegularExpressions 4.3.0`, both reached through `xunit 2.5.3 -> NETStandard.Library 1.6.1`. These are test-project transitives, not application-project dependencies, but should still be cleared.
+- Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, and a rate-limited hosted demo.
+
+## Further Documentation
+
+- [Beginner's guide to a completed document slice](docs/slice-guide.md)
 - [Technical process flow](docs/technical-process-flow.md)
+- [Microsoft Agent Framework migration backlog](docs/maf-migration-backlog.md)
 - [Adding a document type](docs/adding-document-types.md)
 - [API error contract](docs/api-error-contract.md)
 - [Document result semantics](docs/document-result-semantics.md)
 - [Human review policy](docs/human-review-policy.md)
 - [Durability decision](docs/durability-decision.md)
 - [Multi-agent quality prototype](docs/multi-agent-quality-prototype.md)
+- [V1 Semantic Kernel inventory](docs/v1-semantic-kernel-inventory.md)
