@@ -49,7 +49,7 @@ The live run used `IMG20260513194450.jpg` with `Qwen/Qwen3.5-9B` for both config
 
 End-to-end workflow time was 5,382 ms. This includes local image preparation and orchestration around the model calls. The complete test command took 16,724 ms, including build and test-host startup.
 
-Classification selected `SujikoPuzzle` correctly. The extraction returned the correct four totals and the given `7`, but placed the printed `3` in row 2 rather than its known row 1 position. The application reported the result as structurally valid and successful, with no human review required; the provider-backed golden assertion therefore failed. This is part of the baseline rather than a prompt change hidden inside the measurement task. The versioned golden-set work in issue #19 should make this distinction between structural validity and known-answer quality systematic across document paths.
+Classification selected `SujikoPuzzle` correctly. The extraction returned the correct four totals and the given `7`, but placed the printed `3` in row 2 rather than its known row 1 position. The application reported the result as structurally valid and successful, with no human review required; the provider-backed golden assertion therefore failed. This is part of the baseline rather than a prompt change hidden inside the measurement task. The [versioned golden set](golden-set.md) records the correct known answer alongside the other current document paths.
 
 ## Interpretation
 
