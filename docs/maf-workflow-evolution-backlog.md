@@ -22,8 +22,8 @@ The next stage should strengthen the application architecture, not simply add an
 | E0 | Select the next document scenario and its workflow requirements | Required |
 | E1 | Refresh dependencies and capture a protected baseline | Required |
 | E2 | Route all document types through a top-level MAF graph | Required |
-| E3 | Deliver the new document vertical slice | Required |
-| E4 | Add justified branching, parallelism, and aggregation | Required where selected by E0 |
+| E3 | Add multi-source composite capture and independent member processing | Required |
+| E4 | Deliver the expense-report vertical slice | Required |
 | E5 | Add external input and checkpointing | Only if the workflow crosses a process or human boundary |
 | E6 | Integrate quality-review agents | Only if evaluation demonstrates sufficient benefit |
 | E7 | Harden, document, measure, and release the new baseline | Required |
@@ -46,6 +46,8 @@ The next stage should strengthen the application architecture, not simply add an
 **Exit criteria:** The document scenario, output contract, acceptance examples, orchestration requirements, and non-goals are agreed before implementation begins.
 
 Candidate comparison: [Document scenario evaluation](document-scenario-evaluation.md).
+
+Accepted direction: [Batch capture and expense report sequencing decision](batch-capture-expense-report-decision.md).
 
 ## Phase E1: Refresh and Protect the Baseline
 
@@ -77,39 +79,43 @@ Candidate comparison: [Document scenario evaluation](document-scenario-evaluatio
 
 **Exit criteria:** All current document types run through one inspectable top-level MAF graph with no API contract regression and no additional model calls.
 
-## Phase E3: Add the New Document Vertical Slice
+## Phase E3: Add Multi-Source Composite Capture
 
-**Objective:** Implement the selected document type as a complete, independently testable workflow.
+**Objective:** Accept one or more source images, detect zero or more physical documents in each, and process every valid member independently through the existing document route.
 
-- [ ] Add the category, domain records, API mapping, and UI representation.
+- [ ] Add the repeated-file capture endpoint without changing the individual document endpoint.
+- [ ] Decode and orient each source once, then detect and deterministically validate document regions.
+- [ ] Crop every valid region from its high-resolution source before normal classification and extraction preprocessing.
+- [ ] Fan sources and members out with explicit concurrency and resource limits.
+- [ ] Route each member through the reusable top-level document workflow.
+- [ ] Aggregate source and member outcomes with deterministic success, partial-success, and failure semantics.
+- [ ] Isolate non-cancellation source and member failures without discarding trustworthy siblings.
+- [ ] Preserve correlation and account for every detection, classification, extraction, and repair call exactly once.
+- [ ] Emit progress events for source detection, member routing, completion, and aggregation.
+- [ ] Add per-source annotated previews with accessible accepted, review, and rejected treatments.
+- [ ] Cover single-source, multi-source, overlapping, duplicate, unsupported, partial-failure, timeout, and cancellation paths.
+- [ ] Compare bounded parallel execution with a sequential baseline for latency and resource use.
+
+**Exit criteria:** Multi-source and composite images produce independently processed member results through the API and UI, with bounded fan-out, deterministic aggregation, complete route coverage, and no regression to individual uploads.
+
+## Phase E4: Add the Expense Report Vertical Slice
+
+**Objective:** Implement expense report as the next complete, independently testable business document workflow.
+
+- [ ] Add the expense-report category, domain records, API mapping, and UI representation.
 - [ ] Define a dedicated extractor interface and model-backed implementation.
-- [ ] Add a separate model role only if the document requires different model capabilities or operational settings.
-- [ ] Implement deterministic structural and semantic validation.
+- [ ] Add a separate model role only if expense reports require different model capabilities or operational settings.
+- [ ] Implement deterministic structural, line-total, claimed-total, date, and currency validation.
 - [ ] Implement one bounded repair path for model-correctable failures.
-- [ ] Define policy and human-review evaluation separately from structural validation.
-- [ ] Build the document-specific workflow from typed executors and hand-off records.
-- [ ] Connect the new workflow to the top-level conditional route.
-- [ ] Add parser, extractor, executor, workflow, response-mapping, and HTTP integration tests.
-- [ ] Verify at least one representative sample against the configured live provider.
+- [ ] Define policy, ownership attestation, and human-review evaluation separately from structural validation.
+- [ ] Build the workflow from typed executors and hand-off records.
+- [ ] Connect the workflow to individual and batch member routing without special-case batch logic.
+- [ ] Add parser, extractor, executor, workflow, response-mapping, HTTP, and annotated-batch integration tests.
+- [ ] Verify representative expense-report samples against the configured live provider.
 - [ ] Document result semantics and update the guide for adding document types.
+- [ ] Keep persistent receipt linking and external claim submission out of the initial slice.
 
-**Exit criteria:** The new type processes end to end through the API and UI, has explicit success/failure/review semantics, and passes offline and representative live verification.
-
-## Phase E4: Add Requirement-Driven Branching and Parallelism
-
-**Objective:** Use MAF graph capabilities for work that is genuinely independent or outcome-dependent.
-
-- [ ] Identify validations, enrichment, or review operations that can execute independently.
-- [ ] Fan out those operations through typed parallel workflow branches.
-- [ ] Aggregate branch outputs into one deterministic decision record.
-- [ ] Add conditional edges for accept, repair, reject, and review-required outcomes where applicable.
-- [ ] Keep repair attempts bounded and prevent cycles without explicit limits.
-- [ ] Define behaviour when one parallel branch fails, times out, or is cancelled.
-- [ ] Emit progress events that distinguish branch start, completion, aggregation, and route selection.
-- [ ] Add tests for fan-out/fan-in ordering independence, partial failure, cancellation, and every conditional destination.
-- [ ] Compare latency with sequential execution and confirm that parallelism produces a measurable benefit.
-
-**Exit criteria:** The graph topology corresponds to real document-processing decisions, all routes are covered by tests, and added concurrency improves either clarity or measured execution time.
+**Exit criteria:** Expense reports process end to end individually and as batch members, have explicit success/failure/review/attestation semantics, and pass offline and representative live verification.
 
 ## Phase E5: External Input and Checkpointing — Gated
 
