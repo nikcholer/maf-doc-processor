@@ -2,14 +2,14 @@
 
 ## System of Record
 
-GitHub Issues and the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1) are the authoritative systems for planning and delivery. The repository backlog documents describe scope and sequencing; issues hold actionable work, decisions, acceptance criteria, and implementation links.
+GitHub Issues and the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1) are the authoritative systems for planning and delivery. The repository backlog documents describe scope and sequencing; issues hold actionable work, decisions, acceptance criteria, and implementation links. [CONTRIBUTING.md](../CONTRIBUTING.md) is the shared delivery contract for human developers and development agents.
 
 The project uses:
 
 - Parent issues for phases E0-E7.
 - Child issues for work that is ready to refine or deliver.
 - Pull requests for reviewable code and documentation changes.
-- GitHub Actions for repeatable build and test evidence.
+- Pull-request validation notes for repeatable build and test evidence; CI results provide additional evidence when a workflow is configured.
 - The [MAF workflow evolution backlog](maf-workflow-evolution-backlog.md) for phase objectives, decision gates, and exit criteria.
 
 ## Project Fields
