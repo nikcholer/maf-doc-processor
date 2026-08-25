@@ -1,9 +1,9 @@
 
- **Architectural Decision:** To fork the csharp-semantic-document-processor into a V2 repository powered by the **Microsoft Agent Framework (MAF)**.
+ **Architectural Decision:** To create a separate successor to csharp-semantic-document-processor powered by the **Microsoft Agent Framework (MAF)**.
  
  **Rationale:** Semantic Kernel (SK) provided an excellent foundation for integrating LLMs via a single-agent, prompt-chaining architecture. However, as the document processing requirements have grown to require long-running tasks, multi-step validation, and potentially multi-agent collaboration, SK’s linear pipelines have become a constraint [1].
  
- By forking the repository to use MAF (the official Microsoft successor that merges Semantic Kernel and AutoGen) [2], we make a clean break from legacy SK abstractions. This allows the new codebase to natively adopt MAF’s graph-based workflows, Executor classes, and durable state management[3, 4], without shoehorning new paradigms into the old V1 architecture. The original SK repository will be preserved in maintenance mode as an example of V1 prompt orchestration, while this V2 fork drives all feature development forward [5].
+ By creating an independent MAF successor (using the official Microsoft successor that merges Semantic Kernel and AutoGen) [2], we make a clean break from legacy SK abstractions. This allows the new codebase to natively adopt MAF’s graph-based workflows, Executor classes, and durable state management[3, 4], without shoehorning new paradigms into the old V1 architecture. The original SK repository will be preserved in maintenance mode as an example of V1 prompt orchestration, while this V2 repository drives all feature development forward [5].
 
 ----------
 
@@ -11,7 +11,7 @@
 
 Moving from Semantic Kernel to Microsoft Agent Framework is not just a package swap; it's a shift from prompt-chaining to graph-based agent workflows [4, 6]. Here is your step-by-step roadmap.
 
-#### Phase 1: The Clean Fork & Setup
+#### Phase 1: Separate Successor Repository & Setup
 
 1.  **Duplicate the Codebase:** Clone the existing repo and push it to a new repository (e.g., csharp-maf-document-processor).
     
