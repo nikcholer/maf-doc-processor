@@ -32,13 +32,13 @@ The next stage should strengthen the application architecture, not simply add an
 
 **Objective:** Choose a document type whose processing requirements justify a richer workflow.
 
-- [ ] Compare candidate document types against the current receipt, shopping-list, and Sujiko coverage.
-- [ ] Prefer a scenario that requires at least one meaningful orchestration capability beyond a linear pipeline.
-- [ ] Define the document's structured output and validation rules.
-- [ ] Identify which decisions are deterministic and which genuinely require a model.
-- [ ] Define unsupported, invalid, repairable, and review-required outcomes.
-- [ ] Select the primary MAF capabilities the slice will exercise; limit the initial selection to the smallest coherent set.
-- [ ] Record the decision and rejected alternatives in a short design document.
+- [x] Compare candidate document types against the current receipt, shopping-list, and Sujiko coverage.
+- [x] Prefer a scenario that requires at least one meaningful orchestration capability beyond a linear pipeline.
+- [x] Define the document's structured output and validation rules.
+- [x] Identify which decisions are deterministic and which genuinely require a model.
+- [x] Define unsupported, invalid, repairable, and review-required outcomes.
+- [x] Select the primary MAF capabilities the slice will exercise; limit the initial selection to the smallest coherent set.
+- [x] Record the decision and rejected alternatives in a short design document.
 - [ ] Assemble representative sample inputs, including success, repair, review, and failure cases.
 
 **Candidate capabilities:** conditional routing, reusable sub-workflows, parallel fan-out/fan-in, custom workflow events, request/response handling, checkpointing, or agent collaboration.
@@ -50,6 +50,8 @@ Candidate comparison: [Document scenario evaluation](document-scenario-evaluatio
 Accepted direction: [Batch capture and expense report sequencing decision](batch-capture-expense-report-decision.md).
 
 Model and result boundary: [Capture and expense report model boundaries](capture-expense-model-boundaries.md).
+
+Selected workflow capabilities: [Capture and expense report MAF capability selection](capture-expense-maf-capabilities.md).
 
 ## Phase E1: Refresh and Protect the Baseline
 
