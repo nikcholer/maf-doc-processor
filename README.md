@@ -139,6 +139,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md)
 - [Batch capture and expense report sequencing decision](docs/batch-capture-expense-report-decision.md)
 - [Composite capture contract](docs/composite-capture-contract.md)
+- [Capture and expense report model boundaries](docs/capture-expense-model-boundaries.md)
 - [Delivery workflow](docs/delivery-workflow.md)
 - [Beginner's guide to a completed document slice](docs/slice-guide.md)
 - [Technical process flow](docs/technical-process-flow.md)
