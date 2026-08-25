@@ -75,7 +75,7 @@ If the API executable is open, use an alternate output path to avoid a locked ap
 dotnet test .\MafDocumentProcessor.sln --no-restore -p:UseAppHost=false -p:OutDir=.build\test\
 ```
 
-The repository also includes a real rotated Sujiko image. Its provider-backed regression assertion is disabled by default. To run it with TogetherAI:
+The repository also includes a real rotated Sujiko image. Its provider-backed full-workflow regression and measurement assertion is disabled by default. To run it with TogetherAI:
 
 ```powershell
 $env:MAF_RUN_LIVE_ASSET_TESTS = "1"
@@ -148,6 +148,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - [Capture and expense report model boundaries](docs/capture-expense-model-boundaries.md)
 - [Capture and expense report MAF capability selection](docs/capture-expense-maf-capabilities.md)
 - [Dependency baseline decision](docs/dependency-baseline-decision.md)
+- [Current workflow baseline measurements](docs/baseline-measurements.md)
 - [Delivery workflow](docs/delivery-workflow.md)
 - [Beginner's guide to a completed document slice](docs/slice-guide.md)
 - [Technical process flow](docs/technical-process-flow.md)
