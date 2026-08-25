@@ -114,6 +114,12 @@ tests/MafDocumentProcessor.Tests/ Unit, workflow, parser, image, and API tests
 docs/                           Architecture, contracts, policy, and backlog
 ```
 
+## Contributing
+
+Proposed changes enter through GitHub Issues and the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1). The Project is the live backlog and the source of truth for task readiness, priority, status, and dependencies.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before selecting or delivering work. Development agents must also follow [AGENTS.md](AGENTS.md). The detailed tracking lifecycle and Jira compatibility guidance are in the [delivery workflow](docs/delivery-workflow.md).
+
 ## Outstanding Work
 
 The core local demo has no incomplete required milestone. The remaining work is maintenance, evaluation, or optional product scope:
@@ -127,6 +133,8 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 
 ## Further Documentation
 
+- [Contribution guide](CONTRIBUTING.md)
+- [Development-agent instructions](AGENTS.md)
 - [Semantic Kernel to MAF migration strategy](docs/sk-to-maf-migration.md)
 - [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md)
 - [Delivery workflow](docs/delivery-workflow.md)
