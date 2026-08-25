@@ -30,6 +30,31 @@ Normally use one issue, one focused branch, and one pull request.
 
 If a Jira-managed organization adopts the repository, include the Jira key in the branch, commits, and pull request as described in the [delivery workflow](docs/delivery-workflow.md). GitHub remains authoritative unless the team explicitly changes that policy.
 
+### Development-Assistance Provenance
+
+The commit author remains accountable for the change. When an LLM or development agent materially generates, revises, or advises the committed work, record that assistance with an `Assisted-by` trailer:
+
+```text
+Add document routing tests
+
+Closes #42
+
+Assisted-by: Google Antigravity (Gemini 3.1 Pro)
+```
+
+This convention applies equally to autonomous agent work and a human working interactively with an LLM.
+
+- Use the product name and include the model when it is known reliably, for example `Assisted-by: OpenAI Codex`.
+- Add one `Assisted-by` trailer for each assistant that contributed materially.
+- Do not use `Co-authored-by` for an assistant unless it has a genuine GitHub identity and associated email address; never invent an identity or email address.
+- Preserve the trailers in the final commit message when commits are amended, rebased, or squash-merged.
+- Incidental completion, spelling, or lookup assistance does not need a trailer unless the contributor considers it material.
+- Verify the recorded provenance before handover:
+
+  ```powershell
+  git log -1 --format="%(trailers:key=Assisted-by,valueonly)"
+  ```
+
 ## Implementation Principles
 
 Preserve the current contracts unless the work item explicitly changes them:

@@ -24,6 +24,12 @@ Closes #
 - [ ] New workflow routes, failure paths, and cancellation behaviour are covered.
 - [ ] Added model calls have observable token, latency, and cost reporting.
 
+## Development assistance
+
+Material LLM or development-agent assistance: None / `<product and model>`
+
+- [ ] Relevant commits contain the `Assisted-by` trailers required by `CONTRIBUTING.md`, or no material assistance was used.
+
 ## Notes
 
 Record follow-up work, deliberate exclusions, or operational considerations.
