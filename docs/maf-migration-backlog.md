@@ -1,5 +1,7 @@
 # Microsoft Agent Framework Migration Backlog
 
+> **Status:** This backlog records the completed initial migration and local-demo baseline. Forward architectural work is tracked in the [MAF workflow evolution backlog](maf-workflow-evolution-backlog.md).
+
 ## Context
 
 We are planning a V2 migration of the existing Semantic Kernel document processor to Microsoft Agent Framework.
@@ -20,7 +22,7 @@ The target architecture should use:
 - Provider-specific packages selected after the model/provider decision.
 - Durable Task integration only after the in-memory workflow is working end to end.
 
-V2 will live in a separate repository so the Semantic Kernel implementation can be culled or archived later without affecting this codebase.
+V2 lives in a separate repository so the Semantic Kernel implementation can remain publicly available as a maintenance reference while both codebases evolve independently.
 
 ## Principles
 
@@ -36,7 +38,7 @@ V2 will live in a separate repository so the Semantic Kernel implementation can 
 
 | ID | Decision | Status | Notes |
 | --- | --- | --- | --- |
-| D1 | Repository strategy | Decided | Separate V2 repository. The SK repository must be disposable/archivable without impact. |
+| D1 | Repository strategy | Decided | Separate successor repository. Preserve the SK repository publicly in maintenance mode without coupling its history or lifecycle to V2. |
 | D2 | First document type | Decided | Receipts, matching the old repository. Shopping lists are the candidate second document type if a new type is needed. |
 | D3 | Output schema | Decided for MVP | Match what the old repository currently extracts from receipts. Inventory the old repo before finalizing record names. |
 | D4 | Model/provider | Decided for MVP | Keep model selection in config. Use TogetherAI with Qwen3.5 9B for document classification and extraction, with Gemma 4 retained for reserved text testing initially. |
@@ -52,7 +54,7 @@ V2 will live in a separate repository so the Semantic Kernel implementation can 
 
 - [x] Create or choose the V2 working location.
 - [x] Locate V1 Semantic Kernel repository for reference: `C:\data\repo\csharp-semantic-document-processor`.
-- [x] Preserve V1 Semantic Kernel repo/history and document its maintenance-mode status. The V1 repo remains a separate GitHub-backed reference/maintenance repository; V2 work happens here and culling/archive can wait until V2 covers the needed behavior.
+- [x] Preserve V1 Semantic Kernel repo/history and document its maintenance-mode status. The V1 repo remains a separate public GitHub-backed reference; active development continues in V2.
 - [x] Confirm baseline build and test status before migration changes.
 - [x] Inventory Semantic Kernel usage:
   - [x] `Kernel`
@@ -193,7 +195,7 @@ Initial package pins:
 - [ ] Add export/copy affordances for structured document results.
 - [ ] Build a small golden sample set for receipts, shopping lists, Sujiko puzzles, and unsupported documents.
 - [ ] Add optional live quality-review runs against the golden sample set to measure whether the Analyst/Critic layer earns its extra calls.
-- [ ] Consider public demo hosting for recruiters/clients now that TogetherAI usage is very low cost:
+- [ ] Consider rate-limited public demo hosting now that TogetherAI usage is very low cost:
   - [ ] Add a request flow for short-lived demo access keys.
   - [ ] Issue keys with a fixed allowance, initially 50 document-processing uses.
   - [ ] Track remaining uses, expiry, and basic abuse signals.

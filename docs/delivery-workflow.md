@@ -1,0 +1,72 @@
+# Delivery Workflow
+
+## System of Record
+
+GitHub Issues and the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1) are the authoritative systems for planning and delivery. The repository backlog documents describe scope and sequencing; issues hold actionable work, decisions, acceptance criteria, and implementation links.
+
+The project uses:
+
+- Parent issues for phases E0-E7.
+- Child issues for work that is ready to refine or deliver.
+- Pull requests for reviewable code and documentation changes.
+- GitHub Actions for repeatable build and test evidence.
+- The [MAF workflow evolution backlog](maf-workflow-evolution-backlog.md) for phase objectives, decision gates, and exit criteria.
+
+## Project Fields
+
+| Field | Purpose |
+| --- | --- |
+| Status | Backlog, Ready, In Progress, In Review, Blocked, or Done |
+| Phase | E0 through E7 |
+| Work item type | Epic, Feature, Task, Spike, Decision, or Bug |
+| Priority | P0 through P3 |
+| Estimate | Relative size: 1, 2, 3, 5, or 8 |
+| MAF capability | The primary framework or application concern |
+| Target | Current baseline, next baseline, later, or icebox |
+
+## Status Definitions
+
+- **Backlog:** Captured but not yet sufficiently refined or selected.
+- **Ready:** Acceptance criteria and dependencies are clear enough to begin.
+- **In Progress:** Active implementation or investigation is underway.
+- **In Review:** A pull request, decision, or result is awaiting review.
+- **Blocked:** Progress requires a decision, dependency, permission, or external change.
+- **Done:** Acceptance criteria are satisfied and required changes are merged.
+
+## Work Item Lifecycle
+
+1. Create or refine an issue using the delivery work-item form.
+2. Confirm its phase, type, priority, intended outcome, acceptance criteria, and validation approach.
+3. Move it to **Ready** only when dependencies and the expected result are clear.
+4. Create a branch named `<issue-number>-<short-description>`.
+5. Keep commits focused and reference the issue where useful.
+6. Open a pull request containing `Closes #<issue-number>`.
+7. Move the item to **In Review** while required checks and review are outstanding.
+8. Merge after validation; closing the issue completes the project item.
+
+## Phase and Gate Management
+
+Phase parent issues summarize the objective and exit criteria from the active backlog. Detailed child issues are created when work is near enough to be estimated and delivered.
+
+E5 checkpointing/human input and E6 agent collaboration remain gated. Their child issues should not move to **Ready** until their documented decision gate is satisfied.
+
+Architecture decisions should use `Work item type = Decision` and record:
+
+- Context and constraints.
+- Options considered.
+- Decision and rationale.
+- Consequences and follow-up work.
+
+## Jira Compatibility
+
+GitHub remains the source of truth for this repository. If delivery is incorporated into a Jira-based organization, the supported GitHub for Atlassian integration can associate Jira work-item keys with branches, commits, pull requests, builds, and deployments.
+
+In a Jira-managed environment, use the Jira key consistently:
+
+```text
+MAF-42-top-level-routing
+MAF-42 Add conditional document routing
+MAF-42: Route supported categories through sub-workflows
+```
+
+The integration provides development visibility in Jira without requiring the application architecture or GitHub review process to change. Avoid maintaining duplicate authoritative work items in both systems.

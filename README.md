@@ -14,7 +14,7 @@ The local vertical slice is complete and covered by unit and API integration tes
 - Human-review recommendations returned with the response. There is no reviewer queue or pause/resume flow yet.
 - An opt-in Analyst/Critic quality-review prototype. It is not part of the default API path because its quality benefit has not yet been measured against a representative sample set.
 
-The committed [migration backlog](docs/maf-migration-backlog.md) records the completed milestones and future ideas. The main remaining work is summarized under [Outstanding Work](#outstanding-work).
+The [initial migration backlog](docs/maf-migration-backlog.md) records the completed milestones. Forward architectural work is tracked in the [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md).
 
 ## Prerequisites
 
@@ -118,6 +118,8 @@ docs/                           Architecture, contracts, policy, and backlog
 
 The core local demo has no incomplete required milestone. The remaining work is maintenance, evaluation, or optional product scope:
 
+Forward architectural work is organized in the [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md) and tracked in the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1).
+
 - Build a representative golden sample set and measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
 - Refresh pinned dependencies deliberately. The current pins trail newer MAF, OpenAI, ImageSharp, and test-tooling releases; ImageSharp's available update is a major-version change and should be regression-tested.
 - Update the xUnit/test dependency chain. A current `dotnet list package --vulnerable --include-transitive` audit reports high-severity advisories on `System.Net.Http 4.3.0` and `System.Text.RegularExpressions 4.3.0`, both reached through `xunit 2.5.3 -> NETStandard.Library 1.6.1`. These are test-project transitives, not application-project dependencies, but should still be cleared.
@@ -126,9 +128,11 @@ The core local demo has no incomplete required milestone. The remaining work is 
 ## Further Documentation
 
 - [Semantic Kernel to MAF migration strategy](docs/sk-to-maf-migration.md)
+- [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md)
+- [Delivery workflow](docs/delivery-workflow.md)
 - [Beginner's guide to a completed document slice](docs/slice-guide.md)
 - [Technical process flow](docs/technical-process-flow.md)
-- [Microsoft Agent Framework migration backlog](docs/maf-migration-backlog.md)
+- [Initial Microsoft Agent Framework migration backlog](docs/maf-migration-backlog.md)
 - [Adding a document type](docs/adding-document-types.md)
 - [API error contract](docs/api-error-contract.md)
 - [Document result semantics](docs/document-result-semantics.md)

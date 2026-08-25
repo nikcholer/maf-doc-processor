@@ -1,0 +1,95 @@
+name: Delivery work item
+description: Propose a feature, task, spike, or architecture decision.
+title: ""
+labels: []
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Work item type
+      options:
+        - Feature
+        - Task
+        - Spike
+        - Decision
+    validations:
+      required: true
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Evolution phase
+      description: Select the active backlog phase this item supports.
+      options:
+        - E0 - Select the next document scenario
+        - E1 - Refresh and protect the baseline
+        - E2 - Introduce a top-level routing workflow
+        - E3 - Add the new document vertical slice
+        - E4 - Add requirement-driven branching and parallelism
+        - E5 - External input and checkpointing
+        - E6 - Quality review and agent collaboration
+        - E7 - Hardening and release
+    validations:
+      required: true
+
+  - type: dropdown
+    id: capability
+    attributes:
+      label: Primary capability
+      options:
+        - Product or document design
+        - Dependency or baseline maintenance
+        - Routing
+        - Sub-workflow composition
+        - Parallelism and aggregation
+        - Human input
+        - Checkpointing and state
+        - Agent collaboration
+        - Observability
+        - API or UI
+        - Documentation
+        - Not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Intended outcome
+      description: Describe the observable result rather than only the implementation activity.
+      placeholder: What should be true when this item is complete?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Explain the requirement, constraint, or decision this work addresses.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Provide a testable checklist.
+      placeholder: |
+        - [ ] Behaviour is covered by an automated test.
+        - [ ] Documentation reflects the implemented behaviour.
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and related work
+      description: Link prerequisite issues, decisions, pull requests, or documentation.
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation approach
+      description: State how the result will be tested or measured.
+    validations:
+      required: true
