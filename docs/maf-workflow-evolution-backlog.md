@@ -45,6 +45,8 @@ The next stage should strengthen the application architecture, not simply add an
 
 **Exit criteria:** The document scenario, output contract, acceptance examples, orchestration requirements, and non-goals are agreed before implementation begins.
 
+Candidate comparison: [Document scenario evaluation](document-scenario-evaluation.md).
+
 ## Phase E1: Refresh and Protect the Baseline
 
 **Objective:** Start the architectural work from a current, measurable, and secure baseline.
