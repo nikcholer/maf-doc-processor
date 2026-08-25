@@ -28,7 +28,7 @@ No model decides whether a source, region, expense report, or batch is valid, ac
 | Batch aggregation | None | Isolate failures, aggregate sources and members, sum model usage exactly once, and calculate capture/source status | Capture result |
 | Member disposition | None | Calculate `Accepted`, `Review`, or `Rejected` from trusted result state | Overlay and textual disposition |
 
-MAF supplies the workflow execution, typed edges, fan-out/fan-in, events, and conditional routing selected in #12. Interfaces, prompts, parsers, validators, policies, result records, and disposition rules remain project-owned.
+MAF supplies the workflow execution, typed edges, fan-out/fan-in, events, and conditional routing selected in [Capture and expense report MAF capability selection](capture-expense-maf-capabilities.md). Interfaces, prompts, parsers, validators, policies, result records, and disposition rules remain project-owned.
 
 ## Region Detection Boundary
 
