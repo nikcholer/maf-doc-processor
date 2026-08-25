@@ -57,15 +57,17 @@ Selected workflow capabilities: [Capture and expense report MAF capability selec
 
 **Objective:** Start the architectural work from a current, measurable, and secure baseline.
 
-- [ ] Resolve the vulnerable transitive test dependencies reported through the current xUnit package chain.
-- [ ] Review available .NET, MAF, OpenAI SDK, ImageSharp, and test-tooling updates.
-- [ ] Choose and pin the MAF version required by the selected workflow capabilities.
+- [x] Resolve the vulnerable transitive test dependencies reported through the current xUnit package chain.
+- [x] Review available .NET, MAF, OpenAI SDK, ImageSharp, and test-tooling updates.
+- [x] Choose and record the MAF version required by the selected workflow capabilities.
 - [ ] Apply dependency updates in bounded groups, with regression tests after each group.
 - [ ] Record baseline test count, representative model latency, token usage, and estimated cost.
 - [ ] Build a small versioned golden set for the existing supported and unsupported document paths.
 - [ ] Add or confirm regression coverage for existing API response and error contracts.
 
 **Exit criteria:** The solution builds without warnings, the full offline suite passes, dependency audit findings are resolved or explicitly accepted, and baseline measurements are recorded.
+
+Selected versions and deferrals: [Dependency baseline decision](dependency-baseline-decision.md).
 
 ## Phase E2: Introduce a Top-Level Routing Workflow
 

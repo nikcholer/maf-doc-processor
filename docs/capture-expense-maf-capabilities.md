@@ -17,7 +17,7 @@ Use the .NET graph-based workflow API with project-owned typed executors and han
 1. Typed conditional edges for the top-level document route.
 2. Workflows bound as executors for reusable document-specific sub-workflows.
 3. Fixed, configured worker lanes connected by fan-out and fan-in edges for capture processing.
-4. Concurrent in-process execution for independent worker lanes.
+4. Normal in-process superstep execution for independent worker lanes.
 5. Custom workflow events plus standard executor, output, and error events.
 6. Workflow visualization for topology review and route tests.
 
@@ -31,7 +31,7 @@ Deterministic C# continues to own validation, partitioning, concurrency limits, 
 | Reuse receipt, shopping-list, Sujiko, and later expense-report processing | Bind a built `Workflow` as an executor using the supported sub-workflow binding API | Build each typed document workflow and preserve its result, error, cancellation, and usage contracts |
 | Process several sources and members without unbounded work | `AddFanOutEdge<T>` across a fixed set of worker executors | Partition ordered work into configured lanes and enforce request, source, member, memory, and provider limits |
 | Continue only after every lane has reported | `AddFanInBarrierEdge` into a deterministic aggregation executor | Make every lane emit one typed lane result, including an empty result, and calculate the final ordered outcome |
-| Run independent lanes concurrently | `InProcessExecution.Concurrent` | Select a conservative lane count, keep work within each lane sequential, and propagate cancellation |
+| Run independent lanes concurrently | Normal `InProcessExecution.RunAsync` superstep execution | Select a conservative lane count, keep work within each lane sequential, and link the request cancellation token in cancellable executor work |
 | Expose classification, routing, detection, member completion, and aggregation progress | `WorkflowEvent` through `IWorkflowContext.AddEventAsync`, plus standard MAF events | Define safe event payloads containing correlation and outcome metadata, never source images or confidential model responses |
 | Make the route inspectable and testable | `WorkflowVisualizer.ToMermaidString` or `ToDotString` | Assert destination coverage, exclusive predicates, expected fan-out/fan-in nodes, and named workflow stages |
 
@@ -96,7 +96,7 @@ The currently pinned `Microsoft.Agents.AI.Workflows` 1.4.0 package exposes the r
 - typed conditional `AddEdge<T>` predicates;
 - workflow-to-executor binding;
 - selected `AddFanOutEdge<T>` routing and `AddFanInBarrierEdge` synchronization;
-- concurrent in-process execution with cancellation;
+- normal in-process superstep concurrency with explicitly linked request cancellation;
 - custom `WorkflowEvent` emission and standard output/error events; and
 - Mermaid or DOT topology generation.
 
@@ -110,6 +110,7 @@ The first implementation does not select:
 - request/response human input or reviewer queues;
 - agent collaboration or the Analyst/Critic prototype;
 - agent wrappers or conversation-oriented orchestration;
+- `InProcessExecution.Concurrent` workflow-instance reuse, unless a future host needs simultaneous runs of one share-capable or factory-created workflow instance;
 - runtime creation of one workflow node per source or member;
 - unbounded parallel tasks or model calls; or
 - streaming progress over a public API.
