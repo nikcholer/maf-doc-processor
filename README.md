@@ -88,6 +88,12 @@ To collect offline test coverage:
 dotnet test .\MafDocumentProcessor.sln --collect:"XPlat Code Coverage"
 ```
 
+The normal suite includes a small, non-confidential [golden set](docs/golden-set.md) for the receipt, shopping-list, Sujiko, and unsupported routes. Run it alone with:
+
+```powershell
+dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~GoldenSetTests
+```
+
 ## Configuration
 
 Runtime settings live in [appsettings.json](src/MafDocumentProcessor.Api/appsettings.json):
@@ -149,6 +155,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - [Capture and expense report MAF capability selection](docs/capture-expense-maf-capabilities.md)
 - [Dependency baseline decision](docs/dependency-baseline-decision.md)
 - [Current workflow baseline measurements](docs/baseline-measurements.md)
+- [Current document golden set](docs/golden-set.md)
 - [Delivery workflow](docs/delivery-workflow.md)
 - [Beginner's guide to a completed document slice](docs/slice-guide.md)
 - [Technical process flow](docs/technical-process-flow.md)
