@@ -18,7 +18,7 @@ The [initial migration backlog](docs/maf-migration-backlog.md) records the compl
 
 ## Prerequisites
 
-- .NET SDK `8.0.419` or a compatible `8.0.x` SDK. The repository pins this in `global.json`.
+- .NET SDK `10.0.400` or a compatible later .NET 10 feature band. The repository pins this in `global.json`.
 - A TogetherAI API key in `TOGETHER_API_KEY` for live processing.
 
 Set the API key for your Windows user:
@@ -82,6 +82,12 @@ $env:MAF_RUN_LIVE_ASSET_TESTS = "1"
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~SujikoAssetRegressionTests
 ```
 
+To collect offline test coverage:
+
+```powershell
+dotnet test .\MafDocumentProcessor.sln --collect:"XPlat Code Coverage"
+```
+
 ## Configuration
 
 Runtime settings live in [appsettings.json](src/MafDocumentProcessor.Api/appsettings.json):
@@ -128,7 +134,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 
 - The selected next application path adds multi-source composite capture, processing every detected document through the existing category workflow, followed by expense report as the next distinct document type.
 - Build a representative golden sample set and measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
-- Apply the accepted .NET 10, MAF 1.19, OpenAI 2.13, and test-tooling baseline in bounded groups. ImageSharp 4 and xUnit v3 are explicitly deferred as separate migrations.
+- Maintain the current .NET 10, MAF 1.19, OpenAI 2.13, and test-tooling baseline. ImageSharp 4 and xUnit v3 are explicitly deferred as separate migrations.
 - Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, and a rate-limited hosted demo.
 
 ## Further Documentation

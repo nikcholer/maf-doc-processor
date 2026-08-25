@@ -91,7 +91,7 @@ The initial HTTP APIs still return one foreground response. Events support logs,
 
 ## Package Compatibility Input
 
-The currently pinned `Microsoft.Agents.AI.Workflows` 1.4.0 package exposes the required API families. Issue #16 must select a deliberate baseline and prove the chosen version supports:
+The pinned `Microsoft.Agents.AI.Workflows` 1.19.0 package supports the required API families. The dependency review and permanent compatibility tests prove the selected version supports:
 
 - typed conditional `AddEdge<T>` predicates;
 - workflow-to-executor binding;
@@ -100,7 +100,7 @@ The currently pinned `Microsoft.Agents.AI.Workflows` 1.4.0 package exposes the r
 - custom `WorkflowEvent` emission and standard output/error events; and
 - Mermaid or DOT topology generation.
 
-The dependency review must compile a small representative topology and run route, fan-out/fan-in, cancellation, error, and event tests. Release notes and known issues for the candidate version remain part of #16; API presence alone is not sufficient.
+`MafWorkflowCompatibilityTests` compiles representative topologies and runs route, sub-workflow, fan-out/fan-in, cancellation, event, aggregation, and visualization checks in the offline suite. The release-note review and selected baseline are recorded in the [dependency baseline decision](dependency-baseline-decision.md).
 
 ## Deferred Capabilities
 
