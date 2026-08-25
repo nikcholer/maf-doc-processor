@@ -126,9 +126,9 @@ The core local demo has no incomplete required milestone. The remaining work is 
 
 Forward architectural work is organized in the [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md) and tracked in the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1).
 
+- The selected next application path adds multi-source composite capture, processing every detected document through the existing category workflow, followed by expense report as the next distinct document type.
 - Build a representative golden sample set and measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
 - Refresh pinned dependencies deliberately. The current pins trail newer MAF, OpenAI, ImageSharp, and test-tooling releases; ImageSharp's available update is a major-version change and should be regression-tested.
-- Update the xUnit/test dependency chain. A current `dotnet list package --vulnerable --include-transitive` audit reports high-severity advisories on `System.Net.Http 4.3.0` and `System.Text.RegularExpressions 4.3.0`, both reached through `xunit 2.5.3 -> NETStandard.Library 1.6.1`. These are test-project transitives, not application-project dependencies, but should still be cleared.
 - Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, and a rate-limited hosted demo.
 
 ## Further Documentation
@@ -137,6 +137,8 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - [Development-agent instructions](AGENTS.md)
 - [Semantic Kernel to MAF migration strategy](docs/sk-to-maf-migration.md)
 - [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md)
+- [Batch capture and expense report sequencing decision](docs/batch-capture-expense-report-decision.md)
+- [Composite capture contract](docs/composite-capture-contract.md)
 - [Delivery workflow](docs/delivery-workflow.md)
 - [Beginner's guide to a completed document slice](docs/slice-guide.md)
 - [Technical process flow](docs/technical-process-flow.md)
