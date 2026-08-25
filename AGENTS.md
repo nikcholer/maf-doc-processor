@@ -64,11 +64,18 @@ Use the alternate output command in `README.md` if a running API locks the appho
 
 Do not run the opt-in live Sujiko test unless the work item requires live verification and `TOGETHER_API_KEY` is deliberately available. Documentation-only work requires at least link/content review and `git diff --check`.
 
+## Agent Provenance
+
+- Follow the shared development-assistance convention in `CONTRIBUTING.md`.
+- Every commit containing substantive work produced by this agent must include an `Assisted-by` trailer naming the agent product and, when known reliably, its model.
+- Keep the human repository owner as the Git author. Do not invent an agent email address or use `Co-authored-by` without a genuine GitHub identity.
+- Preserve the trailer through amendments, rebases, and squash merges, and verify it with `git log` before handover.
+
 ## Finishing Work
 
 - Update relevant documentation in the same change.
 - Ensure the worktree contains no unrelated edits and validation evidence is available.
-- Use a focused commit and a pull request containing `Closes #<issue-number>`.
+- Use a focused commit containing the required provenance trailer and a pull request containing `Closes #<issue-number>`.
 - When authorized, move or confirm the Project item in **In Review**. Project automation handles linked pull requests, issue closure, and reopening.
 - Hand over with the issue/PR link, a concise outcome summary, validation performed, and any explicit exclusions or follow-up issues.
 
