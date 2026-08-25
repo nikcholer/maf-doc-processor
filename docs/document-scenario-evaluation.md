@@ -38,9 +38,9 @@ Candidates are scored from 1 (weak) to 5 (strong). Weighted totals are comparati
 | 4 | Shipping and customs document package | 5 | 5 | 2 | 2 | 4 | 76 |
 | 5 | Multi-page bank statement reconciliation | 4 | 5 | 2 | 3 | 3 | 70 |
 
-### 1. Composite Document Capture — Recommended First Step
+### 1. Composite Document Capture — Selected First Step
 
-A single high-resolution photo or scan may contain several physical documents: for example receipts, train tickets, and other small items arranged on a desk rather than on an A4 page.
+A batch-capture request may contain several separate image files, and each high-resolution photo or scan may itself contain several physical documents: for example receipts, train tickets, and other small items arranged on a desk rather than on an A4 page.
 
 The processing path should:
 
@@ -95,16 +95,18 @@ Select **composite document capture** as the next scenario. Its smallest coheren
 
 Do not include persistent storage, expense-report linking, checkpointing, external submission, or additional review agents in this initial slice.
 
-Retain **expense report linked to ingested receipts** as the recommended follow-on. Composite capture removes the most obvious ingestion friction, while the later feature can introduce persistence and linking deliberately rather than as an incidental implementation detail.
+Select **expense report** as the next distinct business document category after composite capture. Its initial vertical slice should classify, extract, validate, and review an expense report independently. Composite capture removes the most obvious ingestion friction by allowing reports and supporting receipts to arrive together, while persistent receipt-to-report linking remains a later capability with explicit storage and ownership decisions.
 
 The E0 decision should confirm:
 
-1. that a single upload may contain zero, one, or several independently processed document regions;
+1. that a batch request may contain one or more image files, each containing zero, one, or several independently processed document regions;
 2. that the initial batch response is request-scoped and does not persist document results;
 3. that partial success is allowed and every detected region receives its own outcome; and
-4. that expense-report linking is follow-on scope rather than part of composite capture.
+4. that expense report is the next business document type, while persistent receipt linking is follow-on scope rather than part of composite capture.
 
 After that decision, issues #10–#14 can define the batch and member contracts, model boundaries, initial MAF capabilities, decision record, and representative desk-photo samples. Issue #16 can then select a package version against the approved capability set.
+
+Proposed contract: [Composite capture contract](composite-capture-contract.md).
 
 ## Framework Fit
 
