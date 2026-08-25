@@ -49,7 +49,7 @@ The [completed slice guide](slice-guide.md), [technical process flow](technical-
 
 The next document type should be chosen for both its application value and its orchestration requirements. It should extend the processor in a credible way while providing a reason to use more of MAF than the initial linear slices require.
 
-Potential capabilities include conditional routing, sub-workflows, parallel fan-out and aggregation, richer workflow events, external input, checkpointing, or agent collaboration. The document scenario and required capabilities will be agreed before implementation and converted into a focused backlog.
+Potential capabilities include conditional routing, sub-workflows, parallel fan-out and aggregation, richer workflow events, external input, checkpointing, or agent collaboration. The document scenario and required capabilities will be agreed before implementation. Delivery is tracked in the [MAF workflow evolution backlog](maf-workflow-evolution-backlog.md).
 
 The governing question for this phase is:
 
@@ -68,4 +68,4 @@ Framework features are not goals by themselves. They should be retained where th
 
 ## Current Position
 
-The Semantic Kernel baseline, initial MAF migration, completed document slices, and supporting documentation are in place. The next step is to select the Phase 4 document scenario and define its architectural objectives before creating the implementation backlog.
+The Semantic Kernel baseline, initial MAF migration, completed document slices, and supporting documentation are in place. The active [MAF workflow evolution backlog](maf-workflow-evolution-backlog.md) begins by selecting the Phase 4 document scenario and defining its architectural objectives.

@@ -1,0 +1,52 @@
+name: Bug report
+description: Report a reproducible problem in the application or delivery workflow.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the observed problem and its impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start the API with...
+        2. Submit...
+        3. Observe...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include trace IDs, relevant logs, screenshots, or failing test output without secrets.
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include commit, .NET version, operating system, model role, and provider where relevant.
+    validations:
+      required: true
