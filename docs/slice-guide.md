@@ -10,7 +10,7 @@ That question makes a MAF workflow much easier to understand.
 
 ## Know Which Layer You Are Looking At
 
-This project targets modern **.NET 8** (`net8.0`). People sometimes still say “.NET Core,” but the product name has been simply **.NET** since .NET 5. **ASP.NET Core** remains the name of the web framework used by the API project.
+This project targets modern **.NET 10** (`net10.0`). People sometimes still say “.NET Core,” but the product name has been simply **.NET** since .NET 5. **ASP.NET Core** remains the name of the web framework used by the API project.
 
 The code path combines three main layers. Their namespaces are the quickest way to tell them apart:
 

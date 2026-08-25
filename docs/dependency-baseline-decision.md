@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for implementation on 25 August 2026. Issue #16 records the review; issue #17 applies the selected updates in bounded groups.
+Accepted on 25 August 2026 and applied in bounded groups through issue #17. Issue #16 records the review and selection.
 
 ## Context
 
@@ -57,6 +57,16 @@ Apply and validate the baseline in separable commits or clearly reported groups:
 3. Update the test SDK and coverage collector, then rerun the full offline suite and coverage collection.
 
 Package updates must not change the public API contract or add model calls to existing document paths. Any behavioural incompatibility that cannot be corrected within the relevant group should stop that group and be recorded rather than hidden by a broader rewrite.
+
+## Implementation Results
+
+The three groups were applied without production-source compatibility changes:
+
+1. The SDK, target frameworks, and ASP.NET Core test host moved to .NET 10. The existing 57-test offline suite passed on `net10.0`.
+2. MAF and OpenAI were updated together. Four permanent compatibility cases were added for typed conditional routing, bound sub-workflows, fixed-lane fan-out/fan-in, deterministic aggregation, events, Mermaid/DOT topology, normal superstep concurrency, and linked cancellation. The resulting 61-test suite passed.
+3. The test SDK and coverage collector were updated. The 61-test suite passed again and produced a Cobertura coverage report through the `XPlat Code Coverage` collector.
+
+The final solution build completes with no warnings. The final audit reports no known vulnerable packages; ImageSharp 4.1.1 is the only newer direct package version and remains deliberately deferred. No API response contract, configured model role, provider call count, or production workflow behaviour was changed. xUnit remains on v2 as explicitly deferred.
 
 ## Deferred Updates
 
