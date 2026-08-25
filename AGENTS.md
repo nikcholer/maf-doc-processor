@@ -49,7 +49,7 @@ User instructions and the accepted issue define the requested outcome. The GitHu
 - Keep retries and repair attempts bounded. Added model calls must have tests and observable latency, token, and cost reporting.
 - Keep HTTP concerns in the API project and provider-specific protocol behaviour in the provider adapter.
 - Preserve existing API and document-result contracts unless the issue explicitly approves a change; update contract documentation with the implementation.
-- Follow existing C# conventions: .NET 8, nullable enabled, file-scoped namespaces, asynchronous suffixes, and focused immutable records where appropriate.
+- Follow existing C# conventions: .NET 10, nullable enabled, file-scoped namespaces, asynchronous suffixes, and focused immutable records where appropriate.
 
 ## Validation
 
