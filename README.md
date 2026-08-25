@@ -128,7 +128,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 
 - The selected next application path adds multi-source composite capture, processing every detected document through the existing category workflow, followed by expense report as the next distinct document type.
 - Build a representative golden sample set and measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
-- Refresh pinned dependencies deliberately. The current pins trail newer MAF, OpenAI, ImageSharp, and test-tooling releases; ImageSharp's available update is a major-version change and should be regression-tested.
+- Apply the accepted .NET 10, MAF 1.19, OpenAI 2.13, and test-tooling baseline in bounded groups. ImageSharp 4 and xUnit v3 are explicitly deferred as separate migrations.
 - Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, and a rate-limited hosted demo.
 
 ## Further Documentation
@@ -141,6 +141,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - [Composite capture contract](docs/composite-capture-contract.md)
 - [Capture and expense report model boundaries](docs/capture-expense-model-boundaries.md)
 - [Capture and expense report MAF capability selection](docs/capture-expense-maf-capabilities.md)
+- [Dependency baseline decision](docs/dependency-baseline-decision.md)
 - [Delivery workflow](docs/delivery-workflow.md)
 - [Beginner's guide to a completed document slice](docs/slice-guide.md)
 - [Technical process flow](docs/technical-process-flow.md)
