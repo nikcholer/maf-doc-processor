@@ -6,6 +6,8 @@ This document defines the proposed E0 contract for composite document capture. I
 
 Model and deterministic responsibilities are defined in [Capture and expense report model boundaries](capture-expense-model-boundaries.md).
 
+Bounded workflow orchestration is defined in [Capture and expense report MAF capability selection](capture-expense-maf-capabilities.md).
+
 ## Purpose
 
 Composite capture accepts one or more image files, each of which may contain zero, one, or several physical documents. It detects document regions before categorization, crops them from each high-resolution source, and processes every valid crop independently through the same classification and document workflow used for an individual upload.
