@@ -63,7 +63,7 @@ Selected workflow capabilities: [Capture and expense report MAF capability selec
 - [x] Apply dependency updates in bounded groups, with regression tests after each group.
 - [ ] Record baseline test count, representative model latency, token usage, and estimated cost.
 - [ ] Build a small versioned golden set for the existing supported and unsupported document paths.
-- [ ] Add or confirm regression coverage for existing API response and error contracts.
+- [x] Add or confirm regression coverage for existing API response and error contracts.
 
 **Exit criteria:** The solution builds without warnings, the full offline suite passes, dependency audit findings are resolved or explicitly accepted, and baseline measurements are recorded.
 
