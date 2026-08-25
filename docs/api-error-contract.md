@@ -30,3 +30,5 @@ Client/request cancellation is not converted to this error contract. The API let
 - `traceId` is always populated for API-generated errors and should be shown in logs or bug reports.
 - `target` is populated only when a specific request field caused the failure.
 - Error `message` values are intended to be readable in the local demo UI, but clients should branch on `code`.
+
+The offline `ApiIntegrationTests` suite exercises every error code in this table, the validation-specific `target` values, populated trace identifiers, and request-cancellation propagation.
