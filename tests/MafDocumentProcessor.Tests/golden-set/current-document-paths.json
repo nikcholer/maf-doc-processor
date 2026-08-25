@@ -1,0 +1,218 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "receipt-approved",
+      "source": {
+        "fileName": "synthetic-receipt.png",
+        "contentType": "image/png",
+        "lines": [
+          "NORTH STAR CAFE",
+          "RECEIPT",
+          "DATE 2026-08-20",
+          "TOTAL GBP 21.02",
+          "PAID VISA"
+        ]
+      },
+      "modelOutputs": {
+        "classification": {
+          "category": "Receipt",
+          "confidence": 0.95,
+          "confidenceReasoning": "Synthetic receipt layout and total",
+          "documentTypeDescription": "receipt"
+        },
+        "receipt": {
+          "storeName": "North Star Cafe",
+          "totalAmount": 21.02,
+          "purchaseDate": "2026-08-20",
+          "paymentMethod": "Visa",
+          "currencyCode": "GBP"
+        }
+      },
+      "expected": {
+        "category": "Receipt",
+        "classificationConfidence": 0.95,
+        "documentTypeDescription": "receipt",
+        "isSuccess": true,
+        "validationIsValid": true,
+        "humanReviewStatus": "NotRequired",
+        "documentDataPresent": true,
+        "policyDecision": "Approved",
+        "modelOperations": ["classification", "receipt_extraction"],
+        "receipt": {
+          "storeName": "North Star Cafe",
+          "totalAmount": 21.02,
+          "purchaseDate": "2026-08-20",
+          "paymentMethod": "Visa",
+          "currencyCode": "GBP"
+        },
+        "shoppingList": null,
+        "sujikoPuzzle": null,
+        "validationReasons": [],
+        "humanReviewReasons": [],
+        "errors": [],
+        "warnings": []
+      }
+    },
+    {
+      "id": "shopping-list-valid",
+      "source": {
+        "fileName": "synthetic-shopping-list.png",
+        "contentType": "image/png",
+        "lines": [
+          "WEEKLY SHOPPING",
+          "MILK 2 PINTS",
+          "BREAD",
+          "APPLES 4",
+          "NOTES NONE"
+        ]
+      },
+      "modelOutputs": {
+        "classification": {
+          "category": "ShoppingList",
+          "confidence": 0.93,
+          "confidenceReasoning": "Synthetic list heading and grocery items",
+          "documentTypeDescription": "shopping list"
+        },
+        "shoppingList": {
+          "title": "Weekly shopping",
+          "items": [
+            { "name": "milk", "quantity": 2, "unit": "pints", "isChecked": false },
+            { "name": "bread", "quantity": null, "unit": null, "isChecked": null },
+            { "name": "apples", "quantity": 4, "unit": null, "isChecked": null }
+          ],
+          "notes": null
+        }
+      },
+      "expected": {
+        "category": "ShoppingList",
+        "classificationConfidence": 0.93,
+        "documentTypeDescription": "shopping list",
+        "isSuccess": true,
+        "validationIsValid": true,
+        "humanReviewStatus": "NotRequired",
+        "documentDataPresent": true,
+        "policyDecision": null,
+        "modelOperations": ["classification", "shopping_list_extraction"],
+        "receipt": null,
+        "shoppingList": {
+          "title": "Weekly shopping",
+          "items": [
+            { "name": "milk", "quantity": 2, "unit": "pints", "isChecked": false },
+            { "name": "bread", "quantity": null, "unit": null, "isChecked": null },
+            { "name": "apples", "quantity": 4, "unit": null, "isChecked": null }
+          ],
+          "notes": null
+        },
+        "sujikoPuzzle": null,
+        "validationReasons": [],
+        "humanReviewReasons": [],
+        "errors": [],
+        "warnings": []
+      }
+    },
+    {
+      "id": "sujiko-rotated-known-answer",
+      "source": {
+        "fileName": "IMG20260513194450.jpg",
+        "contentType": "image/jpeg",
+        "assetName": "IMG20260513194450.jpg"
+      },
+      "modelOutputs": {
+        "classification": {
+          "category": "SujikoPuzzle",
+          "confidence": 0.97,
+          "confidenceReasoning": "A rotated 3x3 Sujiko grid with four totals",
+          "documentTypeDescription": "Sujiko puzzle"
+        },
+        "sujikoPuzzle": {
+          "quadrantTotals": {
+            "topLeft": 20,
+            "topRight": 11,
+            "bottomLeft": 24,
+            "bottomRight": 23
+          },
+          "givenCells": [
+            { "row": 1, "column": 3, "value": 3 },
+            { "row": 3, "column": 2, "value": 7 }
+          ]
+        }
+      },
+      "expected": {
+        "category": "SujikoPuzzle",
+        "classificationConfidence": 0.97,
+        "documentTypeDescription": "Sujiko puzzle",
+        "isSuccess": true,
+        "validationIsValid": true,
+        "humanReviewStatus": "NotRequired",
+        "documentDataPresent": true,
+        "policyDecision": null,
+        "modelOperations": ["classification", "sujiko_puzzle_extraction"],
+        "receipt": null,
+        "shoppingList": null,
+        "sujikoPuzzle": {
+          "quadrantTotals": {
+            "topLeft": 20,
+            "topRight": 11,
+            "bottomLeft": 24,
+            "bottomRight": 23
+          },
+          "givenCells": [
+            { "row": 1, "column": 3, "value": 3 },
+            { "row": 3, "column": 2, "value": 7 }
+          ]
+        },
+        "validationReasons": [],
+        "humanReviewReasons": [],
+        "errors": [],
+        "warnings": []
+      }
+    },
+    {
+      "id": "unsupported-event-ticket",
+      "source": {
+        "fileName": "synthetic-event-ticket.png",
+        "contentType": "image/png",
+        "lines": [
+          "EVENT TICKET",
+          "RIVER HALL",
+          "SEAT B12",
+          "20 AUG 2026",
+          "ADMIT ONE"
+        ]
+      },
+      "modelOutputs": {
+        "classification": {
+          "category": "Unknown",
+          "confidence": 0.92,
+          "confidenceReasoning": "Synthetic event ticket rather than a supported document",
+          "documentTypeDescription": "event ticket"
+        }
+      },
+      "expected": {
+        "category": "Unknown",
+        "classificationConfidence": 0.92,
+        "documentTypeDescription": "event ticket",
+        "isSuccess": false,
+        "validationIsValid": false,
+        "humanReviewStatus": "Required",
+        "documentDataPresent": false,
+        "policyDecision": null,
+        "modelOperations": ["classification"],
+        "receipt": null,
+        "shoppingList": null,
+        "sujikoPuzzle": null,
+        "validationReasons": [
+          "This appears to be an event ticket. This demo can process receipts, shopping lists, and Sujiko puzzles right now."
+        ],
+        "humanReviewReasons": [
+          "This appears to be an event ticket. This demo can process receipts, shopping lists, and Sujiko puzzles right now."
+        ],
+        "errors": [
+          "This appears to be an event ticket. This demo can process receipts, shopping lists, and Sujiko puzzles right now."
+        ],
+        "warnings": []
+      }
+    }
+  ]
+}

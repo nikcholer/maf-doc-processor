@@ -62,7 +62,7 @@ Selected workflow capabilities: [Capture and expense report MAF capability selec
 - [x] Choose and record the MAF version required by the selected workflow capabilities.
 - [x] Apply dependency updates in bounded groups, with regression tests after each group.
 - [x] Record baseline test count, representative model latency, token usage, and estimated cost.
-- [ ] Build a small versioned golden set for the existing supported and unsupported document paths.
+- [x] Build a small versioned golden set for the existing supported and unsupported document paths.
 - [x] Add or confirm regression coverage for existing API response and error contracts.
 
 **Exit criteria:** The solution builds without warnings, the full offline suite passes, dependency audit findings are resolved or explicitly accepted, and baseline measurements are recorded.
@@ -70,6 +70,8 @@ Selected workflow capabilities: [Capture and expense report MAF capability selec
 Selected versions and deferrals: [Dependency baseline decision](dependency-baseline-decision.md).
 
 Recorded comparison point: [Current workflow baseline measurements](baseline-measurements.md).
+
+Versioned regression corpus: [Current document golden set](golden-set.md).
 
 ## Phase E2: Introduce a Top-Level Routing Workflow
 
