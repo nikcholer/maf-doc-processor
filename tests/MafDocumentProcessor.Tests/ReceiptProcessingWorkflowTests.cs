@@ -141,8 +141,9 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.Equal(DocumentCategory.ShoppingList, result.Category);
         Assert.Null(result.Receipt);
         Assert.Null(result.PolicyResult);
-        Assert.Equal("Weekly groceries", result.ShoppingList?.Title);
-        Assert.Equal(["milk", "bread"], result.ShoppingList?.Items.Select(item => item.Name).ToArray());
+        Assert.NotNull(result.ShoppingList);
+        Assert.Equal("Weekly groceries", result.ShoppingList.Title);
+        Assert.Equal(["milk", "bread"], result.ShoppingList.Items.Select(item => item.Name).ToArray());
         Assert.True(result.Validation.IsValid);
         Assert.Equal(HumanReviewStatus.NotRequired, result.HumanReview.Status);
         Assert.Equal(1, shoppingListExtractor.CallCount);
@@ -173,7 +174,8 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.True(result.IsSuccess);
         Assert.True(result.Validation.IsValid);
         Assert.Equal(HumanReviewStatus.NotRequired, result.HumanReview.Status);
-        Assert.Equal(["milk", "bread"], result.ShoppingList?.Items.Select(item => item.Name).ToArray());
+        Assert.NotNull(result.ShoppingList);
+        Assert.Equal(["milk", "bread"], result.ShoppingList.Items.Select(item => item.Name).ToArray());
         Assert.Equal(2, shoppingListExtractor.CallCount);
         Assert.Contains(shoppingListExtractor.LastRepairInstructions, reason => reason.Contains("no readable items"));
         Assert.Equal(3, result.ModelUsage.Calls.Count);
