@@ -64,13 +64,6 @@ Now that you are on MAF, you can build the features that would have been a night
 3.  **Multi-Agent Collaboration:** Introduce an AnalystAgent to read the document, and a CriticAgent to review the Analyst's work for hallucinations before finalizing the output[9, 14]. MAF handles the chat loop between these two natively [1].
     
 
-### How to pitch this on your Resume/LinkedIn
+### Target Outcome
 
-By executing this migration, your resume bullet point transforms from:
-
--   "Built a document processor using Semantic Kernel."
-    
-
-To something highly competitive for 2026:
-
--   "Architected an AI document processing system. Initially built with **Semantic Kernel**, I led the migration to the **Microsoft Agent Framework (MAF)** to implement graph-based multi-agent workflows, utilizing Microsoft.Extensions.AI and durable execution to handle complex, long-running document analysis tasks."
+The migration should leave the document processor with a clear separation between model-backed reasoning and deterministic application logic, explicit graph-based orchestration where it adds value, and a tested path for introducing long-running or human-reviewed workflows when those requirements become concrete.

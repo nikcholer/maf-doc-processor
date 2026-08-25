@@ -125,6 +125,7 @@ The core local demo has no incomplete required milestone. The remaining work is 
 
 ## Further Documentation
 
+- [Semantic Kernel to MAF migration strategy](docs/sk-to-maf-migration.md)
 - [Beginner's guide to a completed document slice](docs/slice-guide.md)
 - [Technical process flow](docs/technical-process-flow.md)
 - [Microsoft Agent Framework migration backlog](docs/maf-migration-backlog.md)
