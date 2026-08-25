@@ -49,6 +49,8 @@ Candidate comparison: [Document scenario evaluation](document-scenario-evaluatio
 
 Accepted direction: [Batch capture and expense report sequencing decision](batch-capture-expense-report-decision.md).
 
+Model and result boundary: [Capture and expense report model boundaries](capture-expense-model-boundaries.md).
+
 ## Phase E1: Refresh and Protect the Baseline
 
 **Objective:** Start the architectural work from a current, measurable, and secure baseline.
