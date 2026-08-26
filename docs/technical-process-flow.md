@@ -143,13 +143,15 @@ CompositeCaptureSource
      -> check declared type, extension, bytes, decoded format, and dimensions
      -> decode pixels once and apply EXIF orientation
      -> retain OrientedCaptureSourceImage in request-scoped memory
-  -> CaptureDetectionImagePreparer
+  -> if source has regionOverrides
+     -> skip the detector and use typed, still-untrusted caller proposals
+  -> otherwise CaptureDetectionImagePreparer
      -> clone and resize a model-facing JPEG derivative
-  -> ModelDocumentRegionDetector
-     -> one DocumentRegionDetection model call
-     -> boxes are asked to include a margin of background rather than a tight text crop
-  -> DocumentRegionResponseParser
-     -> typed, still-untrusted DocumentRegionProposal values
+     -> ModelDocumentRegionDetector
+        -> one DocumentRegionDetection model call
+        -> boxes are asked to include a margin of background rather than a tight text crop
+     -> DocumentRegionResponseParser
+        -> typed, still-untrusted DocumentRegionProposal values
   -> CaptureSourceDetectionOutput
 ```
 
@@ -157,7 +159,7 @@ The names above are project code except for ImageSharp's decoding and orientatio
 
 `CaptureSourceDetectionExecutor` is the MAF adapter around this boundary. It is a project-owned class derived from MAF's `Executor<CaptureSourceDetectionInput, CaptureSourceDetectionOutput>`. It emits project-owned `CaptureSourceDecodedEvent` and `CaptureSourceDetectionCompletedEvent` records with trace, capture, caller-source, and source-item identifiers. The bounded parent graph that will run several of these executors is deferred to the orchestration task.
 
-The detector does not decide whether a rectangle is usable. Its output uses `ProposedNormalizedBounds`, which can represent an out-of-range model answer. Deterministic validation then rejects bad coordinates, duplicates, empty pixel crops, or negligible regions and converts accepted proposals into the stricter `NormalizedBounds` type. This is why detection JSON can be parsed successfully without being trusted.
+Neither the detector nor a caller correction decides whether a rectangle is usable. Both use `ProposedNormalizedBounds`, which can represent an out-of-range answer. Deterministic validation then rejects bad coordinates, duplicates, empty pixel crops, or negligible regions and converts accepted proposals into the stricter `NormalizedBounds` type. This is why detection or override JSON can be parsed successfully without being trusted.
 
 Expected source-level failures are data rather than workflow crashes:
 
@@ -204,9 +206,11 @@ CompositeCaptureRequest
 
 The graph never grows a node per upload. Empty lanes still report so the fan-in barrier has a known contributor set. Ordinary source and member failures become result data; request cancellation still aborts the capture. `CaptureResultComposer` restores source order, assigns capture-wide member indexes, sums model usage once, and calculates `Succeeded` / `PartiallySucceeded` / `Failed` plus member dispositions.
 
-`POST /api/document-captures/process` accepts repeated `images` parts and returns `CompositeCaptureProcessingResponse`. Request-level intake failures use the existing API error contract. Partial success is HTTP 200.
+`POST /api/document-captures/process` accepts repeated `images` parts, optional `sourceId`, and optional per-source normalized rectangles in the `regionOverrides` JSON form field, then returns `CompositeCaptureProcessingResponse`. Listed sources skip detection; omitted sources still receive one detector call. Request-level intake failures use the existing API error contract. Partial success is HTTP 200.
 
 The static UI keeps the original single-document mode and adds an explicit capture-set mode. It retains object URLs for the selected local images only for the lifetime of the current page selection, matches them to response sources by multipart index, and draws each normalized outline or bounds value in an SVG coordinate space over the corresponding preview. The API-provided disposition selects the accepted, review, or rejected treatment; the browser does not recalculate policy. Tick, question-mark, and cross symbols, textual rows, `aria-label` values, and keyboard-selectable overlays provide equivalent non-colour cues. Selecting either an overlay or row updates a member inspector with classification, extracted data, warnings, errors, and disposition reasons, while source failures remain visible alongside successful siblings.
+
+An individual source can enter an ephemeral rectangle editor after the first result. Pointer drag, four-corner resize, keyboard movement/resizing, normalized coordinate fields, and add/delete/reorder controls update browser-memory geometry. Reprocessing posts the same selected files and only the edited source sets as `regionOverrides`, so untouched sources retain automatic detection. The response follows the same aggregate contract and replaces the displayed result; no edit state is persisted by the API.
 
 OpenAPI is generated at `GET /openapi/v1.json`.
 

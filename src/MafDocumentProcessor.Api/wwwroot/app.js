@@ -30,6 +30,7 @@ const extractedData = document.querySelector("#extractedData");
 const policyReasons = document.querySelector("#policyReasons");
 const captureResult = document.querySelector("#captureResult");
 const captureSummary = document.querySelector("#captureSummary");
+const reprocessButton = document.querySelector("#reprocessButton");
 const sourceGrid = document.querySelector("#sourceGrid");
 const memberTitle = document.querySelector("#memberTitle");
 const memberDetail = document.querySelector("#memberDetail");
@@ -60,6 +61,10 @@ let processingMode = "single";
 let selectedFiles = [];
 let selectedMemberId = null;
 let capturePayload = null;
+let selectedEditRegionId = null;
+let activeEditSourceId = null;
+let nextEditRegionId = 1;
+const editedSources = new Map();
 const previewUrls = new Map();
 
 checkHealth();
@@ -108,6 +113,8 @@ dropZone.addEventListener("drop", (event) => {
   imageInput.dispatchEvent(new Event("change"));
 });
 
+reprocessButton.addEventListener("click", () => form.requestSubmit());
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const validationError = validateFiles(selectedFiles);
@@ -122,6 +129,10 @@ form.addEventListener("submit", async (event) => {
   const sourceId = sourceIdInput.value.trim();
   if (sourceId.length > 0) {
     body.append("sourceId", sourceId);
+  }
+  if (processingMode === "capture" && editedSources.size > 0) {
+    const overrides = CaptureUi.serializeRegionOverrides([...editedSources.values()]);
+    body.append("regionOverrides", JSON.stringify(overrides));
   }
 
   setBusy(true);
@@ -206,6 +217,10 @@ function configureMode() {
 
 function setSelectedFiles(files) {
   releasePreviewUrls();
+  editedSources.clear();
+  selectedEditRegionId = null;
+  activeEditSourceId = null;
+  reprocessButton.hidden = true;
   selectedFiles = files;
   intakePreview.replaceChildren();
   const isEmpty = selectedFiles.length === 0;
@@ -241,6 +256,9 @@ function resetFiles() {
   selectedFiles = [];
   selectedMemberId = null;
   capturePayload = null;
+  editedSources.clear();
+  selectedEditRegionId = null;
+  activeEditSourceId = null;
   releasePreviewUrls();
   setSelectedFiles([]);
 }
@@ -301,6 +319,7 @@ function setBusy(isBusy) {
   processButton.disabled = isBusy;
   imageInput.disabled = isBusy;
   sourceIdInput.disabled = isBusy;
+  reprocessButton.disabled = isBusy;
   modeInputs.forEach((input) => {
     input.disabled = isBusy;
   });
@@ -332,6 +351,7 @@ function resetResult() {
   });
   singleResult.hidden = false;
   captureResult.hidden = true;
+  reprocessButton.hidden = true;
   rawJson.textContent = "{}";
   jsonPanel.open = false;
 }
@@ -416,16 +436,21 @@ function renderCaptureSuccess(payload) {
     summary.failedSourceCount > 0 ? `${summary.failedSourceCount} failed source${summary.failedSourceCount === 1 ? "" : "s"}` : null
   ].filter(Boolean).join(" · ");
 
-  sourceGrid.replaceChildren();
-  const sources = Array.isArray(payload.sources) ? payload.sources : [];
-  sources.forEach((source) => {
-    const file = selectedFiles[Number(source.index) - 1];
-    const members = CaptureUi.getMembersForSource(payload, source.sourceItemId);
-    sourceGrid.appendChild(createSourceCard(source, file, members, false));
-  });
+  renderCaptureSources();
+  reprocessButton.hidden = editedSources.size === 0;
 
   updateMemberSelection(selectedMemberId, false);
   showRawJson(payload, false);
+}
+
+function renderCaptureSources() {
+  sourceGrid.replaceChildren();
+  const sources = Array.isArray(capturePayload?.sources) ? capturePayload.sources : [];
+  sources.forEach((source) => {
+    const file = selectedFiles[Number(source.index) - 1];
+    const members = CaptureUi.getMembersForSource(capturePayload, source.sourceItemId);
+    sourceGrid.appendChild(createSourceCard(source, file, members, false));
+  });
 }
 
 function createSourceCard(source, file, members, pending) {
@@ -442,7 +467,36 @@ function createSourceCard(source, file, members, pending) {
   const sourceStatus = document.createElement("span");
   sourceStatus.className = `source-status ${captureStatusClass(source.status)}`;
   sourceStatus.textContent = pending ? "Processing" : sentenceCase(source.status);
-  header.append(headingWrap, sourceStatus);
+  const headerActions = document.createElement("div");
+  headerActions.className = "source-header-actions";
+  headerActions.appendChild(sourceStatus);
+  const editState = activeEditSourceId === source.sourceItemId
+    ? editedSources.get(source.sourceItemId)
+    : null;
+  const hasCorrections = editedSources.has(source.sourceItemId);
+  if (!pending) {
+    const editButton = createSmallButton(editState
+      ? "Finish editing"
+      : hasCorrections ? "Resume editing" : "Edit regions");
+    editButton.classList.add("edit-regions-button");
+    editButton.setAttribute("aria-pressed", String(Boolean(editState)));
+    editButton.addEventListener("click", () => {
+      if (editState) {
+        selectedEditRegionId = null;
+        activeEditSourceId = null;
+      } else {
+        beginEditingSource(source, members);
+      }
+      renderCaptureSources();
+      if (!editState) {
+        renderRegionEditorDetail(source.sourceItemId);
+      } else {
+        updateMemberSelection(selectedMemberId, false);
+      }
+    });
+    headerActions.appendChild(editButton);
+  }
+  header.append(headingWrap, headerActions);
 
   const frame = document.createElement("div");
   frame.className = "source-preview-frame";
@@ -466,6 +520,8 @@ function createSourceCard(source, file, members, pending) {
     scan.className = "scan-line";
     scan.setAttribute("aria-hidden", "true");
     frame.appendChild(scan);
+  } else if (editState) {
+    frame.appendChild(createRegionEditorOverlay(source, editState));
   } else if (members.length > 0) {
     frame.appendChild(createOverlay(members));
   }
@@ -492,7 +548,25 @@ function createSourceCard(source, file, members, pending) {
     const memberList = document.createElement("div");
     memberList.className = "member-list";
     memberList.setAttribute("aria-label", `Documents in source ${source.index}`);
-    if (members.length === 0) {
+    if (editState) {
+      memberList.classList.add("editing");
+      const toolbar = document.createElement("div");
+      toolbar.className = "region-editor-toolbar";
+      const guidance = createParagraph(
+        "Drag to move. Use corner handles to resize. Arrow keys move; Alt + arrows resize.",
+        "editor-guidance");
+      const addButton = createSmallButton("+ Add region");
+      addButton.addEventListener("click", () => addEditorRegion(source.sourceItemId));
+      toolbar.append(guidance, addButton);
+      memberList.appendChild(toolbar);
+      if (editState.regions.length === 0) {
+        memberList.appendChild(createParagraph("No regions. Add one or reprocess this source as empty.", "empty-state compact"));
+      } else {
+        editState.regions.forEach((region, index) => {
+          memberList.appendChild(createEditorRegionRow(source.sourceItemId, region, index, editState.regions.length));
+        });
+      }
+    } else if (members.length === 0) {
       memberList.appendChild(createParagraph("No document regions returned.", "empty-state compact"));
     } else {
       members.forEach((member) => memberList.appendChild(createMemberButton(member)));
@@ -501,6 +575,238 @@ function createSourceCard(source, file, members, pending) {
   }
 
   return card;
+}
+
+function beginEditingSource(source, members) {
+  let editState = editedSources.get(source.sourceItemId);
+  if (!editState) {
+    const regions = CaptureUi.createEditableRegions(members).map((region) => ({
+      ...region,
+      id: `edit-${nextEditRegionId++}`
+    }));
+    editState = {
+      sourceItemId: source.sourceItemId,
+      sourceIndex: Number(source.index),
+      regions
+    };
+    editedSources.set(source.sourceItemId, editState);
+  }
+  activeEditSourceId = source.sourceItemId;
+  const regions = editState.regions;
+  selectedEditRegionId = regions[0]?.id ?? null;
+  reprocessButton.hidden = false;
+}
+
+function createRegionEditorOverlay(source, editState) {
+  const layer = document.createElement("div");
+  layer.className = "region-editor-layer";
+  layer.setAttribute("aria-label", `Editable document regions for source ${source.index}`);
+  editState.regions.forEach((region, index) => {
+    const box = document.createElement("div");
+    box.className = "editable-region";
+    box.tabIndex = 0;
+    box.dataset.editRegionId = region.id;
+    box.classList.toggle("selected", region.id === selectedEditRegionId);
+    box.setAttribute("role", "button");
+    box.setAttribute("aria-label", `Region ${index + 1}. Drag to move; Alt plus arrow keys resize.`);
+    box.setAttribute("aria-pressed", String(region.id === selectedEditRegionId));
+    updateEditorBoxStyle(box, region.bounds);
+    box.addEventListener("focus", () => selectEditorRegion(source.sourceItemId, region.id, false));
+    box.addEventListener("keydown", (event) => handleEditorKey(event, source.sourceItemId, region.id, box));
+    box.addEventListener("pointerdown", (event) => {
+      if (event.target.closest?.(".resize-handle")) return;
+      startRegionPointerEdit(event, source.sourceItemId, region.id, box, null);
+    });
+    ["nw", "ne", "sw", "se"].forEach((handleName) => {
+      const handle = document.createElement("span");
+      handle.className = `resize-handle ${handleName}`;
+      handle.dataset.handle = handleName;
+      handle.setAttribute("aria-hidden", "true");
+      handle.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+        startRegionPointerEdit(event, source.sourceItemId, region.id, box, handleName);
+      });
+      box.appendChild(handle);
+    });
+    const number = document.createElement("span");
+    number.className = "editable-region-number";
+    number.textContent = String(index + 1).padStart(2, "0");
+    box.appendChild(number);
+    layer.appendChild(box);
+  });
+  return layer;
+}
+
+function startRegionPointerEdit(event, sourceItemId, regionId, box, handle) {
+  event.preventDefault();
+  selectEditorRegion(sourceItemId, regionId, false);
+  const frame = box.parentElement.getBoundingClientRect();
+  const editState = editedSources.get(sourceItemId);
+  const region = editState?.regions.find((candidate) => candidate.id === regionId);
+  if (!region || frame.width <= 0 || frame.height <= 0) return;
+  const startBounds = { ...region.bounds };
+  const startX = event.clientX;
+  const startY = event.clientY;
+  box.setPointerCapture(event.pointerId);
+  const move = (moveEvent) => {
+    const dx = (moveEvent.clientX - startX) / frame.width;
+    const dy = (moveEvent.clientY - startY) / frame.height;
+    region.bounds = handle
+      ? CaptureUi.resizeBounds(startBounds, handle, dx, dy)
+      : CaptureUi.moveBounds(startBounds, dx, dy);
+    updateEditorBoxStyle(box, region.bounds);
+    renderRegionEditorDetail(sourceItemId);
+  };
+  const finish = () => {
+    box.removeEventListener("pointermove", move);
+    box.removeEventListener("pointerup", finish);
+    box.removeEventListener("pointercancel", finish);
+  };
+  box.addEventListener("pointermove", move);
+  box.addEventListener("pointerup", finish);
+  box.addEventListener("pointercancel", finish);
+}
+
+function handleEditorKey(event, sourceItemId, regionId, box) {
+  const deltas = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (!deltas[event.key]) return;
+  event.preventDefault();
+  const editState = editedSources.get(sourceItemId);
+  const region = editState?.regions.find((candidate) => candidate.id === regionId);
+  if (!region) return;
+  const step = event.shiftKey ? 0.02 : 0.005;
+  const [x, y] = deltas[event.key];
+  region.bounds = event.altKey
+    ? CaptureUi.resizeBounds(region.bounds, "se", x * step, y * step)
+    : CaptureUi.moveBounds(region.bounds, x * step, y * step);
+  updateEditorBoxStyle(box, region.bounds);
+  renderRegionEditorDetail(sourceItemId);
+}
+
+function updateEditorBoxStyle(box, bounds) {
+  box.style.left = `${bounds.x * 100}%`;
+  box.style.top = `${bounds.y * 100}%`;
+  box.style.width = `${bounds.width * 100}%`;
+  box.style.height = `${bounds.height * 100}%`;
+}
+
+function createEditorRegionRow(sourceItemId, region, index, count) {
+  const row = document.createElement("div");
+  row.className = "editor-region-row";
+  row.classList.toggle("selected", region.id === selectedEditRegionId);
+  const selectButton = createSmallButton(`Region ${String(index + 1).padStart(2, "0")}`);
+  selectButton.addEventListener("click", () => selectEditorRegion(sourceItemId, region.id, true));
+  const actions = document.createElement("span");
+  const up = createSmallButton("↑", `Move region ${index + 1} earlier`);
+  const down = createSmallButton("↓", `Move region ${index + 1} later`);
+  const remove = createSmallButton("Delete", `Delete region ${index + 1}`);
+  up.disabled = index === 0;
+  down.disabled = index === count - 1;
+  up.addEventListener("click", () => reorderEditorRegion(sourceItemId, index, index - 1));
+  down.addEventListener("click", () => reorderEditorRegion(sourceItemId, index, index + 1));
+  remove.addEventListener("click", () => deleteEditorRegion(sourceItemId, region.id));
+  actions.append(up, down, remove);
+  row.append(selectButton, actions);
+  return row;
+}
+
+function createSmallButton(text, accessibleLabel = text) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "small-action";
+  button.textContent = text;
+  button.setAttribute("aria-label", accessibleLabel);
+  return button;
+}
+
+function selectEditorRegion(sourceItemId, regionId, scroll) {
+  selectedEditRegionId = regionId;
+  sourceGrid.querySelectorAll("[data-edit-region-id]").forEach((element) => {
+    const selected = element.dataset.editRegionId === regionId;
+    element.classList.toggle("selected", selected);
+    element.setAttribute("aria-pressed", String(selected));
+  });
+  renderRegionEditorDetail(sourceItemId);
+  if (scroll) document.querySelector("#memberInspector")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function addEditorRegion(sourceItemId) {
+  const editState = editedSources.get(sourceItemId);
+  if (!editState) return;
+  const region = {
+    id: `edit-${nextEditRegionId++}`,
+    bounds: { x: 0.3, y: 0.3, width: 0.4, height: 0.4 }
+  };
+  editState.regions.push(region);
+  selectedEditRegionId = region.id;
+  renderCaptureSources();
+  renderRegionEditorDetail(sourceItemId);
+}
+
+function deleteEditorRegion(sourceItemId, regionId) {
+  const editState = editedSources.get(sourceItemId);
+  if (!editState) return;
+  editState.regions = editState.regions.filter((region) => region.id !== regionId);
+  selectedEditRegionId = editState.regions[0]?.id ?? null;
+  renderCaptureSources();
+  renderRegionEditorDetail(sourceItemId);
+}
+
+function reorderEditorRegion(sourceItemId, fromIndex, toIndex) {
+  const editState = editedSources.get(sourceItemId);
+  if (!editState) return;
+  editState.regions = CaptureUi.reorderRegions(editState.regions, fromIndex, toIndex);
+  renderCaptureSources();
+  renderRegionEditorDetail(sourceItemId);
+}
+
+function renderRegionEditorDetail(sourceItemId) {
+  const editState = editedSources.get(sourceItemId);
+  const region = editState?.regions.find((candidate) => candidate.id === selectedEditRegionId);
+  memberDetail.replaceChildren();
+  memberTitle.textContent = region ? "Adjust region" : "Region correction";
+  if (!region) {
+    memberDetail.appendChild(createParagraph(
+      "Add a rectangle to identify a document, or reprocess with no regions for this source.",
+      "empty-state"));
+    return;
+  }
+
+  memberDetail.appendChild(createParagraph(
+    `Source ${String(editState.sourceIndex).padStart(2, "0")} · normalized coordinates`,
+    "member-identity"));
+  const formGrid = document.createElement("div");
+  formGrid.className = "coordinate-grid";
+  ["x", "y", "width", "height"].forEach((fieldName) => {
+    const label = document.createElement("label");
+    label.className = "coordinate-field";
+    const labelText = document.createElement("span");
+    labelText.textContent = fieldName;
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.max = "1";
+    input.step = "0.005";
+    input.name = fieldName;
+    input.value = Number(region.bounds[fieldName]).toFixed(4);
+    input.addEventListener("change", () => {
+      const value = Number(input.value);
+      if (!Number.isFinite(value)) return;
+      region.bounds = CaptureUi.clampBounds({ ...region.bounds, [fieldName]: value });
+      const box = sourceGrid.querySelector(`[data-edit-region-id="${region.id}"]`);
+      if (box) updateEditorBoxStyle(box, region.bounds);
+      renderRegionEditorDetail(sourceItemId);
+      queueMicrotask(() => memberDetail.querySelector(`input[name="${fieldName}"]`)?.focus());
+    });
+    label.append(labelText, input);
+    formGrid.appendChild(label);
+  });
+  const deleteButton = createSmallButton("Delete selected region");
+  deleteButton.classList.add("danger-action");
+  deleteButton.addEventListener("click", () => deleteEditorRegion(sourceItemId, region.id));
+  memberDetail.append(formGrid, deleteButton, createParagraph(
+    "Corrections are held only in this browser page and sent with the next reprocess request.",
+    "editor-note"));
 }
 
 function createOverlay(members) {

@@ -155,6 +155,152 @@ public sealed class ApiCaptureIntegrationTests
     }
 
     [Fact]
+    public async Task ProcessCapture_WithRegionOverrides_SkipsDetectionAndUsesTheNormalResultContract()
+    {
+        var detector = new CountingRegionDetector();
+        using var factory = new CaptureApiFactory(regionDetector: detector);
+        using var client = factory.CreateClient();
+        using var content = CreateCaptureContent(("receipt.png", CreatePng(80, 80)));
+        AddRegionOverrides(content,
+            """
+            {
+              "sources": [
+                {
+                  "sourceIndex": 1,
+                  "regions": [
+                    { "bounds": { "x": 0.1, "y": 0.2, "width": 0.6, "height": 0.5 } }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        using var response = await client.PostAsync("/api/document-captures/process", content);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<CompositeCaptureProcessingResponse>(JsonOptions);
+        Assert.NotNull(body);
+        Assert.Equal(0, detector.CallCount);
+        var source = Assert.Single(body.Sources);
+        Assert.True(source.Detection.UsedRegionOverrides);
+        Assert.Null(source.Detection.ModelId);
+        Assert.DoesNotContain(body.ModelUsage.Calls, call => call.Operation == ModelDocumentRegionDetector.Operation);
+        var member = Assert.Single(body.Members);
+        Assert.Equal(0.1, member.Region.Bounds.X, 6);
+        Assert.Null(member.Region.Confidence);
+    }
+
+    [Fact]
+    public async Task ProcessCapture_WhenEverySourceHasOverrides_DoesNotRequireDetectionModelConfiguration()
+    {
+        using var factory = new CaptureApiFactory(configureRegionDetection: false);
+        using var client = factory.CreateClient();
+        using var content = CreateCaptureContent(("receipt.png", CreatePng(80, 80)));
+        AddRegionOverrides(content,
+            """
+            {
+              "sources": [
+                {
+                  "sourceIndex": 1,
+                  "regions": [
+                    { "bounds": { "x": 0.1, "y": 0.1, "width": 0.6, "height": 0.6 } }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        using var response = await client.PostAsync("/api/document-captures/process", content);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<CompositeCaptureProcessingResponse>(JsonOptions);
+        Assert.True(Assert.Single(body!.Sources).Detection.UsedRegionOverrides);
+    }
+
+    [Fact]
+    public async Task ProcessCapture_WithPartialRegionOverrides_DetectsOnlySourcesWithoutOverrides()
+    {
+        var detector = new CountingRegionDetector();
+        using var factory = new CaptureApiFactory(regionDetector: detector);
+        using var client = factory.CreateClient();
+        using var content = CreateCaptureContent(
+            ("corrected.png", CreatePng(80, 80)),
+            ("automatic.png", CreatePng(80, 80)));
+        AddRegionOverrides(content,
+            """
+            {
+              "sources": [
+                {
+                  "sourceIndex": 1,
+                  "regions": [
+                    { "bounds": { "x": 0.15, "y": 0.15, "width": 0.5, "height": 0.6 } }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        using var response = await client.PostAsync("/api/document-captures/process", content);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<CompositeCaptureProcessingResponse>(JsonOptions);
+        Assert.NotNull(body);
+        Assert.Equal(1, detector.CallCount);
+        Assert.True(body.Sources[0].Detection.UsedRegionOverrides);
+        Assert.False(body.Sources[1].Detection.UsedRegionOverrides);
+        Assert.Equal(2, body.Members.Count);
+    }
+
+    [Fact]
+    public async Task ProcessCapture_WithMalformedRegionOverrides_ReturnsTheRequestErrorContract()
+    {
+        using var factory = new CaptureApiFactory();
+        using var client = factory.CreateClient();
+        using var content = CreateCaptureContent(("receipt.png", CreatePng(80, 80)));
+        AddRegionOverrides(content, "{ definitely-not-json }");
+
+        using var response = await client.PostAsync("/api/document-captures/process", content);
+
+        await AssertErrorAsync(response, HttpStatusCode.BadRequest, "invalid_document_upload", "regionOverrides");
+    }
+
+    [Fact]
+    public async Task ProcessCapture_WithInvalidOverrideGeometry_UsesDeterministicRegionValidation()
+    {
+        var detector = new CountingRegionDetector();
+        using var factory = new CaptureApiFactory(regionDetector: detector);
+        using var client = factory.CreateClient();
+        using var content = CreateCaptureContent(("receipt.png", CreatePng(80, 80)));
+        AddRegionOverrides(content,
+            """
+            {
+              "sources": [
+                {
+                  "sourceIndex": 1,
+                  "regions": [
+                    { "bounds": { "x": -0.1, "y": 0.1, "width": 0.5, "height": 0.5 } }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        using var response = await client.PostAsync("/api/document-captures/process", content);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<CompositeCaptureProcessingResponse>(JsonOptions);
+        Assert.NotNull(body);
+        Assert.Equal(0, detector.CallCount);
+        Assert.True(Assert.Single(body.Sources).Detection.UsedRegionOverrides);
+        var member = Assert.Single(body.Members);
+        Assert.Equal(CaptureMemberDisposition.Rejected, member.Disposition);
+        Assert.Equal("invalid_detected_region", member.Error?.Code);
+        Assert.Contains(
+            member.DispositionReasons,
+            reason => reason.Contains("normalized image", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task ProcessDocument_StillUsesTheIndividualContract()
     {
         using var factory = new CaptureApiFactory();
@@ -206,6 +352,11 @@ public sealed class ApiCaptureIntegrationTests
         return content;
     }
 
+    private static void AddRegionOverrides(MultipartFormDataContent content, string json)
+    {
+        content.Add(new StringContent(json), DocumentCaptureEndpoints.RegionOverridesFormFieldName);
+    }
+
     private static async Task AssertErrorAsync(
         HttpResponseMessage response,
         HttpStatusCode status,
@@ -230,7 +381,8 @@ public sealed class ApiCaptureIntegrationTests
 
     private sealed class CaptureApiFactory(
         IDocumentRegionDetector? regionDetector = null,
-        CompositeCaptureOptions? captureOptions = null)
+        CompositeCaptureOptions? captureOptions = null,
+        bool configureRegionDetection = true)
         : WebApplicationFactory<Program>
     {
         private const string TestApiKeyEnvironmentVariable = "MAF_DOCUMENT_PROCESSOR_TEST_API_KEY";
@@ -242,7 +394,7 @@ public sealed class ApiCaptureIntegrationTests
             builder.ConfigureLogging(logging => logging.ClearProviders());
             builder.ConfigureTestServices(services =>
             {
-                var settings = CreateTestModelSettings();
+                var settings = CreateTestModelSettings(configureRegionDetection);
                 services.RemoveAll<AiModelSettings>();
                 services.RemoveAll<CompositeCaptureOptions>();
                 services.RemoveAll<IDocumentClassifier>();
@@ -266,14 +418,19 @@ public sealed class ApiCaptureIntegrationTests
             });
         }
 
-        private static AiModelSettings CreateTestModelSettings()
+        private static AiModelSettings CreateTestModelSettings(bool configureDetection)
         {
             var defaults = AiModelSettingsDefaults.CreateTogetherDefaults();
             return new AiModelSettings(
                 defaults.DocumentClassification with { ApiKeyEnvironmentVariable = TestApiKeyEnvironmentVariable },
                 defaults.DocumentExtraction with { ApiKeyEnvironmentVariable = TestApiKeyEnvironmentVariable },
                 defaults.TextTesting with { ApiKeyEnvironmentVariable = TestApiKeyEnvironmentVariable },
-                defaults.DocumentRegionDetection with { ApiKeyEnvironmentVariable = TestApiKeyEnvironmentVariable });
+                defaults.DocumentRegionDetection with
+                {
+                    ApiKeyEnvironmentVariable = configureDetection
+                        ? TestApiKeyEnvironmentVariable
+                        : $"MAF_DOCUMENT_PROCESSOR_MISSING_DETECTION_KEY_{Guid.NewGuid():N}"
+                });
         }
     }
 
@@ -296,6 +453,31 @@ public sealed class ApiCaptureIntegrationTests
             return ValueTask.FromResult(new ModelResult<IReadOnlyList<DocumentRegionProposal>>(
                 proposals,
                 new ModelTokenUsage(ModelDocumentRegionDetector.Operation, "test-detector", 4, 2, 6)));
+        }
+    }
+
+    private sealed class CountingRegionDetector : IDocumentRegionDetector
+    {
+        public int CallCount { get; private set; }
+
+        public ValueTask<ModelResult<IReadOnlyList<DocumentRegionProposal>>> DetectAsync(
+            OrientedCaptureSourceImage source,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            IReadOnlyList<DocumentRegionProposal> proposals =
+            [
+                new DocumentRegionProposal(
+                    source.Source.SourceItemId,
+                    1,
+                    new ProposedNormalizedBounds(0.1, 0.1, 0.6, 0.6),
+                    outline: null,
+                    confidence: 0.95m)
+            ];
+            return ValueTask.FromResult(new ModelResult<IReadOnlyList<DocumentRegionProposal>>(
+                proposals,
+                new ModelTokenUsage(ModelDocumentRegionDetector.Operation, "counting-detector", 4, 2, 6)));
         }
     }
 

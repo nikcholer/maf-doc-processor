@@ -79,6 +79,93 @@
     };
   }
 
+  function createEditableRegions(members) {
+    return (Array.isArray(members) ? members : []).map((member, index) => ({
+      id: member?.memberId ?? `region-${index + 1}`,
+      bounds: normalizeBounds(member?.region?.bounds)
+    }));
+  }
+
+  function clampBounds(bounds, minimumSize = 0.02) {
+    requirePositiveFinite(minimumSize, "minimumSize");
+    if (minimumSize > 1) {
+      throw new RangeError("minimumSize cannot exceed one.");
+    }
+
+    const values = {
+      x: Number(bounds?.x),
+      y: Number(bounds?.y),
+      width: Number(bounds?.width),
+      height: Number(bounds?.height)
+    };
+    if (!Object.values(values).every(Number.isFinite)) {
+      throw new RangeError("Region bounds must contain finite numbers.");
+    }
+
+    const width = Math.min(1, Math.max(minimumSize, values.width));
+    const height = Math.min(1, Math.max(minimumSize, values.height));
+    return {
+      x: roundNormalized(Math.min(1 - width, Math.max(0, values.x))),
+      y: roundNormalized(Math.min(1 - height, Math.max(0, values.y))),
+      width: roundNormalized(width),
+      height: roundNormalized(height)
+    };
+  }
+
+  function moveBounds(bounds, deltaX, deltaY) {
+    const normalized = normalizeBounds(bounds);
+    return clampBounds({
+      ...normalized,
+      x: normalized.x + Number(deltaX),
+      y: normalized.y + Number(deltaY)
+    });
+  }
+
+  function resizeBounds(bounds, handle, deltaX, deltaY, minimumSize = 0.02) {
+    const normalized = normalizeBounds(bounds);
+    let left = normalized.x;
+    let top = normalized.y;
+    let right = normalized.x + normalized.width;
+    let bottom = normalized.y + normalized.height;
+    const dx = Number(deltaX);
+    const dy = Number(deltaY);
+    if (![dx, dy].every(Number.isFinite) || !["nw", "ne", "sw", "se"].includes(handle)) {
+      throw new RangeError("Resize requires a corner handle and finite deltas.");
+    }
+
+    if (handle.includes("w")) left = Math.min(right - minimumSize, Math.max(0, left + dx));
+    if (handle.includes("e")) right = Math.max(left + minimumSize, Math.min(1, right + dx));
+    if (handle.includes("n")) top = Math.min(bottom - minimumSize, Math.max(0, top + dy));
+    if (handle.includes("s")) bottom = Math.max(top + minimumSize, Math.min(1, bottom + dy));
+    return clampBounds({ x: left, y: top, width: right - left, height: bottom - top }, minimumSize);
+  }
+
+  function reorderRegions(regions, fromIndex, toIndex) {
+    const copy = (Array.isArray(regions) ? regions : []).slice();
+    if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex)
+      || fromIndex < 0 || fromIndex >= copy.length || toIndex < 0 || toIndex >= copy.length) {
+      return copy;
+    }
+
+    const [region] = copy.splice(fromIndex, 1);
+    copy.splice(toIndex, 0, region);
+    return copy;
+  }
+
+  function serializeRegionOverrides(editedSources) {
+    return {
+      sources: (Array.isArray(editedSources) ? editedSources : [])
+        .slice()
+        .sort((left, right) => Number(left.sourceIndex) - Number(right.sourceIndex))
+        .map((source) => ({
+          sourceIndex: Number(source.sourceIndex),
+          regions: (Array.isArray(source.regions) ? source.regions : []).map((region) => ({
+            bounds: normalizeBounds(region?.bounds)
+          }))
+        }))
+    };
+  }
+
   function getMemberAccessibleLabel(member) {
     const presentation = getDispositionPresentation(member?.disposition);
     const category = member?.result?.category ? `, ${member.result.category}` : "";
@@ -138,6 +225,10 @@
     return Number((value * 100).toFixed(4));
   }
 
+  function roundNormalized(value) {
+    return Number(value.toFixed(6));
+  }
+
   function requirePositiveFinite(value, parameterName) {
     if (!Number.isFinite(value) || value <= 0) {
       throw new RangeError(`${parameterName} must be a positive finite number.`);
@@ -145,13 +236,19 @@
   }
 
   return Object.freeze({
+    clampBounds,
     chooseMemberId,
+    createEditableRegions,
     getDispositionPresentation,
     getMemberAccessibleLabel,
     getMembersForSource,
     getRegionShape,
     hasMatchingOrientation,
+    moveBounds,
     projectBounds,
+    reorderRegions,
+    resizeBounds,
+    serializeRegionOverrides,
     summarizeCapture
   });
 }));

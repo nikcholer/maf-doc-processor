@@ -22,6 +22,16 @@ public sealed class CaptureSourceDetectionService(
         {
             cancellationToken.ThrowIfCancellationRequested();
             image = imageDecoder.Decode(input.Source);
+            if (input.Source.RegionOverrides is { } regionOverrides)
+            {
+                _logger.LogInformation(
+                    "Using {RegionCount} user-supplied region overrides for {CaptureId}/{SourceItemId}; detector call skipped.",
+                    regionOverrides.Count,
+                    input.Context.CaptureId,
+                    input.Source.SourceItemId);
+                return OverrideSuccess(input, image, regionOverrides);
+            }
+
             var detection = await regionDetector.DetectAsync(image, cancellationToken);
             _logger.LogInformation(
                 "Detected {RegionCount} document region proposals for {CaptureId}/{SourceItemId} using {ModelId}.",
@@ -87,6 +97,22 @@ public sealed class CaptureSourceDetectionService(
             image,
             detection.Value,
             DocumentModelUsage.FromCalls([detection.Usage]),
+            [],
+            []);
+    }
+
+    private static CaptureSourceDetectionOutput OverrideSuccess(
+        CaptureSourceDetectionInput input,
+        OrientedCaptureSourceImage image,
+        IReadOnlyList<DocumentRegionProposal> regionOverrides)
+    {
+        return new CaptureSourceDetectionOutput(
+            input.Context.ForSource(input.Source.SourceItemId),
+            input.Source,
+            CaptureSourceImageMetadata.From(image),
+            image,
+            regionOverrides,
+            DocumentModelUsage.FromCalls([]),
             [],
             []);
     }

@@ -660,6 +660,57 @@ h4 {
   text-align: right;
 }
 
+.capture-actions {
+  display: grid;
+  justify-items: end;
+  gap: 9px;
+}
+
+.secondary-action,
+.small-action {
+  border: 1px solid var(--line-dark);
+  border-radius: 0;
+  background: var(--panel);
+  color: var(--ink);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.66rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary-action {
+  min-height: 36px;
+  padding: 0 12px;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+  text-transform: uppercase;
+}
+
+.secondary-action:hover {
+  background: var(--accent-dark);
+}
+
+.small-action {
+  min-height: 30px;
+  padding: 5px 9px;
+}
+
+.small-action:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: #e8eee9;
+}
+
+.small-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.danger-action {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 .source-grid {
   display: grid;
   gap: 16px;
@@ -675,6 +726,14 @@ h4 {
   align-items: center;
   padding: 12px;
   border-bottom: 1px solid var(--line);
+}
+
+.source-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: end;
+  gap: 7px;
 }
 
 .source-card h4 {
@@ -752,6 +811,54 @@ h4 {
   pointer-events: none;
 }
 
+.region-editor-layer {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.editable-region {
+  position: absolute;
+  border: 2px solid var(--blueprint);
+  background: rgba(54, 95, 115, 0.13);
+  cursor: move;
+  touch-action: none;
+}
+
+.editable-region.selected,
+.editable-region:focus {
+  z-index: 2;
+  border-width: 3px;
+  background: rgba(8, 117, 93, 0.19);
+  outline: 3px solid rgba(255, 253, 247, 0.9);
+  outline-offset: 1px;
+}
+
+.editable-region-number {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  padding: 2px 4px;
+  background: var(--blueprint);
+  color: white;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.6rem;
+  pointer-events: none;
+}
+
+.resize-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid white;
+  background: var(--blueprint);
+}
+
+.resize-handle.nw { top: -8px; left: -8px; cursor: nwse-resize; }
+.resize-handle.ne { top: -8px; right: -8px; cursor: nesw-resize; }
+.resize-handle.sw { bottom: -8px; left: -8px; cursor: nesw-resize; }
+.resize-handle.se { right: -8px; bottom: -8px; cursor: nwse-resize; }
+
 .region {
   cursor: pointer;
   pointer-events: all;
@@ -813,6 +920,48 @@ h4 {
   display: grid;
   gap: 1px;
   background: var(--line);
+}
+
+.member-list.editing {
+  background: var(--panel);
+}
+
+.region-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--field);
+}
+
+.editor-guidance,
+.editor-note {
+  margin: 0;
+  color: var(--ink-soft);
+  font-family: Georgia, Cambria, serif;
+  font-size: 0.78rem;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.editor-region-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.editor-region-row.selected {
+  background: #e8eee9;
+}
+
+.editor-region-row > span {
+  display: flex;
+  gap: 5px;
 }
 
 .member-row {
@@ -934,6 +1083,32 @@ h4 {
   display: grid;
   gap: 13px;
   padding: 14px;
+}
+
+.coordinate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.coordinate-field {
+  display: grid;
+  gap: 5px;
+  color: var(--ink-soft);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.coordinate-field input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--panel);
+  color: var(--ink);
 }
 
 .member-identity {

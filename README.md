@@ -53,7 +53,7 @@ If the API is already running, stop it before rebuilding so Windows does not kee
 - `GET /health` reports API-key readiness and configured model information.
 - `GET /openapi/v1.json` is the generated OpenAPI document.
 - `POST /api/documents/process` accepts `multipart/form-data` with an image in the `image` field and an optional `sourceId` value.
-- `POST /api/document-captures/process` accepts one or more PNG or JPEG files in a repeated `images` field and an optional request-level `sourceId`. It returns a capture aggregate with source and member outcomes.
+- `POST /api/document-captures/process` accepts one or more PNG or JPEG files in a repeated `images` field, an optional request-level `sourceId`, and optional per-source normalized rectangle corrections in the `regionOverrides` JSON field. It returns a capture aggregate with source and member outcomes. Corrected sources skip region detection; uncorrected siblings still use the detector.
 
 The individual-document upload limit is 5 MiB. A capture request may include up to five images totalling 25 MiB. Accepted types are PNG and JPEG with `.png`, `.jpg`, or `.jpeg` extensions.
 
@@ -68,6 +68,8 @@ Example, composite capture:
 ```powershell
 curl.exe -F "images=@C:\path\to\desk.jpg" -F "images=@C:\path\to\receipt.jpg" -F "sourceId=expense-claim" http://127.0.0.1:5095/api/document-captures/process
 ```
+
+The local capture UI can correct a source after its first result. Choose **Edit regions** to add, delete, reorder, move, or resize normalized rectangles, then choose **Reprocess corrected regions**. Corrections are kept only in the current page and are sent with the same source files; the API does not persist images, regions, or results.
 
 Unsupported document types return a normal workflow response with `isSuccess: false` and a human-readable explanation. Capture requests that mix valid and invalid sources return HTTP 200 with `status: PartiallySucceeded`. Intake, configuration, provider, timeout, and model-response failures that prevent the request from starting use the documented API error contract.
 
@@ -148,7 +150,7 @@ The child workflows use deterministic executors around model extraction, validat
 
 The provider boundary is a local `IModelChatClient` abstraction. It is retained because TogetherAI-specific protocol options are required to disable Qwen thinking mode. OpenAI-compatible clients are cached by model settings, and transient provider failures use bounded retries.
 
-The E3 composite-capture workflow is exposed as `POST /api/document-captures/process`. It detects and crops regions from each source, then processes accepted members through the same reusable document workflow used by individual uploads, using a fixed number of source and member lanes. The demo UI offers this as an additive **Capture set** mode. It retains the selected local images, draws the response's normalized bounds or outlines over the correctly ordered source previews, and exposes accepted, review, rejected, and failed outcomes through both symbols and text. Selecting an overlay or member row reveals that document's extracted data and findings. See the [technical process flow](docs/technical-process-flow.md#composite-capture-orchestration-e3) and [composite capture contract](docs/composite-capture-contract.md).
+The E3 composite-capture workflow is exposed as `POST /api/document-captures/process`. It detects and crops regions from each source, or accepts caller-corrected rectangles for selected sources, then processes accepted members through the same reusable document workflow used by individual uploads, using a fixed number of source and member lanes. The demo UI offers this as an additive **Capture set** mode. It retains the selected local images, draws the response's normalized bounds or outlines over the correctly ordered source previews, exposes accepted, review, rejected, and failed outcomes through both symbols and text, and supports ephemeral rectangle correction and reprocessing. Selecting an overlay or member row reveals that document's extracted data and findings. See the [technical process flow](docs/technical-process-flow.md#composite-capture-orchestration-e3) and [composite capture contract](docs/composite-capture-contract.md).
 
 The demo is local-only. It has no authentication, persistence, workflow history, reviewer UI, or external hosting. Durable pause/resume is deliberately deferred while processing remains bounded foreground HTTP work; failed or canceled requests are safe to resubmit.
 
