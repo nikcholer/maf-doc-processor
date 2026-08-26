@@ -20,6 +20,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Services.AddSingleton(intakeSettings);
+builder.Services.AddSingleton(ApiConfigurationLoader.LoadCompositeCaptureOptions(builder.Configuration));
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadAiModelSettings(builder.Configuration));
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadModelImagePreprocessingSettings(builder.Configuration));
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadReceiptPolicyOptions(builder.Configuration));

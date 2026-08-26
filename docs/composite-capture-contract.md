@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines the proposed E0 contract for composite document capture. It is not yet implemented and does not change the existing single-document API.
+This document defines the accepted contract for composite document capture. The shared domain types and configuration described here are implemented; source detection, orchestration, the API, and the UI are still being delivered through E3. The existing single-document API has not changed.
 
 Model and deterministic responsibilities are defined in [Capture and expense report model boundaries](capture-expense-model-boundaries.md).
 
@@ -191,6 +191,26 @@ Each valid source is decoded and orientation-normalized once. Region detection m
 This ordering prevents small text from being lost by shrinking the whole desk image to extraction dimensions before cropping. It also keeps classification and extraction image settings reusable at member level.
 
 The implementation must bound upload dimensions, decoded memory, region count, and member concurrency. It must not start an unbounded task for every model-proposed region.
+
+## Initial Configuration
+
+The `CompositeCapture` section in `appsettings.json` holds the limits used by the forthcoming capture endpoint and workflow. The application validates these values at startup, so an impossible or unbounded value fails clearly instead of being discovered after an upload begins.
+
+| Setting | Initial value | What it limits |
+| --- | ---: | --- |
+| `MaxSourceCount` | 5 | Image files in one capture request |
+| `MaxSourceBytes` | 10 MiB | Uploaded bytes for one source image |
+| `MaxAggregateBytes` | 25 MiB | Uploaded bytes across the whole capture |
+| `MaxSourceWidthPixels`, `MaxSourceHeightPixels` | 12,000 each | Oriented source dimensions |
+| `MaxSourcePixelCount` | 50,000,000 | Decoded pixels in one source, including unusual aspect ratios |
+| `MaxDetectedRegionsPerSource` | 20 | Detector proposals retained for validation from one source |
+| `MaxMembersPerCapture` | 30 | Documents that may continue across all sources |
+| `MinRegionWidth`, `MinRegionHeight`, `MinRegionArea` | 0.02, 0.02, 0.0025 | Smallest useful normalized document region |
+| `DuplicateIntersectionOverUnionThreshold` | 0.90 | Similarity at which two proposals are treated as the same region |
+| `OverlapReviewIntersectionOverUnionThreshold` | 0.10 | Distinct overlap that should be surfaced for review |
+| `MaxConcurrentSources`, `MaxConcurrentMembers` | 2, 4 | Fixed source and document processing lanes |
+
+These are safe starting values, not business constants. Later E3 tasks will enforce them at the request, image, geometry, and workflow boundaries and will measure the concurrency values before the phase is complete.
 
 ## Model Usage and Correlation
 
