@@ -15,7 +15,8 @@ public sealed record ModelRoleSettings(
 public sealed record AiModelSettings(
     ModelRoleSettings DocumentClassification,
     ModelRoleSettings DocumentExtraction,
-    ModelRoleSettings TextTesting)
+    ModelRoleSettings TextTesting,
+    ModelRoleSettings DocumentRegionDetection)
 {
     public ModelRoleSettings ImageRecognition => DocumentClassification;
 }

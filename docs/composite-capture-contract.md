@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines the accepted contract for composite document capture. The shared domain types and configuration described here are implemented; source detection, orchestration, the API, and the UI are still being delivered through E3. The existing single-document API has not changed.
+This document defines the accepted contract for composite document capture. Shared types, configuration, source decoding/orientation, and the one-call region-detection boundary are implemented. Deterministic region validation, cropping, orchestration, the API, and the UI are still being delivered through E3. The existing single-document API has not changed.
 
 Model and deterministic responsibilities are defined in [Capture and expense report model boundaries](capture-expense-model-boundaries.md).
 
@@ -187,6 +187,12 @@ Every detector-proposed region receives either a processed result or a region/me
 ## Image Handling
 
 Each valid source is decoded and orientation-normalized once. Region detection may use a lower-resolution layout derivative, but normalized coordinates are mapped back to that oriented high-resolution source. Each crop then enters the existing classification and extraction preprocessing paths independently.
+
+The implemented source hand-off retains the decoded, oriented high-resolution image in memory for the later crop stage. The detector receives a JPEG derivative whose longest edge is limited by `RegionDetectionMaxLongEdgePixels`; producing that derivative clones the in-memory image and does not decode the upload again. The source image is disposable request-scoped state and is never persisted.
+
+`DocumentRegionDetection` is a separate configured model role. It makes one semantic call for each source that passes declared-type, extension, byte-size, decoded-format, and dimension checks. It returns only bounds, an optional four-point outline, and advisory confidence. The parser preserves numeric out-of-range proposals for the deterministic validator rather than treating model coordinates as trusted geometry.
+
+An invalid source returns `invalid_capture_source` without a model call. Invalid detector JSON, timeouts, and provider failures become source-specific `model_response_invalid`, `model_timeout`, or `model_provider_failed` results, allowing sibling sources to continue. Missing model configuration remains a request-level failure. Request cancellation is propagated rather than converted into a partial result.
 
 This ordering prevents small text from being lost by shrinking the whole desk image to extraction dimensions before cropping. It also keeps classification and extraction image settings reusable at member level.
 

@@ -25,7 +25,10 @@ public static class ApiConfigurationLoader
         return new AiModelSettings(
             LoadModelRole(section.GetSection(nameof(AiModelSettings.DocumentClassification)), classificationDefaults),
             LoadModelRole(section.GetSection(nameof(AiModelSettings.DocumentExtraction)), extractionDefaults),
-            LoadModelRole(section.GetSection(nameof(AiModelSettings.TextTesting)), defaults.TextTesting));
+            LoadModelRole(section.GetSection(nameof(AiModelSettings.TextTesting)), defaults.TextTesting),
+            LoadModelRole(
+                section.GetSection(nameof(AiModelSettings.DocumentRegionDetection)),
+                defaults.DocumentRegionDetection));
     }
 
     public static DocumentIntakeSettings LoadDocumentIntakeSettings(IConfiguration configuration)
@@ -101,7 +104,9 @@ public static class ApiConfigurationLoader
             section.GetValue<int?>(nameof(ModelImagePreprocessingSettings.ExtractionMaxLongEdgePixels))
                 ?? defaults.ExtractionMaxLongEdgePixels,
             section.GetValue<int?>(nameof(ModelImagePreprocessingSettings.JpegQuality))
-                ?? defaults.JpegQuality);
+                ?? defaults.JpegQuality,
+            section.GetValue<int?>(nameof(ModelImagePreprocessingSettings.RegionDetectionMaxLongEdgePixels))
+                ?? defaults.RegionDetectionMaxLongEdgePixels);
     }
 
     public static ReceiptPolicyOptions LoadReceiptPolicyOptions(IConfiguration configuration)
