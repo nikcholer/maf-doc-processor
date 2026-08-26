@@ -16,8 +16,26 @@ public sealed class DemoUiIntegrationTests
         Assert.Contains("value=\"capture\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"sourceGrid\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"memberInspector\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"reprocessButton\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-live=\"polite\"", html, StringComparison.Ordinal);
         Assert.Contains("/capture-ui.js", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UiAssets_ExposeEphemeralRegionCorrectionAndReprocessing()
+    {
+        await using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient();
+
+        var app = await client.GetStringAsync("/app.js");
+        var captureUi = await client.GetStringAsync("/capture-ui.js");
+
+        Assert.Contains("regionOverrides", app, StringComparison.Ordinal);
+        Assert.Contains("pointerdown", app, StringComparison.Ordinal);
+        Assert.Contains("Reprocess corrected regions", await client.GetStringAsync("/"), StringComparison.Ordinal);
+        Assert.Contains("resizeBounds", captureUi, StringComparison.Ordinal);
+        Assert.Contains("reorderRegions", captureUi, StringComparison.Ordinal);
+        Assert.Contains("serializeRegionOverrides", captureUi, StringComparison.Ordinal);
     }
 
     [Theory]

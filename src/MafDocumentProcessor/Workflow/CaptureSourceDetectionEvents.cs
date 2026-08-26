@@ -18,4 +18,5 @@ public sealed record CaptureSourceDetectionCompletedEvent(
     bool IsSuccess,
     int ProposalCount,
     string? ModelId,
-    IReadOnlyList<string> ErrorCodes);
+    IReadOnlyList<string> ErrorCodes,
+    bool UsedRegionOverrides = false);

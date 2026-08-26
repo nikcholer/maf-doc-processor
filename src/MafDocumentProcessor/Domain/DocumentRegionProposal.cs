@@ -8,6 +8,22 @@ public sealed record ProposedNormalizedBounds(
     double Width,
     double Height);
 
+public sealed record CaptureRegionOverride
+{
+    public CaptureRegionOverride(
+        ProposedNormalizedBounds bounds,
+        IReadOnlyList<ProposedNormalizedPoint>? outline = null)
+    {
+        ArgumentNullException.ThrowIfNull(bounds);
+        Bounds = bounds;
+        Outline = outline is null ? null : Array.AsReadOnly(outline.ToArray());
+    }
+
+    public ProposedNormalizedBounds Bounds { get; }
+
+    public IReadOnlyList<ProposedNormalizedPoint>? Outline { get; }
+}
+
 public sealed record DocumentRegionProposal
 {
     public DocumentRegionProposal(
