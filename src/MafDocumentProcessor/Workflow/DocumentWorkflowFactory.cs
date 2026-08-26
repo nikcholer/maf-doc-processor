@@ -1,14 +1,99 @@
 using MafDocumentProcessor.Configuration;
+using MafDocumentProcessor.Domain;
 using MafDocumentProcessor.Services;
 using Microsoft.Agents.AI.Workflows;
+using Microsoft.Extensions.Logging;
 
 namespace MafDocumentProcessor.Workflow;
 
 public static class DocumentWorkflowFactory
 {
+    public const string DocumentRoutingWorkflowName = "Document Processing";
     public const string ReceiptWorkflowName = "Receipt Processing";
     public const string ShoppingListWorkflowName = "Shopping List Processing";
     public const string SujikoPuzzleWorkflowName = "Sujiko Puzzle Processing";
+    public const string ReceiptWorkflowExecutorId = "receipt-workflow";
+    public const string ShoppingListWorkflowExecutorId = "shopping-list-workflow";
+    public const string SujikoPuzzleWorkflowExecutorId = "sujiko-workflow";
+    public const string UnsupportedDocumentExecutorId = UnsupportedDocumentResultExecutor.ExecutorId;
+
+    public static Microsoft.Agents.AI.Workflows.Workflow BuildDocumentRoutingWorkflow(
+        IDocumentClassifier classifier,
+        IReceiptExtractor receiptExtractor,
+        IShoppingListExtractor shoppingListExtractor,
+        ReceiptPolicyOptions policyOptions,
+        IModelImagePreprocessor imagePreprocessor,
+        ISujikoPuzzleExtractor? sujikoPuzzleExtractor = null,
+        ILogger<DocumentClassificationExecutor>? classificationLogger = null,
+        CancellationToken cancellationToken = default)
+    {
+        var classificationExecutor = new DocumentClassificationExecutor(
+            classifier,
+            imagePreprocessor,
+            cancellationToken,
+            classificationLogger);
+        var receiptWorkflow = BuildReceiptWorkflow(
+                receiptExtractor,
+                policyOptions,
+                cancellationToken)
+            .BindAsExecutor(ReceiptWorkflowExecutorId);
+        var shoppingListWorkflow = BuildShoppingListWorkflow(
+                shoppingListExtractor,
+                cancellationToken)
+            .BindAsExecutor(ShoppingListWorkflowExecutorId);
+        var sujikoPuzzleWorkflow = BuildSujikoPuzzleWorkflow(
+                sujikoPuzzleExtractor ?? new UnconfiguredSujikoPuzzleExtractor(),
+                cancellationToken)
+            .BindAsExecutor(SujikoPuzzleWorkflowExecutorId);
+        var unsupportedDocumentExecutor = new UnsupportedDocumentResultExecutor();
+
+        return new WorkflowBuilder(classificationExecutor)
+            .AddEdge<ClassifiedDocument>(
+                classificationExecutor,
+                receiptWorkflow,
+                document => document is
+                    { Classification.Category: DocumentCategory.Receipt },
+                "receipt")
+            .AddEdge<ClassifiedDocument>(
+                classificationExecutor,
+                shoppingListWorkflow,
+                document => document is
+                    { Classification.Category: DocumentCategory.ShoppingList },
+                "shopping-list")
+            .AddEdge<ClassifiedDocument>(
+                classificationExecutor,
+                sujikoPuzzleWorkflow,
+                document => document is
+                    { Classification.Category: DocumentCategory.SujikoPuzzle },
+                "sujiko")
+            .AddEdge<ClassifiedDocument>(
+                classificationExecutor,
+                unsupportedDocumentExecutor,
+                document => document is
+                    { Classification.Category: DocumentCategory.Invoice or DocumentCategory.Unknown },
+                "unsupported")
+            .WithOutputFrom(
+                receiptWorkflow,
+                shoppingListWorkflow,
+                sujikoPuzzleWorkflow,
+                unsupportedDocumentExecutor)
+            .WithName(DocumentRoutingWorkflowName)
+            .WithDescription(
+                "Classifies an image and routes it to exactly one document-processing workflow.")
+            .Build();
+    }
+
+    public static string GetDestinationExecutorId(DocumentCategory category)
+    {
+        return category switch
+        {
+            DocumentCategory.Receipt => ReceiptWorkflowExecutorId,
+            DocumentCategory.ShoppingList => ShoppingListWorkflowExecutorId,
+            DocumentCategory.SujikoPuzzle => SujikoPuzzleWorkflowExecutorId,
+            DocumentCategory.Invoice or DocumentCategory.Unknown => UnsupportedDocumentExecutorId,
+            _ => throw new ArgumentOutOfRangeException(nameof(category), category, "Unknown document category.")
+        };
+    }
 
     public static Microsoft.Agents.AI.Workflows.Workflow BuildReceiptWorkflow(
         IReceiptExtractor receiptExtractor,
@@ -76,5 +161,16 @@ public static class DocumentWorkflowFactory
             .WithName(SujikoPuzzleWorkflowName)
             .WithDescription("Extracts, validates, and repairs a Sujiko puzzle starting state from an image.")
             .Build();
+    }
+
+    private sealed class UnconfiguredSujikoPuzzleExtractor : ISujikoPuzzleExtractor
+    {
+        public ValueTask<ModelResult<SujikoPuzzleData>> ExtractSujikoPuzzleAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            throw new InvalidOperationException("Sujiko puzzle extraction is not configured.");
+        }
     }
 }

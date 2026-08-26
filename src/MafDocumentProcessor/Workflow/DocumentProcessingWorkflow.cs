@@ -16,7 +16,8 @@ public sealed class DocumentProcessingWorkflow(
     ReceiptPolicyOptions policyOptions,
     IModelImagePreprocessor? imagePreprocessor = null,
     ISujikoPuzzleExtractor? sujikoPuzzleExtractor = null,
-    ILogger<DocumentProcessingWorkflow>? logger = null)
+    ILogger<DocumentProcessingWorkflow>? logger = null,
+    ILogger<DocumentClassificationExecutor>? classificationLogger = null)
 {
     private readonly IModelImagePreprocessor _imagePreprocessor =
         imagePreprocessor ?? ModelImagePreprocessor.CreateDefault();
@@ -27,154 +28,51 @@ public sealed class DocumentProcessingWorkflow(
         FileRequest request,
         CancellationToken cancellationToken = default)
     {
-        var classificationImage = await _imagePreprocessor.PreprocessAsync(
-            request,
-            ModelImagePreprocessingPurpose.Classification,
-            cancellationToken);
-        var classification = await classifier.ClassifyAsync(
-            classificationImage.Request,
-            cancellationToken);
-        _logger.LogInformation(
-            "Document classified as {Category} with confidence {Confidence} using {ModelId}.",
-            classification.Value.Category,
-            classification.Value.Confidence,
-            classification.Usage.ModelId);
-        var metadata = DocumentMetadata.FromRequest(
-            request,
-            classification.Usage.ModelId,
-            classification.Value.Confidence);
-
-        _logger.LogInformation(
-            "Routing document {FileName} to {Category} workflow.",
-            request.FileName,
-            classification.Value.Category);
-
-        return classification.Value.Category switch
-        {
-            DocumentCategory.Receipt => await RunReceiptWorkflowAsync(
-                await CreateClassifiedDocumentForExtractionAsync(request, metadata, classification, cancellationToken),
-                cancellationToken),
-            DocumentCategory.ShoppingList => await RunShoppingListWorkflowAsync(
-                await CreateClassifiedDocumentForExtractionAsync(request, metadata, classification, cancellationToken),
-                cancellationToken),
-            DocumentCategory.SujikoPuzzle => await RunSujikoPuzzleWorkflowAsync(
-                await CreateClassifiedDocumentForExtractionAsync(request, metadata, classification, cancellationToken),
-                cancellationToken),
-            _ => UnsupportedDocumentResultExecutor.CreateResult(new ClassifiedDocument(
-                classificationImage.Request,
-                metadata,
-                classification.Value,
-                classification.Usage,
-                request))
-        };
-    }
-
-    private async ValueTask<ClassifiedDocument> CreateClassifiedDocumentForExtractionAsync(
-        FileRequest originalRequest,
-        DocumentMetadata metadata,
-        ModelResult<DocumentClassification> classification,
-        CancellationToken cancellationToken)
-    {
-        var extractionImage = await _imagePreprocessor.PreprocessAsync(
-            originalRequest,
-            ModelImagePreprocessingPurpose.Extraction,
-            cancellationToken);
-
-        return new ClassifiedDocument(
-            extractionImage.Request,
-            metadata,
-            classification.Value,
-            classification.Usage,
-            originalRequest);
-    }
-
-    private async Task<DocumentProcessingResult> RunReceiptWorkflowAsync(
-        ClassifiedDocument classifiedDocument,
-        CancellationToken cancellationToken)
-    {
-        var workflow = DocumentWorkflowFactory.BuildReceiptWorkflow(
+        var workflow = DocumentWorkflowFactory.BuildDocumentRoutingWorkflow(
+            classifier,
             receiptExtractor,
-            policyOptions,
-            cancellationToken);
-
-        return await RunWorkflowAsync(
-            workflow,
-            DocumentWorkflowFactory.ReceiptWorkflowName,
-            classifiedDocument,
-            _logger,
-            cancellationToken)
-            ?? throw new InvalidOperationException(
-                "Receipt workflow completed without a document processing result.");
-    }
-
-    private async Task<DocumentProcessingResult> RunShoppingListWorkflowAsync(
-        ClassifiedDocument classifiedDocument,
-        CancellationToken cancellationToken)
-    {
-        var workflow = DocumentWorkflowFactory.BuildShoppingListWorkflow(
             shoppingListExtractor,
-            cancellationToken);
-
-        return await RunWorkflowAsync(
-            workflow,
-            DocumentWorkflowFactory.ShoppingListWorkflowName,
-            classifiedDocument,
-            _logger,
-            cancellationToken)
-            ?? throw new InvalidOperationException(
-                "Shopping list workflow completed without a document processing result.");
-    }
-
-    private async Task<DocumentProcessingResult> RunSujikoPuzzleWorkflowAsync(
-        ClassifiedDocument classifiedDocument,
-        CancellationToken cancellationToken)
-    {
-        if (sujikoPuzzleExtractor is null)
-        {
-            throw new InvalidOperationException("Sujiko puzzle extraction is not configured.");
-        }
-
-        var workflow = DocumentWorkflowFactory.BuildSujikoPuzzleWorkflow(
+            policyOptions,
+            _imagePreprocessor,
             sujikoPuzzleExtractor,
+            classificationLogger,
             cancellationToken);
 
         return await RunWorkflowAsync(
             workflow,
-            DocumentWorkflowFactory.SujikoPuzzleWorkflowName,
-            classifiedDocument,
+            request,
             _logger,
             cancellationToken)
             ?? throw new InvalidOperationException(
-                "Sujiko puzzle workflow completed without a document processing result.");
+                "Document processing workflow completed without a result.");
     }
 
     private static async Task<DocumentProcessingResult?> RunWorkflowAsync(
         Microsoft.Agents.AI.Workflows.Workflow workflow,
-        string workflowName,
-        ClassifiedDocument classifiedDocument,
+        FileRequest request,
         ILogger logger,
         CancellationToken cancellationToken)
     {
         logger.LogInformation(
             "Starting MAF workflow {WorkflowName} for {FileName}.",
-            workflowName,
-            classifiedDocument.OriginalRequest?.FileName ?? classifiedDocument.Request.FileName);
+            DocumentWorkflowFactory.DocumentRoutingWorkflowName,
+            request.FileName);
 
         var run = await InProcessExecution.RunAsync(
             workflow,
-            classifiedDocument,
+            request,
             cancellationToken: cancellationToken);
 
         var events = run.NewEvents.ToArray();
         logger.LogInformation(
             "MAF workflow {WorkflowName} emitted {EventCount} events.",
-            workflowName,
+            DocumentWorkflowFactory.DocumentRoutingWorkflowName,
             events.Length);
         foreach (var evt in events)
         {
             logger.LogDebug(
                 "MAF workflow event {WorkflowName}: {EventType}.",
-                workflowName,
+                DocumentWorkflowFactory.DocumentRoutingWorkflowName,
                 evt.GetType().Name);
         }
 
@@ -188,7 +86,7 @@ public sealed class DocumentProcessingWorkflow(
             logger.LogWarning(
                 exception,
                 "MAF workflow {WorkflowName} reported an error event.",
-                workflowName);
+                DocumentWorkflowFactory.DocumentRoutingWorkflowName);
             ExceptionDispatchInfo.Capture(exception).Throw();
         }
 
@@ -199,7 +97,7 @@ public sealed class DocumentProcessingWorkflow(
             .LastOrDefault();
         logger.LogInformation(
             "Completed MAF workflow {WorkflowName}. HasResult={HasResult}.",
-            workflowName,
+            DocumentWorkflowFactory.DocumentRoutingWorkflowName,
             result is not null);
 
         if (result is null)

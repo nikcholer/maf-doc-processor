@@ -4,8 +4,10 @@ using Microsoft.Agents.AI.Workflows;
 namespace MafDocumentProcessor.Workflow;
 
 public sealed class UnsupportedDocumentResultExecutor()
-    : Executor<ClassifiedDocument, DocumentProcessingResult>("UnsupportedDocumentResult")
+    : Executor<ClassifiedDocument, DocumentProcessingResult>(ExecutorId)
 {
+    public const string ExecutorId = "UnsupportedDocumentResult";
+
     public override ValueTask<DocumentProcessingResult> HandleAsync(
         ClassifiedDocument message,
         IWorkflowContext context,

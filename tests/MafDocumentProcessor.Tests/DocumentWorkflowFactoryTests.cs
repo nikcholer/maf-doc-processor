@@ -8,6 +8,150 @@ namespace MafDocumentProcessor.Tests;
 
 public sealed class DocumentWorkflowFactoryTests
 {
+    public static TheoryData<DocumentCategory, string, string?> DocumentRoutes => new()
+    {
+        {
+            DocumentCategory.Receipt,
+            DocumentWorkflowFactory.ReceiptWorkflowExecutorId,
+            "receipt_extraction"
+        },
+        {
+            DocumentCategory.ShoppingList,
+            DocumentWorkflowFactory.ShoppingListWorkflowExecutorId,
+            "shopping_list_extraction"
+        },
+        {
+            DocumentCategory.SujikoPuzzle,
+            DocumentWorkflowFactory.SujikoPuzzleWorkflowExecutorId,
+            "sujiko_puzzle_extraction"
+        },
+        { DocumentCategory.Invoice, DocumentWorkflowFactory.UnsupportedDocumentExecutorId, null },
+        { DocumentCategory.Unknown, DocumentWorkflowFactory.UnsupportedDocumentExecutorId, null }
+    };
+
+    [Fact]
+    public void DocumentRoutes_CoverEveryDefinedCategory()
+    {
+        Assert.Equal(
+            Enum.GetValues<DocumentCategory>().Order().ToArray(),
+            DocumentRoutes.Select(route => route[0]).Cast<DocumentCategory>().Order().ToArray());
+    }
+
+    [Theory]
+    [MemberData(nameof(DocumentRoutes))]
+    public async Task BuildDocumentRoutingWorkflow_UsesExactlyOneDestinationAndPreservesContext(
+        DocumentCategory category,
+        string expectedDestination,
+        string? expectedExtractionOperation)
+    {
+        var classifier = new TrackingDocumentClassifier(category);
+        var receiptExtractor = new StubReceiptExtractor(new ReceiptData(
+            "North Star Cafe",
+            21.02m,
+            new DateOnly(2026, 8, 20),
+            "Visa",
+            "GBP"));
+        var shoppingListExtractor = new StubShoppingListExtractor(new ShoppingListData(
+            "Weekly shopping",
+            [new ShoppingListItem("milk", 2, "pints", false)],
+            Notes: null));
+        var sujikoPuzzleExtractor = new StubSujikoPuzzleExtractor(new SujikoPuzzleData(
+            new SujikoQuadrantTotals(20, 11, 24, 23),
+            [new SujikoCellValue(1, 3, 3)]));
+        var imagePreprocessor = new TrackingImagePreprocessor();
+        var workflow = DocumentWorkflowFactory.BuildDocumentRoutingWorkflow(
+            classifier,
+            receiptExtractor,
+            shoppingListExtractor,
+            new ReceiptPolicyOptions(),
+            imagePreprocessor,
+            sujikoPuzzleExtractor);
+        var request = CreateRequest(category);
+
+        var run = await InProcessExecution.RunAsync(workflow, request);
+        var events = run.NewEvents.ToArray();
+        Assert.Empty(events.OfType<WorkflowErrorEvent>());
+        var output = Assert.Single(events.OfType<WorkflowOutputEvent>());
+        var result = Assert.IsType<DocumentProcessingResult>(output.Data);
+
+        Assert.Equal(category, result.Category);
+        Assert.Equal(request.FileName, result.Metadata.FileName);
+        Assert.Equal(request.SourceId, result.Metadata.SourceId);
+        Assert.Equal(0.95m, result.Metadata.ClassificationConfidence);
+        Assert.Equal(expectedExtractionOperation is not null, result.IsSuccess);
+        Assert.Equal(1, classifier.CallCount);
+        Assert.Equal(category is DocumentCategory.Receipt ? 1 : 0, receiptExtractor.CallCount);
+        Assert.Equal(category is DocumentCategory.ShoppingList ? 1 : 0, shoppingListExtractor.CallCount);
+        Assert.Equal(category is DocumentCategory.SujikoPuzzle ? 1 : 0, sujikoPuzzleExtractor.CallCount);
+
+        string[] expectedOperations = expectedExtractionOperation is null
+            ? ["classification"]
+            : ["classification", expectedExtractionOperation];
+        Assert.Equal(
+            expectedOperations,
+            result.ModelUsage.Calls.Select(call => call.Operation).ToArray());
+        Assert.Equal(
+            expectedExtractionOperation is null
+                ? [ModelImagePreprocessingPurpose.Classification]
+                : [
+                    ModelImagePreprocessingPurpose.Classification,
+                    ModelImagePreprocessingPurpose.Extraction
+                ],
+            imagePreprocessor.Purposes);
+
+        var classifiedEvent = Assert.Single(
+            events.Select(evt => evt.Data).OfType<DocumentClassifiedEvent>());
+        Assert.Equal(category, classifiedEvent.Category);
+        Assert.Equal(request.FileName, classifiedEvent.FileName);
+        Assert.Equal(request.SourceId, classifiedEvent.SourceId);
+        Assert.Equal("factory-test-classifier", classifiedEvent.ModelId);
+        Assert.Equal(0.95m, classifiedEvent.Confidence);
+
+        var routeEvent = Assert.Single(
+            events.Select(evt => evt.Data).OfType<DocumentRouteSelectedEvent>());
+        Assert.Equal(category, routeEvent.Category);
+        Assert.Equal(expectedDestination, routeEvent.DestinationExecutorId);
+        Assert.Equal(request.FileName, routeEvent.FileName);
+        Assert.Equal(request.SourceId, routeEvent.SourceId);
+
+        var completedExecutorIds = events
+            .OfType<ExecutorCompletedEvent>()
+            .Select(completed => completed.ExecutorId)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.Contains(DocumentClassificationExecutor.ExecutorId, completedExecutorIds);
+        Assert.Equal(
+            [expectedDestination],
+            AllDocumentDestinations.Where(completedExecutorIds.Contains).ToArray());
+    }
+
+    [Fact]
+    public void BuildDocumentRoutingWorkflow_ExposesEveryDestination()
+    {
+        var workflow = DocumentWorkflowFactory.BuildDocumentRoutingWorkflow(
+            new TrackingDocumentClassifier(DocumentCategory.Receipt),
+            new StubReceiptExtractor(new ReceiptData("Store", 1m, null, "Cash", "GBP")),
+            new StubShoppingListExtractor(new ShoppingListData(
+                null,
+                [new ShoppingListItem("milk", null, null, null)],
+                null)),
+            new ReceiptPolicyOptions(),
+            new TrackingImagePreprocessor(),
+            new StubSujikoPuzzleExtractor(new SujikoPuzzleData(
+                new SujikoQuadrantTotals(20, 11, 24, 23),
+                [])));
+
+        var mermaid = WorkflowVisualizer.ToMermaidString(workflow);
+        var dot = WorkflowVisualizer.ToDotString(workflow);
+
+        Assert.Contains(DocumentClassificationExecutor.ExecutorId, mermaid, StringComparison.Ordinal);
+        Assert.Contains(DocumentClassificationExecutor.ExecutorId, dot, StringComparison.Ordinal);
+        foreach (var destination in AllDocumentDestinations)
+        {
+            Assert.Contains(destination, mermaid, StringComparison.Ordinal);
+            Assert.Contains(destination, dot, StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
     public async Task BuildReceiptWorkflow_RunsAndExposesTheCompleteGraph()
     {
@@ -109,13 +253,7 @@ public sealed class DocumentWorkflowFactoryTests
 
     private static ClassifiedDocument CreateClassifiedDocument(DocumentCategory category)
     {
-        var request = new FileRequest(
-            [1, 2, 3],
-            $"{category}.png",
-            "image/png",
-            FileSizeBytes: 3,
-            DateTimeOffset.Parse("2026-08-26T08:00:00Z"),
-            SourceId: $"factory:{category}");
+        var request = CreateRequest(category);
         var classification = new DocumentClassification(
             category,
             Confidence: 0.95m,
@@ -137,6 +275,17 @@ public sealed class DocumentWorkflowFactoryTests
             classification,
             classificationUsage,
             request);
+    }
+
+    private static FileRequest CreateRequest(DocumentCategory category)
+    {
+        return new FileRequest(
+            [1, 2, 3],
+            $"{category}.png",
+            "image/png",
+            FileSizeBytes: 3,
+            DateTimeOffset.Parse("2026-08-26T08:00:00Z"),
+            SourceId: $"factory:{category}");
     }
 
     private static void AssertWorkflowIsInspectable(
@@ -161,11 +310,14 @@ public sealed class DocumentWorkflowFactoryTests
 
     private sealed class StubReceiptExtractor(ReceiptData receipt) : IReceiptExtractor
     {
+        public int CallCount { get; private set; }
+
         public ValueTask<ModelResult<ReceiptData>> ExtractReceiptAsync(
             FileRequest request,
             CancellationToken cancellationToken,
             IReadOnlyList<string>? repairInstructions = null)
         {
+            CallCount++;
             return ValueTask.FromResult(new ModelResult<ReceiptData>(
                 receipt,
                 CreateExtractionUsage("receipt_extraction")));
@@ -175,11 +327,14 @@ public sealed class DocumentWorkflowFactoryTests
     private sealed class StubShoppingListExtractor(ShoppingListData shoppingList)
         : IShoppingListExtractor
     {
+        public int CallCount { get; private set; }
+
         public ValueTask<ModelResult<ShoppingListData>> ExtractShoppingListAsync(
             FileRequest request,
             CancellationToken cancellationToken,
             IReadOnlyList<string>? repairInstructions = null)
         {
+            CallCount++;
             return ValueTask.FromResult(new ModelResult<ShoppingListData>(
                 shoppingList,
                 CreateExtractionUsage("shopping_list_extraction")));
@@ -189,11 +344,14 @@ public sealed class DocumentWorkflowFactoryTests
     private sealed class StubSujikoPuzzleExtractor(SujikoPuzzleData puzzle)
         : ISujikoPuzzleExtractor
     {
+        public int CallCount { get; private set; }
+
         public ValueTask<ModelResult<SujikoPuzzleData>> ExtractSujikoPuzzleAsync(
             FileRequest request,
             CancellationToken cancellationToken,
             IReadOnlyList<string>? repairInstructions = null)
         {
+            CallCount++;
             return ValueTask.FromResult(new ModelResult<SujikoPuzzleData>(
                 puzzle,
                 CreateExtractionUsage("sujiko_puzzle_extraction")));
@@ -209,4 +367,62 @@ public sealed class DocumentWorkflowFactoryTests
             OutputTokens: 10,
             TotalTokens: 30);
     }
+
+    private sealed class TrackingDocumentClassifier(DocumentCategory category)
+        : IDocumentClassifier
+    {
+        public int CallCount { get; private set; }
+
+        public ValueTask<ModelResult<DocumentClassification>> ClassifyAsync(
+            FileRequest request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            return ValueTask.FromResult(new ModelResult<DocumentClassification>(
+                new DocumentClassification(
+                    category,
+                    Confidence: 0.95m,
+                    ConfidenceReasoning: "Factory test classification",
+                    DocumentTypeDescription: category.ToString()),
+                new ModelTokenUsage(
+                    "classification",
+                    "factory-test-classifier",
+                    InputTokens: 10,
+                    OutputTokens: 5,
+                    TotalTokens: 15)));
+        }
+    }
+
+    private sealed class TrackingImagePreprocessor : IModelImagePreprocessor
+    {
+        public List<ModelImagePreprocessingPurpose> Purposes { get; } = [];
+
+        public ValueTask<ModelImagePreprocessingResult> PreprocessAsync(
+            FileRequest request,
+            ModelImagePreprocessingPurpose purpose,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Purposes.Add(purpose);
+            return ValueTask.FromResult(new ModelImagePreprocessingResult(
+                request,
+                purpose,
+                WasResized: false,
+                OriginalWidth: 100,
+                OriginalHeight: 100,
+                Width: 100,
+                Height: 100,
+                request.FileSizeBytes,
+                request.FileSizeBytes));
+        }
+    }
+
+    private static readonly string[] AllDocumentDestinations =
+    [
+        DocumentWorkflowFactory.ReceiptWorkflowExecutorId,
+        DocumentWorkflowFactory.ShoppingListWorkflowExecutorId,
+        DocumentWorkflowFactory.SujikoPuzzleWorkflowExecutorId,
+        DocumentWorkflowFactory.UnsupportedDocumentExecutorId
+    ];
 }

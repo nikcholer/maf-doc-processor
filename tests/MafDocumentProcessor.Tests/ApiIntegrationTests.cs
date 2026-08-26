@@ -359,12 +359,16 @@ public sealed class ApiIntegrationTests
             new FakeShoppingListExtractor(),
             new ReceiptPolicyOptions(),
             new PassThroughImagePreprocessor());
+        var modelSettings = ApiIntegrationTestFactory.CreateTestModelSettings();
+        Environment.SetEnvironmentVariable(
+            modelSettings.DocumentClassification.ApiKeyEnvironmentVariable,
+            "test-key");
         var request = CreateHttpRequestWithFormFile("receipt.png", "image/png", [1, 2, 3]);
 
         var requestTask = DocumentProcessingEndpoints.ProcessDocumentAsync(
             request,
             new DocumentIntakeSettings(),
-            ApiIntegrationTestFactory.CreateTestModelSettings(),
+            modelSettings,
             new DocumentImageValidator(),
             workflow,
             NullLoggerFactory.Instance,
