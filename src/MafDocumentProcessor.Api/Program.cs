@@ -69,6 +69,7 @@ builder.Services.AddScoped<ISujikoPuzzleExtractor>(sp =>
         settings.DocumentExtraction);
 });
 builder.Services.AddScoped<DocumentProcessingWorkflow>();
+builder.Services.AddScoped<CompositeCaptureWorkflow>();
 
 var app = builder.Build();
 
