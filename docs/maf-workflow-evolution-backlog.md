@@ -97,6 +97,8 @@ Selected routing and child-workflow pattern: [Top-level document routing design]
 
 **Objective:** Accept one or more source images, detect zero or more physical documents in each, and process every valid member independently through the existing document route.
 
+Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc-processor/issues/43), [source detection](https://github.com/nikcholer/maf-doc-processor/issues/44), [region validation and cropping](https://github.com/nikcholer/maf-doc-processor/issues/45), [bounded orchestration](https://github.com/nikcholer/maf-doc-processor/issues/46), [the capture API](https://github.com/nikcholer/maf-doc-processor/issues/47), [annotated previews](https://github.com/nikcholer/maf-doc-processor/issues/48), and [final hardening and measurement](https://github.com/nikcholer/maf-doc-processor/issues/49). The GitHub Project records which of these is ready or active.
+
 - [ ] Add the repeated-file capture endpoint without changing the individual document endpoint.
 - [ ] Decode and orient each source once, then detect and deterministically validate document regions.
 - [ ] Crop every valid region from its high-resolution source before normal classification and extraction preprocessing.

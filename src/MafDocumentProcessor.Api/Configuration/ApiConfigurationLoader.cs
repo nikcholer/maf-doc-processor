@@ -7,6 +7,7 @@ public static class ApiConfigurationLoader
     private const string AiModelsSectionName = "AiModels";
     private const string ModelImagePreprocessingSectionName = "ModelImagePreprocessing";
     private const string DocumentIntakeSectionName = "DocumentIntake";
+    private const string CompositeCaptureSectionName = "CompositeCapture";
     private const string ReceiptPolicySectionName = "ReceiptPolicy";
 
     public static AiModelSettings LoadAiModelSettings(IConfiguration configuration)
@@ -45,6 +46,45 @@ public static class ApiConfigurationLoader
                 .Get<string[]>()
                 ?? defaults.AllowedExtensions
         };
+    }
+
+    public static CompositeCaptureOptions LoadCompositeCaptureOptions(IConfiguration configuration)
+    {
+        var defaults = new CompositeCaptureOptions();
+        var section = configuration.GetSection(CompositeCaptureSectionName);
+
+        return new CompositeCaptureOptions(
+            section.GetValue<int?>(nameof(CompositeCaptureOptions.MaxSourceCount))
+                ?? defaults.MaxSourceCount,
+            section.GetValue<long?>(nameof(CompositeCaptureOptions.MaxSourceBytes))
+                ?? defaults.MaxSourceBytes,
+            section.GetValue<long?>(nameof(CompositeCaptureOptions.MaxAggregateBytes))
+                ?? defaults.MaxAggregateBytes,
+            section.GetValue<int?>(nameof(CompositeCaptureOptions.MaxSourceWidthPixels))
+                ?? defaults.MaxSourceWidthPixels,
+            section.GetValue<int?>(nameof(CompositeCaptureOptions.MaxSourceHeightPixels))
+                ?? defaults.MaxSourceHeightPixels,
+            section.GetValue<long?>(nameof(CompositeCaptureOptions.MaxSourcePixelCount))
+                ?? defaults.MaxSourcePixelCount,
+            section.GetValue<int?>(nameof(CompositeCaptureOptions.MaxDetectedRegionsPerSource))
+                ?? defaults.MaxDetectedRegionsPerSource,
+            section.GetValue<int?>(nameof(CompositeCaptureOptions.MaxMembersPerCapture))
+                ?? defaults.MaxMembersPerCapture,
+            section.GetValue<double?>(nameof(CompositeCaptureOptions.MinRegionWidth))
+                ?? defaults.MinRegionWidth,
+            section.GetValue<double?>(nameof(CompositeCaptureOptions.MinRegionHeight))
+                ?? defaults.MinRegionHeight,
+            section.GetValue<double?>(nameof(CompositeCaptureOptions.MinRegionArea))
+                ?? defaults.MinRegionArea,
+            section.GetValue<double?>(nameof(CompositeCaptureOptions.DuplicateIntersectionOverUnionThreshold))
+                ?? defaults.DuplicateIntersectionOverUnionThreshold,
+            section.GetValue<double?>(nameof(CompositeCaptureOptions.OverlapReviewIntersectionOverUnionThreshold))
+                ?? defaults.OverlapReviewIntersectionOverUnionThreshold,
+            section.GetValue<int?>(nameof(CompositeCaptureOptions.MaxConcurrentSources))
+                ?? defaults.MaxConcurrentSources,
+            section.GetValue<int?>(nameof(CompositeCaptureOptions.MaxConcurrentMembers))
+                ?? defaults.MaxConcurrentMembers)
+            .Validate();
     }
 
     public static ModelImagePreprocessingSettings LoadModelImagePreprocessingSettings(
