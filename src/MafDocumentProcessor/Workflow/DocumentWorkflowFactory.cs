@@ -12,9 +12,11 @@ public static class DocumentWorkflowFactory
     public const string ReceiptWorkflowName = "Receipt Processing";
     public const string ShoppingListWorkflowName = "Shopping List Processing";
     public const string SujikoPuzzleWorkflowName = "Sujiko Puzzle Processing";
+    public const string ExpenseReportWorkflowName = "Expense Report Processing";
     public const string ReceiptWorkflowExecutorId = "receipt-workflow";
     public const string ShoppingListWorkflowExecutorId = "shopping-list-workflow";
     public const string SujikoPuzzleWorkflowExecutorId = "sujiko-workflow";
+    public const string ExpenseReportWorkflowExecutorId = "expense-report-workflow";
     public const string UnsupportedDocumentExecutorId = UnsupportedDocumentResultExecutor.ExecutorId;
 
     public static Microsoft.Agents.AI.Workflows.Workflow BuildDocumentRoutingWorkflow(
@@ -24,6 +26,8 @@ public static class DocumentWorkflowFactory
         ReceiptPolicyOptions policyOptions,
         IModelImagePreprocessor imagePreprocessor,
         ISujikoPuzzleExtractor? sujikoPuzzleExtractor = null,
+        IExpenseReportExtractor? expenseReportExtractor = null,
+        ExpensePolicyOptions? expensePolicyOptions = null,
         ILogger<DocumentClassificationExecutor>? classificationLogger = null,
         CancellationToken cancellationToken = default)
     {
@@ -45,6 +49,11 @@ public static class DocumentWorkflowFactory
                 sujikoPuzzleExtractor ?? new UnconfiguredSujikoPuzzleExtractor(),
                 cancellationToken)
             .BindAsExecutor(SujikoPuzzleWorkflowExecutorId);
+        var expenseReportWorkflow = BuildExpenseReportWorkflow(
+                expenseReportExtractor ?? new UnconfiguredExpenseReportExtractor(),
+                expensePolicyOptions ?? new ExpensePolicyOptions(),
+                cancellationToken)
+            .BindAsExecutor(ExpenseReportWorkflowExecutorId);
         var unsupportedDocumentExecutor = new UnsupportedDocumentResultExecutor();
 
         return new WorkflowBuilder(classificationExecutor)
@@ -68,6 +77,12 @@ public static class DocumentWorkflowFactory
                 "sujiko")
             .AddEdge<ClassifiedDocument>(
                 classificationExecutor,
+                expenseReportWorkflow,
+                document => document is
+                    { Classification.Category: DocumentCategory.ExpenseReport },
+                "expense-report")
+            .AddEdge<ClassifiedDocument>(
+                classificationExecutor,
                 unsupportedDocumentExecutor,
                 document => document is
                     { Classification.Category: DocumentCategory.Invoice or DocumentCategory.Unknown },
@@ -76,6 +91,7 @@ public static class DocumentWorkflowFactory
                 receiptWorkflow,
                 shoppingListWorkflow,
                 sujikoPuzzleWorkflow,
+                expenseReportWorkflow,
                 unsupportedDocumentExecutor)
             .WithName(DocumentRoutingWorkflowName)
             .WithDescription(
@@ -90,6 +106,7 @@ public static class DocumentWorkflowFactory
             DocumentCategory.Receipt => ReceiptWorkflowExecutorId,
             DocumentCategory.ShoppingList => ShoppingListWorkflowExecutorId,
             DocumentCategory.SujikoPuzzle => SujikoPuzzleWorkflowExecutorId,
+            DocumentCategory.ExpenseReport => ExpenseReportWorkflowExecutorId,
             DocumentCategory.Invoice or DocumentCategory.Unknown => UnsupportedDocumentExecutorId,
             _ => throw new ArgumentOutOfRangeException(nameof(category), category, "Unknown document category.")
         };
@@ -163,6 +180,33 @@ public static class DocumentWorkflowFactory
             .Build();
     }
 
+    public static Microsoft.Agents.AI.Workflows.Workflow BuildExpenseReportWorkflow(
+        IExpenseReportExtractor expenseReportExtractor,
+        ExpensePolicyOptions expensePolicyOptions,
+        CancellationToken cancellationToken = default)
+    {
+        var extractionExecutor = new ExpenseReportExtractionExecutor(
+            expenseReportExtractor,
+            cancellationToken);
+        var validationExecutor = new ExpenseReportValidationExecutor();
+        var repairExecutor = new ExpenseReportValidationRepairExecutor(
+            expenseReportExtractor,
+            cancellationToken);
+        var policyExecutor = new ExpenseReportPolicyExecutor(expensePolicyOptions);
+        var resultExecutor = new ExpenseReportResultExecutor();
+
+        return new WorkflowBuilder(extractionExecutor)
+            .AddEdge(extractionExecutor, validationExecutor)
+            .AddEdge(validationExecutor, repairExecutor)
+            .AddEdge(repairExecutor, policyExecutor)
+            .AddEdge(policyExecutor, resultExecutor)
+            .WithOutputFrom(resultExecutor)
+            .WithName(ExpenseReportWorkflowName)
+            .WithDescription(
+                "Extracts, validates, repairs, and evaluates an expense report image.")
+            .Build();
+    }
+
     private sealed class UnconfiguredSujikoPuzzleExtractor : ISujikoPuzzleExtractor
     {
         public ValueTask<ModelResult<SujikoPuzzleData>> ExtractSujikoPuzzleAsync(
@@ -171,6 +215,17 @@ public static class DocumentWorkflowFactory
             IReadOnlyList<string>? repairInstructions = null)
         {
             throw new InvalidOperationException("Sujiko puzzle extraction is not configured.");
+        }
+    }
+
+    private sealed class UnconfiguredExpenseReportExtractor : IExpenseReportExtractor
+    {
+        public ValueTask<ModelResult<ExpenseReportData>> ExtractExpenseReportAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            throw new InvalidOperationException("Expense report extraction is not configured.");
         }
     }
 }

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted E0 boundary and result-semantics definition. It refines the [composite capture contract](composite-capture-contract.md) and [batch capture and expense report sequencing decision](batch-capture-expense-report-decision.md) without implementing either feature.
+Accepted E0 boundary and result-semantics definition. Composite capture is implemented. The E4 expense-report slice implements the extraction, validation, repair, policy, and attestation contract below without persistent receipt linking or claim submission.
 
 ## Decision
 

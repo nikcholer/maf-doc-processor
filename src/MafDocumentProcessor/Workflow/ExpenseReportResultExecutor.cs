@@ -3,24 +3,33 @@ using Microsoft.Agents.AI.Workflows;
 
 namespace MafDocumentProcessor.Workflow;
 
-public sealed class ShoppingListResultExecutor()
-    : Executor<ValidatedShoppingListExtraction, DocumentProcessingResult>("ShoppingListResult")
+public sealed class ExpenseReportResultExecutor()
+    : Executor<ExpenseReportPolicyEvaluation, DocumentProcessingResult>("ExpenseReportResult")
 {
+    public const string AttestationPrompt = "ownership attestation required";
+
     public override ValueTask<DocumentProcessingResult> HandleAsync(
-        ValidatedShoppingListExtraction message,
+        ExpenseReportPolicyEvaluation message,
         IWorkflowContext context,
         CancellationToken cancellationToken = default)
     {
-        var extraction = message.Extraction;
+        var extraction = message.ValidatedExtraction.Extraction;
         var classifiedDocument = extraction.ClassifiedDocument;
+        var validation = message.ValidatedExtraction.Validation;
         var modelUsage = DocumentModelUsage.FromCalls(
             [classifiedDocument.ClassificationUsage, .. extraction.ExtractionUsages]);
-        var errors = message.Validation.IsValid ? [] : message.Validation.Reasons;
+        var errors = validation.IsValid ? [] : validation.Reasons;
+        var policyForReview = validation.IsValid
+            ? message.PolicyResult
+            : null;
         var humanReview = HumanReviewEvaluator.Evaluate(
             classifiedDocument.Classification,
-            policyResult: null,
+            policyForReview?.Decision,
+            policyForReview?.Reasons,
             errors,
-            warnings: []);
+            warnings: [],
+            requiresUserAttestation: true,
+            attestationPrompt: AttestationPrompt);
 
         return ValueTask.FromResult(new DocumentProcessingResult(
             classifiedDocument.Classification.Category,
@@ -28,14 +37,14 @@ public sealed class ShoppingListResultExecutor()
             classifiedDocument.Classification,
             modelUsage,
             Receipt: null,
-            extraction.ShoppingList,
+            ShoppingList: null,
             SujikoPuzzle: null,
-            ExpenseReport: null,
+            extraction.ExpenseReport,
             PolicyResult: null,
-            ExpensePolicy: null,
-            message.Validation,
+            message.PolicyResult,
+            validation,
             humanReview,
-            IsSuccess: message.Validation.IsValid,
+            IsSuccess: validation.IsValid,
             Errors: errors,
             Warnings: []));
     }

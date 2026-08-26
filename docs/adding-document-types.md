@@ -2,7 +2,7 @@
 
 This guide describes the current path for adding a new supported document type to the local MAF document processor.
 
-Use receipts and shopping lists as the working examples. A new type should follow the same shape unless there is a clear reason to do otherwise.
+Use receipts, shopping lists, and expense reports as the working examples. A new type should follow the same shape unless there is a clear reason to do otherwise. Expense reports are the example for ownership attestation and arithmetic validation.
 
 ## Before Coding
 

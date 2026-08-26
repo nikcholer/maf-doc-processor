@@ -203,13 +203,13 @@
         "shoppingList": null,
         "sujikoPuzzle": null,
         "validationReasons": [
-          "This appears to be an event ticket. This demo can process receipts, shopping lists, and Sujiko puzzles right now."
+          "This appears to be an event ticket. This demo can process receipts, shopping lists, Sujiko puzzles, and expense reports right now."
         ],
         "humanReviewReasons": [
-          "This appears to be an event ticket. This demo can process receipts, shopping lists, and Sujiko puzzles right now."
+          "This appears to be an event ticket. This demo can process receipts, shopping lists, Sujiko puzzles, and expense reports right now."
         ],
         "errors": [
-          "This appears to be an event ticket. This demo can process receipts, shopping lists, and Sujiko puzzles right now."
+          "This appears to be an event ticket. This demo can process receipts, shopping lists, Sujiko puzzles, and expense reports right now."
         ],
         "warnings": []
       }

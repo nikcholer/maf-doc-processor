@@ -1,6 +1,7 @@
 using MafDocumentProcessor.Api.Configuration;
 using MafDocumentProcessor.Api.Services;
 using MafDocumentProcessor.Domain;
+using MafDocumentProcessor.Workflow;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -201,7 +202,9 @@ public sealed class ApiDemoTests
                 [new ShoppingListItem("milk", 2, "pints", false)],
                 Notes: null),
             SujikoPuzzle: null,
+            ExpenseReport: null,
             PolicyResult: null,
+            ExpensePolicy: null,
             ValidationResult.Valid,
             HumanReviewResult.NotRequired,
             IsSuccess: true,
@@ -240,7 +243,9 @@ public sealed class ApiDemoTests
                     new SujikoCellValue(2, 2, 1),
                     new SujikoCellValue(3, 2, 8)
                 ]),
+            ExpenseReport: null,
             PolicyResult: null,
+            ExpensePolicy: null,
             ValidationResult.Valid,
             HumanReviewResult.NotRequired,
             IsSuccess: true,
@@ -255,6 +260,66 @@ public sealed class ApiDemoTests
         Assert.Equal(17, puzzle.QuadrantTotals.BottomRight);
         Assert.Equal(new SujikoCellValue(3, 2, 8), puzzle.GivenCells[1]);
         Assert.Null(response.Document?.PolicyResult);
+    }
+
+    [Fact]
+    public void DocumentProcessingResponseMapper_MapsExpenseReportWorkflowResultForDemoUi()
+    {
+        var metadata = CreateMetadata("expense-report.png");
+        var result = new DocumentProcessingResult(
+            DocumentCategory.ExpenseReport,
+            metadata,
+            new DocumentClassification(
+                DocumentCategory.ExpenseReport,
+                0.97m,
+                "expense report layout"),
+            DocumentModelUsage.FromCalls([
+                new ModelTokenUsage("classification", "model", 2, 4, 6),
+                new ModelTokenUsage("expense_report_extraction", "model", 2, 4, 6)
+            ]),
+            Receipt: null,
+            ShoppingList: null,
+            SujikoPuzzle: null,
+            new ExpenseReportData(
+                "ER-2026-014",
+                "EXPENSE REPORT",
+                "Alex Example",
+                new DateOnly(2026, 8, 1),
+                new DateOnly(2026, 8, 20),
+                "GBP",
+                48.50m,
+                [
+                    new ExpenseReportLine(new DateOnly(2026, 8, 4), "Train fare", null, 18.50m, "R-001"),
+                    new ExpenseReportLine(new DateOnly(2026, 8, 12), "Client lunch", null, 30.00m, "R-002")
+                ],
+                "Synthetic valid example.",
+                "Not yet submitted"),
+            PolicyResult: null,
+            new ExpensePolicyResult(
+                IsWithinHighValueThreshold: true,
+                AllLinesHaveReceiptReferences: true,
+                PolicyDecision.Approved,
+                []),
+            ValidationResult.Valid,
+            new HumanReviewResult(
+                HumanReviewStatus.Required,
+                [ExpenseReportResultExecutor.AttestationPrompt],
+                RequiresUserAttestation: true,
+                ExpenseReportResultExecutor.AttestationPrompt),
+            IsSuccess: true,
+            Errors: [],
+            Warnings: []);
+
+        var response = DocumentProcessingResponseMapper.Map(result);
+
+        var expenseReport = Assert.IsType<ExpenseReportData>(response.Document?.Data);
+        Assert.Equal(DocumentCategory.ExpenseReport, response.Category);
+        Assert.Equal("ER-2026-014", expenseReport.ReportNumber);
+        Assert.Equal(48.50m, expenseReport.ClaimedTotal);
+        Assert.Null(response.Document?.PolicyResult);
+        Assert.Equal(PolicyDecision.Approved, response.Document?.ExpensePolicy?.Decision);
+        Assert.Equal(HumanReviewStatus.Required, response.HumanReview.Status);
+        Assert.True(response.HumanReview.RequiresUserAttestation);
     }
 
 
@@ -287,7 +352,9 @@ public sealed class ApiDemoTests
             receipt,
             ShoppingList: null,
             SujikoPuzzle: null,
+            ExpenseReport: null,
             policy,
+            ExpensePolicy: null,
             ValidationResult.Valid,
             HumanReviewResult.NotRequired,
             IsSuccess: true,

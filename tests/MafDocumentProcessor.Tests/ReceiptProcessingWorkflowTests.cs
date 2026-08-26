@@ -227,7 +227,7 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.Equal(HumanReviewStatus.Required, result.HumanReview.Status);
         Assert.Contains(
             result.Errors,
-            error => error == "This appears to be a car registration document. This demo can process receipts, shopping lists, and Sujiko puzzles right now.");
+            error => error == "This appears to be a car registration document. This demo can process receipts, shopping lists, Sujiko puzzles, and expense reports right now.");
         Assert.Single(result.ModelUsage.Calls);
     }
 
@@ -249,7 +249,7 @@ public sealed class ReceiptProcessingWorkflowTests
         Assert.Equal(HumanReviewStatus.Required, result.HumanReview.Status);
         Assert.Contains(
             result.Errors,
-            error => error == "This appears to be an invoice. This demo can process receipts, shopping lists, and Sujiko puzzles right now.");
+            error => error == "This appears to be an invoice. This demo can process receipts, shopping lists, Sujiko puzzles, and expense reports right now.");
     }
 
     [Fact]

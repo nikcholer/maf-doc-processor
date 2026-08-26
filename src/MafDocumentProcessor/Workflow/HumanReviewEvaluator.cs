@@ -15,6 +15,25 @@ public static class HumanReviewEvaluator
         bool requiresUserAttestation = false,
         string? attestationPrompt = null)
     {
+        return Evaluate(
+            classification,
+            policyResult?.Decision,
+            policyResult?.Reasons,
+            errors,
+            warnings,
+            requiresUserAttestation,
+            attestationPrompt);
+    }
+
+    public static HumanReviewResult Evaluate(
+        DocumentClassification classification,
+        PolicyDecision? policyDecision,
+        IReadOnlyList<string>? policyReasons,
+        IReadOnlyList<string> errors,
+        IReadOnlyList<string> warnings,
+        bool requiresUserAttestation = false,
+        string? attestationPrompt = null)
+    {
         var requiredReasons = new List<string>();
         var recommendedReasons = new List<string>();
 
@@ -22,9 +41,10 @@ public static class HumanReviewEvaluator
         requiredReasons.AddRange(errors.Where(reason => !string.IsNullOrWhiteSpace(reason)));
         recommendedReasons.AddRange(warnings.Where(reason => !string.IsNullOrWhiteSpace(reason)));
 
-        if (policyResult is { Decision: PolicyDecision.NeedsReview })
+        if (policyDecision is PolicyDecision.NeedsReview)
         {
-            requiredReasons.AddRange(policyResult.Reasons.Where(reason => !string.IsNullOrWhiteSpace(reason)));
+            requiredReasons.AddRange(
+                (policyReasons ?? []).Where(reason => !string.IsNullOrWhiteSpace(reason)));
         }
 
         if (requiresUserAttestation)

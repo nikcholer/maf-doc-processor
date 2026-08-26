@@ -12,7 +12,7 @@ The workflow should return the best structured result it can, then mark review r
 | --- | --- | --- |
 | Low or missing classification confidence | All supported document types | Return parsed data when possible and add a review reason. |
 | Unsupported document type | Unsupported documents | Return `IsSuccess=false` with a human-readable unsupported-type message. |
-| Structural validation failure after repair | All parsed document types | Receipt: return parsed data with warnings. Shopping list: return `IsSuccess=false` with validation errors. |
+| Structural validation failure after repair | All parsed document types | Receipt: return parsed data with warnings. Shopping list, Sujiko, and expense report: return `IsSuccess=false` with validation errors. |
 | Receipt exceeds review threshold | Receipts | Return parsed data with `PolicyDecision.NeedsReview`. |
 | Receipt payment method missing | Receipts | Return parsed data with `PolicyDecision.NeedsReview`. |
 | User-owned submission | Expense claims and future claim-like types | User must attest that the parsed document and claim are theirs to submit. The model must not be treated as the submitting party. |
@@ -33,7 +33,7 @@ These values are deliberately conservative starting points. They should be tuned
 
 Document extraction is model assistance. It does not transfer responsibility to the model.
 
-Receipts and shopping lists in the local demo do not require formal attestation. Future document types should declare ownership rules explicitly:
+Receipts, shopping lists, and Sujiko puzzles in the local demo do not require formal attestation. Expense reports do:
 
 | Document family | Ownership rule |
 | --- | --- |

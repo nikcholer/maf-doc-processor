@@ -72,6 +72,29 @@ public static class ModelResponseParsers
             GetSujikoGivenCells(root));
     }
 
+    public static ExpenseReportData ParseExpenseReport(string? content)
+    {
+        using var document = ParseJson(content, "expense report extraction");
+        var root = document.RootElement;
+        var currencyCode = NormalizeCurrencyCode(
+            GetRequiredString(root, "currencyCode", "expense report extraction"));
+
+        return new ExpenseReportData(
+            GetOptionalString(root, "reportNumber"),
+            GetOptionalString(root, "title"),
+            GetOptionalString(root, "claimantName")
+                ?? GetOptionalString(root, "employeeName"),
+            GetOptionalDate(root, "periodStart"),
+            GetOptionalDate(root, "periodEnd"),
+            currencyCode ?? throw new DocumentModelResponseException(
+                "The expense report extraction model response did not include a valid 'currencyCode'."),
+            GetRequiredDecimal(root, "claimedTotal", "expense report extraction"),
+            GetExpenseReportLines(root),
+            GetOptionalString(root, "notes"),
+            GetOptionalString(root, "visibleApprovalStatus")
+                ?? GetOptionalString(root, "approvalStatus"));
+    }
+
     private static JsonDocument ParseJson(string? content, string operation)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -115,6 +138,7 @@ public static class ModelResponseParsers
         {
             _ when ContainsAny(value, "sujiko") => DocumentCategory.SujikoPuzzle,
             _ when ContainsAny(value, "shopping list", "grocery list", "packing list", "to-buy list") => DocumentCategory.ShoppingList,
+            _ when ContainsAny(value, "expense report", "expense claim") => DocumentCategory.ExpenseReport,
             _ when value.Contains("receipt", StringComparison.OrdinalIgnoreCase) => DocumentCategory.Receipt,
             _ when value.Contains("invoice", StringComparison.OrdinalIgnoreCase) => DocumentCategory.Invoice,
             _ => (DocumentCategory?)null
@@ -373,6 +397,37 @@ public static class ModelResponseParsers
         }
 
         return cells;
+    }
+
+    private static IReadOnlyList<ExpenseReportLine> GetExpenseReportLines(JsonElement root)
+    {
+        if (!root.TryGetProperty("lines", out var linesProperty)
+            || linesProperty.ValueKind != JsonValueKind.Array)
+        {
+            throw new DocumentModelResponseException(
+                "The expense report extraction model response did not include a 'lines' array.");
+        }
+
+        var lines = new List<ExpenseReportLine>();
+        foreach (var lineProperty in linesProperty.EnumerateArray())
+        {
+            var description = GetOptionalString(lineProperty, "description")
+                ?? GetOptionalString(lineProperty, "item");
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                continue;
+            }
+
+            lines.Add(new ExpenseReportLine(
+                GetOptionalDate(lineProperty, "date"),
+                description,
+                GetOptionalString(lineProperty, "category"),
+                GetRequiredDecimal(lineProperty, "amount", "expense report extraction"),
+                GetOptionalString(lineProperty, "receiptReference")
+                    ?? GetOptionalString(lineProperty, "receipt")));
+        }
+
+        return lines;
     }
 
     private static bool? GetOptionalBool(JsonElement root, string propertyName)

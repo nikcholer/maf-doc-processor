@@ -189,6 +189,7 @@ public sealed class CaptureGoldenSetTests
             "Receipt" => DocumentCategory.Receipt,
             "ShoppingList" => DocumentCategory.ShoppingList,
             "SujikoPuzzle" => DocumentCategory.SujikoPuzzle,
+            "ExpenseReport" => DocumentCategory.ExpenseReport,
             "Unknown" => DocumentCategory.Unknown,
             _ => throw new InvalidOperationException($"Unsupported expected classification '{value}'.")
         };

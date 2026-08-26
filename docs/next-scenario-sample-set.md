@@ -46,7 +46,7 @@ The rectangles use the coordinate system from the [composite capture contract](c
 | Case | Visible facts | Expected result |
 | --- | --- | --- |
 | Valid report | GBP 18.50 + GBP 30.00 = GBP 48.50 | Structurally valid and successful; review still required for ownership attestation |
-| Invalid total | Lines total GBP 48.50 but the report claims GBP 60.00 | Deterministic arithmetic failure; rejected without asking the model to judge its own sum |
+| Invalid total | Lines total GBP 48.50 but the report claims GBP 60.00 | One bounded repair re-extracts visible fields; remaining arithmetic mismatch is rejected in C# without accepting the model's sum |
 | Repairable extraction | The document contains both lines, but the saved first extraction omits one | One bounded repair restores both lines; final structure is valid |
 | Review-required report | GBP 480.00 hotel line with no visible receipt reference | Structurally valid; review required for attestation and policy concerns |
 
@@ -56,7 +56,7 @@ These expectations follow the accepted [capture and expense report model boundar
 
 `CaptureGoldenSetTests` now runs every composite-capture case through the real capture workflow with the manifest's saved detector boxes and expected classifications. It checks capture status, source status, processed-member dispositions, and exact detection/classification call counts. It does not claim that a live model will always return those boxes or classifications.
 
-Expense-report cases remain fixtures for E4. Separate opt-in checks may later measure the configured provider against the same image assets.
+`ExpenseReportProcessingWorkflowTests` runs the four expense-report cases through the reusable document workflow with saved extraction values. `ExpenseReportAssetTests` can live-check the valid fixture against the configured provider when `MAF_RUN_LIVE_ASSET_TESTS=1`. The live check does not claim that every provider run will reproduce the saved totals.
 
 ## Validation and Regeneration
 

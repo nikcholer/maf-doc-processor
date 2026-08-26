@@ -93,11 +93,13 @@ public sealed class QualityReviewWorkflowTests
                 "GBP"),
             ShoppingList: null,
             SujikoPuzzle: null,
+            ExpenseReport: null,
             new ReceiptPolicyResult(
                 IsWithinReviewThreshold: true,
                 HasPaymentMethod: true,
                 PolicyDecision.Approved,
                 ["Receipt is within the review threshold and includes a payment method."]),
+            ExpensePolicy: null,
             ValidationResult.Valid,
             HumanReviewResult.NotRequired,
             IsSuccess: true,

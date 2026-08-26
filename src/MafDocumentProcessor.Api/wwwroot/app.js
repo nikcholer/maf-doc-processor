@@ -47,7 +47,15 @@ const fieldLabels = {
   items: "Items",
   notes: "Notes",
   quadrantTotals: "Quadrant totals",
-  givenCells: "Given cells"
+  givenCells: "Given cells",
+  reportNumber: "Report number",
+  claimantName: "Claimant",
+  periodStart: "Period start",
+  periodEnd: "Period end",
+  claimedTotal: "Claimed total",
+  lines: "Lines",
+  visibleApprovalStatus: "Visible approval",
+  receiptReference: "Receipt reference"
 };
 
 const svgNamespace = "http://www.w3.org/2000/svg";
@@ -362,7 +370,7 @@ function renderDocumentSuccess(payload) {
   metricOneLabel.textContent = "Category";
   metricTwoLabel.textContent = "Decision";
   const documentResult = payload.document;
-  const policy = documentResult?.policyResult;
+  const policy = documentResult?.policyResult ?? documentResult?.expensePolicy;
   const humanReview = payload.humanReview;
   const hasHumanReview = humanReview?.status && humanReview.status !== "NotRequired";
   const decision = policy?.decision ?? (hasHumanReview ? humanReview.status : (payload.isSuccess ? "Complete" : "Needs review"));
@@ -1084,7 +1092,7 @@ function formatValue(key, value) {
   if (value === null || value === undefined || value === "") {
     return "-";
   }
-  if (key === "totalAmount" && typeof value === "number") {
+  if ((key === "totalAmount" || key === "claimedTotal" || key === "amount") && typeof value === "number") {
     return value.toFixed(2);
   }
   if (typeof value === "number") {
@@ -1105,6 +1113,13 @@ function formatArrayItem(value) {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     if ("row" in value && "column" in value && "value" in value) {
       return `r${value.row}c${value.column}=${value.value}`;
+    }
+    if ("description" in value && "amount" in value) {
+      const date = value.date ? `${value.date} · ` : "";
+      const amount = Number(value.amount);
+      const amountText = Number.isFinite(amount) ? amount.toFixed(2) : String(value.amount);
+      const reference = value.receiptReference ? ` (${value.receiptReference})` : "";
+      return `${date}${value.description} ${amountText}${reference}`;
     }
     const name = value.name ?? value.item ?? "Item";
     const quantity = value.quantity === null || value.quantity === undefined ? null : Number(value.quantity);

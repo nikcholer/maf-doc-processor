@@ -16,6 +16,8 @@ public sealed class DocumentProcessingWorkflow(
     ReceiptPolicyOptions policyOptions,
     IModelImagePreprocessor? imagePreprocessor = null,
     ISujikoPuzzleExtractor? sujikoPuzzleExtractor = null,
+    IExpenseReportExtractor? expenseReportExtractor = null,
+    ExpensePolicyOptions? expensePolicyOptions = null,
     ILogger<DocumentProcessingWorkflow>? logger = null,
     ILogger<DocumentClassificationExecutor>? classificationLogger = null)
 {
@@ -35,6 +37,8 @@ public sealed class DocumentProcessingWorkflow(
             policyOptions,
             _imagePreprocessor,
             sujikoPuzzleExtractor,
+            expenseReportExtractor,
+            expensePolicyOptions,
             classificationLogger,
             cancellationToken);
 
