@@ -160,7 +160,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - The selected next application path adds multi-source composite capture, processing every detected document through the existing category workflow, followed by expense report as the next distinct document type.
 - Measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
 - Maintain the current .NET 10, MAF 1.19, OpenAI 2.13, and test-tooling baseline. ImageSharp 4 and xUnit v3 are explicitly deferred as separate migrations.
-- Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, and a rate-limited hosted demo.
+- Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, a rate-limited hosted demo, and later comparison of other vision models for document region detection.
 
 ## Further Documentation
 
