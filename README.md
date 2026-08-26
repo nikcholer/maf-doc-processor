@@ -49,17 +49,25 @@ If the API is already running, stop it before rebuilding so Windows does not kee
 ## API
 
 - `GET /health` reports API-key readiness and configured model information.
+- `GET /openapi/v1.json` is the generated OpenAPI document.
 - `POST /api/documents/process` accepts `multipart/form-data` with an image in the `image` field and an optional `sourceId` value.
+- `POST /api/document-captures/process` accepts one or more PNG or JPEG files in a repeated `images` field and an optional request-level `sourceId`. It returns a capture aggregate with source and member outcomes.
 
-The default upload limit is 5 MiB. Accepted types are PNG and JPEG with `.png`, `.jpg`, or `.jpeg` extensions.
+The individual-document upload limit is 5 MiB. A capture request may include up to five images totalling 25 MiB. Accepted types are PNG and JPEG with `.png`, `.jpg`, or `.jpeg` extensions.
 
-Example:
+Example, one document:
 
 ```powershell
 curl.exe -F "image=@C:\path\to\receipt.jpg" -F "sourceId=manual-test" http://127.0.0.1:5095/api/documents/process
 ```
 
-Unsupported document types return a normal workflow response with `isSuccess: false` and a human-readable explanation. Intake, configuration, provider, timeout, and model-response failures use the documented API error contract.
+Example, composite capture:
+
+```powershell
+curl.exe -F "images=@C:\path\to\desk.jpg" -F "images=@C:\path\to\receipt.jpg" -F "sourceId=expense-claim" http://127.0.0.1:5095/api/document-captures/process
+```
+
+Unsupported document types return a normal workflow response with `isSuccess: false` and a human-readable explanation. Capture requests that mix valid and invalid sources return HTTP 200 with `status: PartiallySucceeded`. Intake, configuration, provider, timeout, and model-response failures that prevent the request from starting use the documented API error contract.
 
 ## Test
 
@@ -132,7 +140,7 @@ The child workflows use deterministic executors around model extraction, validat
 
 The provider boundary is a local `IModelChatClient` abstraction. It is retained because TogetherAI-specific protocol options are required to disable Qwen thinking mode. OpenAI-compatible clients are cached by model settings, and transient provider failures use bounded retries.
 
-The E3 composite-capture workflow is implemented but is not yet exposed through the API or UI. It detects and crops regions from each source, then processes accepted members through the same reusable document workflow used by individual uploads, using a fixed number of source and member lanes. See the [technical process flow](docs/technical-process-flow.md#composite-capture-orchestration-e3) and [composite capture contract](docs/composite-capture-contract.md).
+The E3 composite-capture workflow is exposed as `POST /api/document-captures/process`. It detects and crops regions from each source, then processes accepted members through the same reusable document workflow used by individual uploads, using a fixed number of source and member lanes. The demo UI still uses the individual-document path; annotated capture previews are a later E3 task. See the [technical process flow](docs/technical-process-flow.md#composite-capture-orchestration-e3) and [composite capture contract](docs/composite-capture-contract.md).
 
 The demo is local-only. It has no authentication, persistence, workflow history, reviewer UI, or external hosting. Durable pause/resume is deliberately deferred while processing remains bounded foreground HTTP work; failed or canceled requests are safe to resubmit.
 

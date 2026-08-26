@@ -204,7 +204,9 @@ CompositeCaptureRequest
 
 The graph never grows a node per upload. Empty lanes still report so the fan-in barrier has a known contributor set. Ordinary source and member failures become result data; request cancellation still aborts the capture. `CaptureResultComposer` restores source order, assigns capture-wide member indexes, sums model usage once, and calculates `Succeeded` / `PartiallySucceeded` / `Failed` plus member dispositions.
 
-The capture API and annotated previews remain later E3 tasks.
+`POST /api/document-captures/process` accepts repeated `images` parts and returns `CompositeCaptureProcessingResponse`. Request-level intake failures use the existing API error contract. Partial success is HTTP 200. Annotated capture previews in the UI remain a later E3 task.
+
+OpenAPI is generated at `GET /openapi/v1.json`.
 
 ## MAF Workflow Usage
 
