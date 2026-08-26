@@ -10,6 +10,7 @@ public sealed class MafWorkflowCompatibilityTests
     [InlineData(DocumentCategory.Receipt, "receipt-workflow")]
     [InlineData(DocumentCategory.ShoppingList, "shopping-list-workflow")]
     [InlineData(DocumentCategory.SujikoPuzzle, "sujiko-workflow")]
+    [InlineData(DocumentCategory.ExpenseReport, "expense-report-workflow")]
     [InlineData(DocumentCategory.Invoice, "unsupported-document")]
     [InlineData(DocumentCategory.Unknown, "unsupported-document")]
     public async Task DocumentCategoryRoute_UsesExactlyOneWorkflowDestination(
@@ -23,6 +24,8 @@ public sealed class MafWorkflowCompatibilityTests
             .BindAsExecutor("shopping-list-workflow");
         var sujiko = BuildDocumentRouteWorkflow(DocumentCategory.SujikoPuzzle, "sujiko")
             .BindAsExecutor("sujiko-workflow");
+        var expenseReport = BuildDocumentRouteWorkflow(DocumentCategory.ExpenseReport, "expense-report")
+            .BindAsExecutor("expense-report-workflow");
         var unsupported = new UnsupportedDocumentRouteExecutor();
 
         var workflow = new WorkflowBuilder(classification)
@@ -43,11 +46,16 @@ public sealed class MafWorkflowCompatibilityTests
                 "sujiko")
             .AddEdge<ClassifiedRoute>(
                 classification,
+                expenseReport,
+                document => document is { Category: DocumentCategory.ExpenseReport },
+                "expense-report")
+            .AddEdge<ClassifiedRoute>(
+                classification,
                 unsupported,
                 document => document is
                     { Category: DocumentCategory.Invoice or DocumentCategory.Unknown },
                 "unsupported")
-            .WithOutputFrom(receipt, shoppingList, sujiko, unsupported)
+            .WithOutputFrom(receipt, shoppingList, sujiko, expenseReport, unsupported)
             .WithName("Document Routing Compatibility")
             .Build();
 
@@ -165,6 +173,7 @@ public sealed class MafWorkflowCompatibilityTests
         "receipt-workflow",
         "shopping-list-workflow",
         "sujiko-workflow",
+        "expense-report-workflow",
         "unsupported-document"
     ];
 

@@ -48,7 +48,7 @@ request
        -> shopping-list workflow
        -> Sujiko workflow
        -> unsupported-result executor
-       -> expense-report workflow (added in E4)
+       -> expense-report workflow
 ```
 
 The parsed category activates the edge; the model never selects an executor. Predicates must be mutually exclusive and the unsupported predicate must cover every unregistered category. Each supported destination is a reusable document workflow rather than duplicated capture-specific logic.

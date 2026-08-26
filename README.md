@@ -1,6 +1,6 @@
 # MAF Document Processor
 
-Local Microsoft Agent Framework (MAF) document-processing demo for receipt, shopping-list, and Sujiko puzzle images.
+Local Microsoft Agent Framework (MAF) document-processing demo for receipt, shopping-list, Sujiko puzzle, and expense-report images.
 
 Upload one PNG or JPEG through the web UI or HTTP API. One top-level MAF workflow classifies the image and routes it to a document-specific child workflow, which extracts structured data, validates it, makes one bounded repair attempt when needed, and returns model usage, latency, estimated cost, human-review state, and raw JSON.
 
@@ -11,6 +11,7 @@ The local vertical slice is complete and covered by unit and API integration tes
 - Receipts, including policy checks for payment method and review threshold.
 - Shopping lists, including item validation.
 - Sujiko puzzles, including quadrant-total and given-cell validation. The current scope extracts the starting state; it does not solve the puzzle.
+- Expense reports, including line-total arithmetic, currency and date checks, high-value and missing-receipt-reference policy, and ownership attestation. Persistent receipt linking and claim submission are out of scope.
 - Human-review recommendations returned with the response. There is no reviewer queue or pause/resume flow yet.
 - A two-mode local UI: direct single-document processing and composite capture with multi-source previews, annotated document regions, and accessible member inspection.
 - An opt-in Analyst/Critic quality-review prototype. It is not part of the default API path because its quality benefit has not yet been measured against a representative sample set.
@@ -87,11 +88,12 @@ If the API executable is open, use an alternate output path to avoid a locked ap
 dotnet test .\MafDocumentProcessor.sln --no-restore -p:UseAppHost=false -p:OutDir=.build\test\
 ```
 
-The repository also includes a real rotated Sujiko image. Its provider-backed full-workflow regression and measurement assertion is disabled by default. To run it with TogetherAI:
+The repository also includes a real rotated Sujiko image and synthetic expense-report fixtures. Their provider-backed full-workflow checks are disabled by default. To run them with TogetherAI:
 
 ```powershell
 $env:MAF_RUN_LIVE_ASSET_TESTS = "1"
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~SujikoAssetRegressionTests
+dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~ExpenseReportAssetTests
 ```
 
 To collect offline test coverage:
@@ -114,7 +116,7 @@ $env:MAF_RUN_LOCAL_CAPTURE_SAMPLES = "1"
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~CaptureLocalSampleTests
 ```
 
-The normal suite includes a small, non-confidential [golden set](docs/golden-set.md) for the receipt, shopping-list, Sujiko, and unsupported routes, plus the [composite capture corpus](docs/next-scenario-sample-set.md). Run them with:
+The normal suite includes a small, non-confidential [golden set](docs/golden-set.md) for the receipt, shopping-list, Sujiko, and unsupported routes, plus the [composite capture and expense-report corpus](docs/next-scenario-sample-set.md). Run them with:
 
 ```powershell
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~GoldenSetTests
@@ -145,6 +147,7 @@ Runtime settings live in [appsettings.json](src/MafDocumentProcessor.Api/appsett
 - `DocumentIntake`: upload field name, size limit, content types, and extensions.
 - `CompositeCapture`: source count, byte and pixel limits, useful-region thresholds, duplicate/overlap policy, crop padding, and source/member lane counts.
 - `ReceiptPolicy`: review threshold and default currency.
+- `ExpensePolicy`: high-value review threshold for expense reports.
 
 Each model role includes its provider, endpoint, model ID, API-key environment variable, timeout, retry policy, and token pricing. Pricing is used only for local estimated-cost reporting. Legacy `AiModels:ImageRecognition` configuration is still accepted as a fallback for classification and extraction, but new configuration should use the named roles. Region detection is deliberately separate because it acts on a whole capture image and has different prompts, image sizing, usage, and future model-selection needs.
 

@@ -1,6 +1,7 @@
 using MafDocumentProcessor.Configuration;
 using MafDocumentProcessor.Domain;
 using MafDocumentProcessor.Services;
+using MafDocumentProcessor.Workflow;
 
 namespace MafDocumentProcessor.Tests;
 
@@ -110,6 +111,52 @@ public sealed class ModelDocumentServicesTests
             .Text;
         Assert.Contains("previous extraction failed validation", userText, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Shopping list contains no readable items.", userText);
+    }
+
+    [Fact]
+    public async Task ExtractExpenseReportAsync_ParsesVisibleFieldsAndRepairInstructions()
+    {
+        var chatClient = new CapturingModelChatClient("""
+            {
+              "reportNumber": "ER-2026-014",
+              "title": "EXPENSE REPORT",
+              "claimantName": "Alex Example",
+              "periodStart": "2026-08-01",
+              "periodEnd": "2026-08-20",
+              "currencyCode": "GBP",
+              "claimedTotal": 48.50,
+              "lines": [
+                { "date": "2026-08-04", "description": "Train fare", "amount": 18.50, "receiptReference": "R-001" },
+                { "date": "2026-08-12", "description": "Client lunch", "amount": 30.00, "receiptReference": "R-002" }
+              ]
+            }
+            """);
+        var settings = AiModelSettingsDefaults.CreateTogetherGemma4Role("text-testing");
+        var extractor = new ModelExpenseReportExtractor(chatClient, settings);
+
+        var result = await extractor.ExtractExpenseReportAsync(
+            CreateReceiptRequest(),
+            CancellationToken.None,
+            [ExpenseReportValidationExecutor.ArithmeticMismatchReason]);
+
+        Assert.Equal("ER-2026-014", result.Value.ReportNumber);
+        Assert.Equal(48.50m, result.Value.ClaimedTotal);
+        Assert.Equal(2, result.Value.Lines.Count);
+        var systemText = chatClient.LastRequest!.Messages
+            .Where(message => message.Role == ModelChatRole.System)
+            .SelectMany(message => message.Content)
+            .OfType<ModelTextContent>()
+            .Single()
+            .Text;
+        Assert.Contains("Do not invent lines", systemText);
+        var userText = chatClient.LastRequest.Messages
+            .Where(message => message.Role == ModelChatRole.User)
+            .SelectMany(message => message.Content)
+            .OfType<ModelTextContent>()
+            .Single()
+            .Text;
+        Assert.Contains("previous extraction failed validation", userText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(ExpenseReportValidationExecutor.ArithmeticMismatchReason, userText);
     }
 
     [Fact]

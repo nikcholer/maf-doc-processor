@@ -91,6 +91,7 @@ public sealed class DocumentClassificationExecutor(
         return category is
             DocumentCategory.Receipt or
             DocumentCategory.ShoppingList or
-            DocumentCategory.SujikoPuzzle;
+            DocumentCategory.SujikoPuzzle or
+            DocumentCategory.ExpenseReport;
     }
 }

@@ -138,6 +138,39 @@ public sealed class ApiIntegrationTests
     }
 
     [Fact]
+    public async Task ProcessDocument_WithExpenseReportImage_ReturnsMappedResponse()
+    {
+        using var factory = new ApiIntegrationTestFactory(
+            classifier: new FakeDocumentClassifier(DocumentCategory.ExpenseReport, "expense report"));
+        using var client = factory.CreateClient();
+        using var content = CreateMultipartImageContent("expense-report.png", "image/png", [1, 2, 3]);
+
+        using var response = await client.PostAsync("/api/documents/process", content);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<DocumentProcessingResponse>(JsonOptions);
+        Assert.NotNull(body);
+        Assert.True(body.IsSuccess);
+        Assert.Equal(DocumentCategory.ExpenseReport, body.Category);
+        Assert.Equal(HumanReviewStatus.Required, body.HumanReview.Status);
+        Assert.True(body.HumanReview.RequiresUserAttestation);
+        Assert.Contains(ExpenseReportResultExecutor.AttestationPrompt, body.HumanReview.Reasons);
+        Assert.NotNull(body.Document);
+        Assert.Equal(DocumentCategory.ExpenseReport, body.Document.Category);
+        Assert.Null(body.Document.PolicyResult);
+        Assert.Equal(PolicyDecision.Approved, body.Document.ExpensePolicy?.Decision);
+        Assert.True(body.Document.Validation.IsValid);
+        var data = Assert.IsType<JsonElement>(body.Document.Data);
+        var expenseReport = data.Deserialize<ExpenseReportData>(JsonOptions);
+        Assert.NotNull(expenseReport);
+        Assert.Equal("ER-2026-014", expenseReport.ReportNumber);
+        Assert.Equal(48.50m, expenseReport.ClaimedTotal);
+        Assert.Equal(2, expenseReport.Lines.Count);
+        Assert.Empty(body.Errors);
+        Assert.Empty(body.Warnings);
+    }
+
+    [Fact]
     public async Task ProcessDocument_WithUnsupportedDocument_ReturnsNormalFailureResponse()
     {
         using var factory = new ApiIntegrationTestFactory(
@@ -469,6 +502,7 @@ public sealed class ApiIntegrationTests
         IReceiptExtractor? receiptExtractor = null,
         IShoppingListExtractor? shoppingListExtractor = null,
         ISujikoPuzzleExtractor? sujikoPuzzleExtractor = null,
+        IExpenseReportExtractor? expenseReportExtractor = null,
         AiModelSettings? modelSettings = null,
         DocumentIntakeSettings? intakeSettings = null)
         : WebApplicationFactory<Program>
@@ -497,6 +531,7 @@ public sealed class ApiIntegrationTests
                 services.RemoveAll<IReceiptExtractor>();
                 services.RemoveAll<IShoppingListExtractor>();
                 services.RemoveAll<ISujikoPuzzleExtractor>();
+                services.RemoveAll<IExpenseReportExtractor>();
                 services.RemoveAll<IModelImagePreprocessor>();
 
                 services.AddSingleton(configuredModelSettings);
@@ -506,6 +541,7 @@ public sealed class ApiIntegrationTests
                 services.AddScoped(_ => receiptExtractor ?? new FakeReceiptExtractor());
                 services.AddScoped(_ => shoppingListExtractor ?? new FakeShoppingListExtractor());
                 services.AddScoped(_ => sujikoPuzzleExtractor ?? new FakeSujikoPuzzleExtractor());
+                services.AddScoped(_ => expenseReportExtractor ?? new FakeExpenseReportExtractor());
             });
         }
 
@@ -582,6 +618,32 @@ public sealed class ApiIntegrationTests
                     [new ShoppingListItem("milk", 2, "pints", false)],
                     Notes: null),
                 new ModelTokenUsage("shopping_list_extraction", "test-shopping-list-extractor", 4, 8, 12)));
+        }
+    }
+
+    private sealed class FakeExpenseReportExtractor : IExpenseReportExtractor
+    {
+        public ValueTask<ModelResult<ExpenseReportData>> ExtractExpenseReportAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            return ValueTask.FromResult(new ModelResult<ExpenseReportData>(
+                new ExpenseReportData(
+                    "ER-2026-014",
+                    "EXPENSE REPORT",
+                    "Alex Example",
+                    new DateOnly(2026, 8, 1),
+                    new DateOnly(2026, 8, 20),
+                    "GBP",
+                    48.50m,
+                    [
+                        new ExpenseReportLine(new DateOnly(2026, 8, 4), "Train fare", null, 18.50m, "R-001"),
+                        new ExpenseReportLine(new DateOnly(2026, 8, 12), "Client lunch", null, 30.00m, "R-002")
+                    ],
+                    "Synthetic valid example.",
+                    "Not yet submitted"),
+                new ModelTokenUsage("expense_report_extraction", "test-expense-extractor", 4, 8, 12)));
         }
     }
 

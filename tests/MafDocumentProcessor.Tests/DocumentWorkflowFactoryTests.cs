@@ -25,6 +25,11 @@ public sealed class DocumentWorkflowFactoryTests
             DocumentWorkflowFactory.SujikoPuzzleWorkflowExecutorId,
             "sujiko_puzzle_extraction"
         },
+        {
+            DocumentCategory.ExpenseReport,
+            DocumentWorkflowFactory.ExpenseReportWorkflowExecutorId,
+            "expense_report_extraction"
+        },
         { DocumentCategory.Invoice, DocumentWorkflowFactory.UnsupportedDocumentExecutorId, null },
         { DocumentCategory.Unknown, DocumentWorkflowFactory.UnsupportedDocumentExecutorId, null }
     };
@@ -58,6 +63,7 @@ public sealed class DocumentWorkflowFactoryTests
         var sujikoPuzzleExtractor = new StubSujikoPuzzleExtractor(new SujikoPuzzleData(
             new SujikoQuadrantTotals(20, 11, 24, 23),
             [new SujikoCellValue(1, 3, 3)]));
+        var expenseReportExtractor = new StubExpenseReportExtractor(CreateExpenseReport());
         var imagePreprocessor = new TrackingImagePreprocessor();
         var workflow = DocumentWorkflowFactory.BuildDocumentRoutingWorkflow(
             classifier,
@@ -65,7 +71,8 @@ public sealed class DocumentWorkflowFactoryTests
             shoppingListExtractor,
             new ReceiptPolicyOptions(),
             imagePreprocessor,
-            sujikoPuzzleExtractor);
+            sujikoPuzzleExtractor,
+            expenseReportExtractor);
         var request = CreateRequest(category);
 
         var run = await InProcessExecution.RunAsync(workflow, request);
@@ -83,6 +90,7 @@ public sealed class DocumentWorkflowFactoryTests
         Assert.Equal(category is DocumentCategory.Receipt ? 1 : 0, receiptExtractor.CallCount);
         Assert.Equal(category is DocumentCategory.ShoppingList ? 1 : 0, shoppingListExtractor.CallCount);
         Assert.Equal(category is DocumentCategory.SujikoPuzzle ? 1 : 0, sujikoPuzzleExtractor.CallCount);
+        Assert.Equal(category is DocumentCategory.ExpenseReport ? 1 : 0, expenseReportExtractor.CallCount);
 
         string[] expectedOperations = expectedExtractionOperation is null
             ? ["classification"]
@@ -138,7 +146,8 @@ public sealed class DocumentWorkflowFactoryTests
             new TrackingImagePreprocessor(),
             new StubSujikoPuzzleExtractor(new SujikoPuzzleData(
                 new SujikoQuadrantTotals(20, 11, 24, 23),
-                [])));
+                [])),
+            new StubExpenseReportExtractor(CreateExpenseReport()));
 
         var mermaid = WorkflowVisualizer.ToMermaidString(workflow);
         var dot = WorkflowVisualizer.ToDotString(workflow);
@@ -238,6 +247,38 @@ public sealed class DocumentWorkflowFactoryTests
             "SujikoPuzzleValidation",
             "SujikoPuzzleValidationRepair",
             "SujikoPuzzleResult");
+    }
+
+    [Fact]
+    public async Task BuildExpenseReportWorkflow_RunsAndExposesTheCompleteGraph()
+    {
+        var workflow = DocumentWorkflowFactory.BuildExpenseReportWorkflow(
+            new StubExpenseReportExtractor(CreateExpenseReport()),
+            new ExpensePolicyOptions());
+
+        var (result, events) = await RunAsync(
+            workflow,
+            CreateClassifiedDocument(DocumentCategory.ExpenseReport));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("ER-2026-014", result.ExpenseReport?.ReportNumber);
+        Assert.Equal(PolicyDecision.Approved, result.ExpensePolicy?.Decision);
+        Assert.Equal(HumanReviewStatus.Required, result.HumanReview.Status);
+        Assert.Contains(
+            result.HumanReview.Reasons,
+            reason => reason == ExpenseReportResultExecutor.AttestationPrompt);
+        Assert.True(result.HumanReview.RequiresUserAttestation);
+        Assert.Equal(
+            ["classification", "expense_report_extraction"],
+            result.ModelUsage.Calls.Select(call => call.Operation).ToArray());
+        AssertWorkflowIsInspectable(
+            workflow,
+            events,
+            "ExpenseReportExtraction",
+            "ExpenseReportValidation",
+            "ExpenseReportValidationRepair",
+            "ExpenseReportPolicy",
+            "ExpenseReportResult");
     }
 
     private static async Task<(DocumentProcessingResult Result, WorkflowEvent[] Events)> RunAsync(
@@ -341,6 +382,41 @@ public sealed class DocumentWorkflowFactoryTests
         }
     }
 
+    private sealed class StubExpenseReportExtractor(ExpenseReportData expenseReport)
+        : IExpenseReportExtractor
+    {
+        public int CallCount { get; private set; }
+
+        public ValueTask<ModelResult<ExpenseReportData>> ExtractExpenseReportAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            CallCount++;
+            return ValueTask.FromResult(new ModelResult<ExpenseReportData>(
+                expenseReport,
+                CreateExtractionUsage("expense_report_extraction")));
+        }
+    }
+
+    private static ExpenseReportData CreateExpenseReport()
+    {
+        return new ExpenseReportData(
+            "ER-2026-014",
+            "EXPENSE REPORT",
+            "Alex Example",
+            new DateOnly(2026, 8, 1),
+            new DateOnly(2026, 8, 20),
+            "GBP",
+            48.50m,
+            [
+                new ExpenseReportLine(new DateOnly(2026, 8, 4), "Train fare", null, 18.50m, "R-001"),
+                new ExpenseReportLine(new DateOnly(2026, 8, 12), "Client lunch", null, 30.00m, "R-002")
+            ],
+            "Synthetic valid example.",
+            "Not yet submitted");
+    }
+
     private sealed class StubSujikoPuzzleExtractor(SujikoPuzzleData puzzle)
         : ISujikoPuzzleExtractor
     {
@@ -423,6 +499,7 @@ public sealed class DocumentWorkflowFactoryTests
         DocumentWorkflowFactory.ReceiptWorkflowExecutorId,
         DocumentWorkflowFactory.ShoppingListWorkflowExecutorId,
         DocumentWorkflowFactory.SujikoPuzzleWorkflowExecutorId,
+        DocumentWorkflowFactory.ExpenseReportWorkflowExecutorId,
         DocumentWorkflowFactory.UnsupportedDocumentExecutorId
     ];
 }

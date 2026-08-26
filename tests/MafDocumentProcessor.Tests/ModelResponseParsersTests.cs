@@ -164,6 +164,102 @@ public sealed class ModelResponseParsersTests
     }
 
     [Fact]
+    public void ParseClassification_ParsesExpenseReportCategory()
+    {
+        var result = ModelResponseParsers.ParseClassification("""
+            {"category":"ExpenseReport","confidence":0.97,"documentTypeDescription":"employee expense report"}
+            """);
+
+        Assert.Equal(DocumentCategory.ExpenseReport, result.Category);
+        Assert.Equal("employee expense report", result.DocumentTypeDescription);
+    }
+
+    [Fact]
+    public void ParseClassification_ParsesPlainTextExpenseClaimDescription()
+    {
+        var result = ModelResponseParsers.ParseClassification("Expense claim form");
+
+        Assert.Equal(DocumentCategory.ExpenseReport, result.Category);
+        Assert.Equal("Expense claim form", result.DocumentTypeDescription);
+        Assert.Null(result.Confidence);
+    }
+
+    [Fact]
+    public void ParseExpenseReport_ParsesVisibleFieldsAndNormalizesCurrency()
+    {
+        var result = ModelResponseParsers.ParseExpenseReport("""
+            {
+              "reportNumber": "ER-2026-014",
+              "title": "EXPENSE REPORT",
+              "employeeName": "Alex Example",
+              "periodStart": "2026-08-01",
+              "periodEnd": "2026-08-20",
+              "currencyCode": "gbp",
+              "claimedTotal": "48.50",
+              "notes": "Synthetic valid example.",
+              "visibleApprovalStatus": "Not yet submitted",
+              "lines": [
+                {
+                  "date": "2026-08-04",
+                  "description": "Train fare",
+                  "amount": 18.50,
+                  "receiptReference": "R-001"
+                },
+                {
+                  "date": "2026-08-12",
+                  "item": "Client lunch",
+                  "amount": "30.00",
+                  "receipt": "R-002"
+                }
+              ]
+            }
+            """);
+
+        Assert.Equal("ER-2026-014", result.ReportNumber);
+        Assert.Equal("Alex Example", result.ClaimantName);
+        Assert.Equal(new DateOnly(2026, 8, 1), result.PeriodStart);
+        Assert.Equal("GBP", result.CurrencyCode);
+        Assert.Equal(48.50m, result.ClaimedTotal);
+        Assert.Equal(2, result.Lines.Count);
+        Assert.Equal("Train fare", result.Lines[0].Description);
+        Assert.Equal("R-001", result.Lines[0].ReceiptReference);
+        Assert.Equal("Client lunch", result.Lines[1].Description);
+        Assert.Equal("R-002", result.Lines[1].ReceiptReference);
+    }
+
+    [Fact]
+    public void ParseExpenseReport_RejectsMissingClaimedTotal()
+    {
+        var exception = Assert.Throws<DocumentModelResponseException>(
+            () => ModelResponseParsers.ParseExpenseReport("""
+                {
+                  "reportNumber": "ER-2026-014",
+                  "currencyCode": "GBP",
+                  "lines": [
+                    { "description": "Train fare", "amount": 18.50 }
+                  ]
+                }
+                """));
+
+        Assert.Contains("claimedTotal", exception.Message);
+    }
+
+    [Fact]
+    public void ParseExpenseReport_RejectsMissingLinesArray()
+    {
+        var exception = Assert.Throws<DocumentModelResponseException>(
+            () => ModelResponseParsers.ParseExpenseReport("""
+                {
+                  "reportNumber": "ER-2026-014",
+                  "currencyCode": "GBP",
+                  "claimedTotal": 48.50
+                }
+                """));
+
+        Assert.Contains("lines", exception.Message);
+    }
+
+    [Fact]
     public void ParseSujikoPuzzle_ParsesTotalsAndGivenCells()
     {
         var result = ModelResponseParsers.ParseSujikoPuzzle("""

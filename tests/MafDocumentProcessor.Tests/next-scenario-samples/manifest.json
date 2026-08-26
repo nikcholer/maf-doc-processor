@@ -412,7 +412,7 @@
       },
       "expectedValidation": "Invalid",
       "expectedValidationReasons": ["claimed total does not equal the sum of line amounts"],
-      "expectedRepairCalls": 0,
+      "expectedRepairCalls": 1,
       "expectedIsSuccess": false,
       "expectedHumanReview": "Required",
       "expectedDisposition": "Rejected"

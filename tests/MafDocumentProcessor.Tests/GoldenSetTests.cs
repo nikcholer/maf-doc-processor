@@ -268,7 +268,10 @@ public sealed class GoldenSetTests
                 result.IsSuccess,
                 result.Validation.IsValid,
                 result.HumanReview.Status,
-                result.Receipt is not null || result.ShoppingList is not null || result.SujikoPuzzle is not null,
+                result.Receipt is not null
+                    || result.ShoppingList is not null
+                    || result.SujikoPuzzle is not null
+                    || result.ExpenseReport is not null,
                 result.PolicyResult?.Decision,
                 result.ModelUsage.Calls.Select(call => call.Operation).ToArray(),
                 result.Receipt,

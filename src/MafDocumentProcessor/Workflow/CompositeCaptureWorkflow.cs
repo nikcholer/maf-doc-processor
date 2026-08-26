@@ -19,6 +19,8 @@ public sealed class CompositeCaptureWorkflow(
     CompositeCaptureOptions captureOptions,
     IModelImagePreprocessor? imagePreprocessor = null,
     ISujikoPuzzleExtractor? sujikoPuzzleExtractor = null,
+    IExpenseReportExtractor? expenseReportExtractor = null,
+    ExpensePolicyOptions? expensePolicyOptions = null,
     ILogger<CompositeCaptureWorkflow>? logger = null,
     ILogger<DocumentClassificationExecutor>? classificationLogger = null)
 {
@@ -37,6 +39,8 @@ public sealed class CompositeCaptureWorkflow(
             policyOptions,
             imagePreprocessor,
             sujikoPuzzleExtractor,
+            expenseReportExtractor,
+            expensePolicyOptions,
             classificationLogger: classificationLogger);
         var sourceWorkflow = CaptureWorkflowFactory.BuildSourceWorkflow(
             detectionService,
