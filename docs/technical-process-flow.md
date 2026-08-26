@@ -443,6 +443,8 @@ Parser/model service tests:
 - `tests/MafDocumentProcessor.Tests/CaptureSourceDetectionTests.cs`
 - `tests/MafDocumentProcessor.Tests/CaptureRegionValidationTests.cs`
 - `tests/MafDocumentProcessor.Tests/CaptureWorkflowTests.cs`
+- `tests/MafDocumentProcessor.Tests/CaptureGoldenSetTests.cs`
+- `tests/MafDocumentProcessor.Tests/CaptureParallelismMeasurementTests.cs`
 
 API and UI mapping tests:
 
