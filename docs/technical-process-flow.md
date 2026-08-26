@@ -156,7 +156,7 @@ The names above are project code except for ImageSharp's decoding and orientatio
 
 `CaptureSourceDetectionExecutor` is the MAF adapter around this boundary. It is a project-owned class derived from MAF's `Executor<CaptureSourceDetectionInput, CaptureSourceDetectionOutput>`. It emits project-owned `CaptureSourceDecodedEvent` and `CaptureSourceDetectionCompletedEvent` records with trace, capture, caller-source, and source-item identifiers. The bounded parent graph that will run several of these executors is deferred to the orchestration task.
 
-The detector does not decide whether a rectangle is usable. Its output uses `ProposedNormalizedBounds`, which can represent an out-of-range model answer. The next deterministic stage will reject bad coordinates, duplicates, or negligible regions and will convert accepted proposals into the stricter `NormalizedBounds` type. This is why detection JSON can be parsed successfully without being trusted.
+The detector does not decide whether a rectangle is usable. Its output uses `ProposedNormalizedBounds`, which can represent an out-of-range model answer. Deterministic validation then rejects bad coordinates, duplicates, empty pixel crops, or negligible regions and converts accepted proposals into the stricter `NormalizedBounds` type. This is why detection JSON can be parsed successfully without being trusted.
 
 Expected source-level failures are data rather than workflow crashes:
 
@@ -165,6 +165,23 @@ Expected source-level failures are data rather than workflow crashes:
 - detector timeout or provider failure produces a source error;
 - missing model configuration still fails the whole request; and
 - cancellation propagates immediately.
+
+## Composite Capture Region Validation (E3)
+
+Detected proposals are untrusted until project-owned geometry and policy code accept them:
+
+```text
+CaptureSourceDetectionOutput
+  -> CaptureRegionValidationService
+     -> trust finite in-range bounds above the useful-region thresholds
+     -> map opposite edges independently onto the oriented source
+     -> reject empty pixel crops, near-duplicates, and member-limit overflow
+     -> order remaining regions top-to-bottom, then left-to-right
+     -> crop accepted regions from OrientedCaptureSourceImage as PNG FileRequest values
+  -> CaptureRegionValidationOutput
+```
+
+`CaptureRegionValidationExecutor` is the MAF adapter around this boundary. It emits a project-owned `CaptureRegionValidationCompletedEvent` with proposal, accepted, and rejected counts, then disposes the oriented source once the crops exist. Overlapping but distinct documents continue with the `detected regions overlap` warning; a successful detection that yields no accepted crop becomes `no_usable_document_region`. Member classification and bounded fan-out remain deferred to the orchestration task.
 
 ## MAF Workflow Usage
 
@@ -392,6 +409,8 @@ Parser/model service tests:
 
 - `tests/MafDocumentProcessor.Tests/ModelResponseParsersTests.cs`
 - `tests/MafDocumentProcessor.Tests/ModelDocumentServicesTests.cs`
+- `tests/MafDocumentProcessor.Tests/CaptureSourceDetectionTests.cs`
+- `tests/MafDocumentProcessor.Tests/CaptureRegionValidationTests.cs`
 
 API and UI mapping tests:
 

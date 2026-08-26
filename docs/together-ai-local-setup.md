@@ -23,7 +23,7 @@ All roles use:
 
 Legacy `AiModels:ImageRecognition` config is still accepted as a fallback for classification and extraction, but new config should use `DocumentClassification` and `DocumentExtraction`. Region detection always uses its explicit `DocumentRegionDetection` role.
 
-`TextTesting` is reserved configuration for future text-only experiments. The individual-document path uses `DocumentClassification` and `DocumentExtraction`. The composite-capture source boundary also uses `DocumentRegionDetection`; the capture API and UI are still being delivered through E3.
+`TextTesting` is reserved configuration for future text-only experiments. The individual-document path uses `DocumentClassification` and `DocumentExtraction`. The composite-capture source boundary also uses `DocumentRegionDetection` for layout proposals; accepted crops then reuse the existing classification and extraction preprocessing. The capture API and UI are still being delivered through E3.
 
 Set the user-level API key in PowerShell:
 
