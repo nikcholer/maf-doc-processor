@@ -190,6 +190,7 @@ Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc
 ## Icebox
 
 - Evaluate alternative vision models for document-region detection if Qwen's tight boxes remain a quality limit after the current padding and main-document prompts. Tracked as [#53](https://github.com/nikcholer/maf-doc-processor/issues/53).
+- Consider per-region crop/rotate/crop refinement after rectangle correction, preserving the simple axis-aligned capture contract unless evaluation shows perspective tools are necessary. Tracked as [#58](https://github.com/nikcholer/maf-doc-processor/issues/58).
 
 ## Explicit Non-Goals for the Initial Evolution
 

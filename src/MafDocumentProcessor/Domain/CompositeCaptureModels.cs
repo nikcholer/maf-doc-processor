@@ -75,7 +75,8 @@ public sealed record CompositeCaptureRequest
         IReadOnlyList<FileRequest> sourceRequests,
         DateTimeOffset receivedAt,
         string? sourceId = null,
-        string? captureId = null)
+        string? captureId = null,
+        IReadOnlyDictionary<int, IReadOnlyList<CaptureRegionOverride>>? regionOverridesBySourceIndex = null)
     {
         ArgumentNullException.ThrowIfNull(sourceRequests);
         if (sourceRequests.Count == 0)
@@ -86,20 +87,77 @@ public sealed record CompositeCaptureRequest
         var assignedCaptureId = string.IsNullOrWhiteSpace(captureId)
             ? $"capture-{Guid.NewGuid():N}"
             : captureId;
+        ValidateOverrideSourceIndexes(sourceRequests.Count, regionOverridesBySourceIndex);
         var sources = sourceRequests
-            .Select((request, index) => new CompositeCaptureSource(
-                CaptureIdentifiers.SourceItemId(index + 1),
+            .Select((request, index) => CreateSource(
+                request,
                 index + 1,
-                request with { SourceId = sourceId }))
+                sourceId,
+                regionOverridesBySourceIndex))
             .ToArray();
 
         return new CompositeCaptureRequest(assignedCaptureId, receivedAt, sourceId, sources);
+    }
+
+    private static CompositeCaptureSource CreateSource(
+        FileRequest request,
+        int sourceIndex,
+        string? sourceId,
+        IReadOnlyDictionary<int, IReadOnlyList<CaptureRegionOverride>>? regionOverridesBySourceIndex)
+    {
+        var sourceItemId = CaptureIdentifiers.SourceItemId(sourceIndex);
+        IReadOnlyList<DocumentRegionProposal>? proposals = null;
+        if (regionOverridesBySourceIndex?.TryGetValue(sourceIndex, out var overrides) == true)
+        {
+            ArgumentNullException.ThrowIfNull(overrides);
+            proposals = Array.AsReadOnly(overrides
+                .Select((region, index) =>
+                {
+                    ArgumentNullException.ThrowIfNull(region);
+                    return new DocumentRegionProposal(
+                        sourceItemId,
+                        index + 1,
+                        region.Bounds,
+                        region.Outline,
+                        confidence: null);
+                })
+                .ToArray());
+        }
+
+        return new CompositeCaptureSource(
+            sourceItemId,
+            sourceIndex,
+            request with { SourceId = sourceId },
+            proposals);
+    }
+
+    private static void ValidateOverrideSourceIndexes(
+        int sourceCount,
+        IReadOnlyDictionary<int, IReadOnlyList<CaptureRegionOverride>>? regionOverridesBySourceIndex)
+    {
+        if (regionOverridesBySourceIndex is null)
+        {
+            return;
+        }
+
+        if (regionOverridesBySourceIndex.Keys.Any(index => index <= 0 || index > sourceCount))
+        {
+            var invalidIndex = regionOverridesBySourceIndex.Keys.First(index => index <= 0 || index > sourceCount);
+            throw new ArgumentOutOfRangeException(
+                nameof(regionOverridesBySourceIndex),
+                invalidIndex,
+                $"Region override source indexes must be between one and {sourceCount}.");
+        }
     }
 }
 
 public sealed record CompositeCaptureSource
 {
-    public CompositeCaptureSource(string sourceItemId, int index, FileRequest request)
+    public CompositeCaptureSource(
+        string sourceItemId,
+        int index,
+        FileRequest request,
+        IReadOnlyList<DocumentRegionProposal>? regionOverrides = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceItemId);
         ArgumentNullException.ThrowIfNull(request);
@@ -111,6 +169,21 @@ public sealed record CompositeCaptureSource
         SourceItemId = sourceItemId;
         Index = index;
         Request = request;
+        if (regionOverrides is not null)
+        {
+            var invalidProposal = regionOverrides.FirstOrDefault(proposal =>
+                !string.Equals(proposal.SourceItemId, sourceItemId, StringComparison.Ordinal));
+            if (invalidProposal is not null)
+            {
+                throw new ArgumentException(
+                    "Every region override must belong to its capture source.",
+                    nameof(regionOverrides));
+            }
+        }
+
+        RegionOverrides = regionOverrides is null
+            ? null
+            : Array.AsReadOnly(regionOverrides.ToArray());
     }
 
     public string SourceItemId { get; }
@@ -118,6 +191,8 @@ public sealed record CompositeCaptureSource
     public int Index { get; }
 
     public FileRequest Request { get; }
+
+    public IReadOnlyList<DocumentRegionProposal>? RegionOverrides { get; }
 }
 
 public sealed record DetectedDocumentRegion
@@ -238,7 +313,8 @@ public sealed record CaptureDetectionSummary
         string? modelId,
         int proposedRegionCount,
         int acceptedRegionCount,
-        IReadOnlyList<string> warnings)
+        IReadOnlyList<string> warnings,
+        bool usedRegionOverrides = false)
     {
         if (proposedRegionCount < 0 || acceptedRegionCount < 0 || acceptedRegionCount > proposedRegionCount)
         {
@@ -251,6 +327,7 @@ public sealed record CaptureDetectionSummary
         ProposedRegionCount = proposedRegionCount;
         AcceptedRegionCount = acceptedRegionCount;
         Warnings = Array.AsReadOnly(warnings.ToArray());
+        UsedRegionOverrides = usedRegionOverrides;
     }
 
     public string? ModelId { get; }
@@ -260,6 +337,8 @@ public sealed record CaptureDetectionSummary
     public int AcceptedRegionCount { get; }
 
     public IReadOnlyList<string> Warnings { get; }
+
+    public bool UsedRegionOverrides { get; }
 }
 
 public sealed record CaptureSourceResult

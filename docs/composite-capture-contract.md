@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines the accepted contract for composite document capture. Shared types, configuration, source decoding/orientation, one-call region detection, deterministic region validation, high-resolution cropping, bounded source/member orchestration, `POST /api/document-captures/process`, and annotated capture previews in the local UI are implemented. The existing single-document API and UI mode remain available.
+This document defines the accepted contract for composite document capture. Shared types, configuration, source decoding/orientation, one-call automatic region detection, caller-corrected region overrides, deterministic region validation, high-resolution cropping, bounded source/member orchestration, `POST /api/document-captures/process`, annotated capture previews, and ephemeral rectangle editing in the local UI are implemented. The existing single-document API and UI mode remain available.
 
 Model and deterministic responsibilities are defined in [Capture and expense report model boundaries](capture-expense-model-boundaries.md).
 
@@ -19,12 +19,32 @@ The feature adds an intake and aggregation envelope. It does not add a `Composit
 The initial feature is additive:
 
 - `POST /api/documents/process` retains its existing one-upload/one-document contract.
-- `POST /api/document-captures/process` accepts one or more PNG or JPEG files in a repeated `images` multipart field and an optional request-level `sourceId`.
+- `POST /api/document-captures/process` accepts one or more PNG or JPEG files in a repeated `images` multipart field, an optional request-level `sourceId`, and an optional `regionOverrides` JSON field.
 - The capture endpoint always returns the capture response shape, whether the request contains one or several source images and whether detection finds zero, one, or several regions in each source.
 
 Using a separate endpoint prevents region detection from adding latency and cost to existing individual uploads. A future UI may choose the endpoint explicitly or offer automatic mode selection, but that is not part of this contract.
 
 Request-level intake failures continue to use the existing API error contract. No files, too many files, or an excessive aggregate request size fail the request before processing. Once the multipart request is accepted, a source-specific validation or detection failure is isolated to that source so valid sibling images can still be processed.
+
+`regionOverrides` uses one-based multipart source indexes and contains only the sources the caller intends to correct:
+
+```json
+{
+  "sources": [
+    {
+      "sourceIndex": 1,
+      "regions": [
+        {
+          "bounds": { "x": 0.1, "y": 0.2, "width": 0.6, "height": 0.5 }
+        }
+      ]
+    },
+    { "sourceIndex": 2, "regions": [] }
+  ]
+}
+```
+
+A listed source bypasses the region detector, including when its `regions` array is explicitly empty. An omitted source follows automatic detection. Optional four-point `outline` values use the same normalized oriented coordinate space as response outlines. Structural JSON errors, duplicate/out-of-range source indexes, missing bounds, a non-quadrilateral outline, or too many supplied regions fail the request with `invalid_document_upload` targeted at `regionOverrides`. Numeric geometry remains untrusted and flows through the same deterministic validation used for detector output.
 
 ## Processing Invariant
 
@@ -115,7 +135,7 @@ CompositeCaptureMemberResponse
 | --- | --- |
 | `sourceItemId`, `index` | Request-scoped identity and multipart ordering |
 | `metadata` | Original filename, content type, byte size, oriented pixel dimensions, and receipt time |
-| `detection` | Detector model identifier, region count before and after validation, and detection warnings |
+| `detection` | Detector model identifier, region count before and after validation, detection warnings, and `usedRegionOverrides` indicating that the detector was bypassed |
 | `status` | `Succeeded`, `PartiallySucceeded`, or `Failed`, calculated from that source's members |
 | `errors`, `warnings` | Source-level intake, detection, crop, or overlap outcomes |
 
@@ -168,9 +188,11 @@ The canonical API response remains geometry and structured status rather than ad
 
 The browser renders overlays in a `0`–`100` vector coordinate space directly over each locally retained image, so the API's normalized coordinates scale with the preview at every responsive size. Modern browser image decoding applies EXIF orientation before display; the UI also compares the preview aspect ratio with the API's oriented source dimensions and surfaces a warning when they disagree. Pure UI-model tests cover bounds and outline mapping at desktop, mobile, and portrait/rotated dimensions, while API/image tests retain server-side EXIF coverage.
 
+After a result, the browser can put an individual source into rectangle-edit mode. The user may add, delete, reorder, drag, resize with four corner handles, use arrow keys to move, use `Alt` plus arrow keys to resize, or enter normalized coordinates. **Reprocess corrected regions** resubmits the same selected files and serializes only edited sources into `regionOverrides`; unedited sources still use automatic detection. These edits live only in browser memory for the current file selection and are not a persisted reviewer state.
+
 ## Deterministic Region Validation
 
-Uploaded sources and model-produced regions are untrusted. Before any crop is classified:
+Uploaded sources, model-produced regions, and caller-supplied overrides are untrusted. Before any crop is classified:
 
 - each source must independently pass configured filename, content-type, byte-size, decode, and dimension checks;
 - coordinates must be finite and contained within the normalized `0`–`1` image space;
@@ -192,7 +214,7 @@ The implemented source hand-off retains the decoded, oriented high-resolution im
 
 Region validation is deterministic. It converts untrusted `ProposedNormalizedBounds` into `NormalizedBounds` only when coordinates are finite, contained in the `0`–`1` image space, and above the configured useful-region thresholds. It then maps those bounds onto the oriented source by rounding opposite edges independently, rejects empty pixel crops, orders remaining regions top-to-bottom then left-to-right, drops near-duplicates at `DuplicateIntersectionOverUnionThreshold`, caps accepted members at the smaller of `MaxDetectedRegionsPerSource` and `MaxMembersPerCapture`, expands each accepted box by `RegionEdgePadding` on every side (clamped to the image), and records `detected regions overlap` when distinct retained regions exceed `OverlapReviewIntersectionOverUnionThreshold`. A little neighbouring paper in a crop is acceptable: classification and extraction are instructed to use the main document occupying most of the image, including its centre. Invalid, duplicate, empty, and overflow regions become `invalid_detected_region` results. A successful detection that yields no accepted crop becomes `no_usable_document_region`.
 
-`DocumentRegionDetection` is a separate configured model role. It makes one semantic call for each source that passes declared-type, extension, byte-size, decoded-format, and dimension checks. It returns only bounds, an optional four-point outline, and advisory confidence. The parser preserves numeric out-of-range proposals for the deterministic validator rather than treating model coordinates as trusted geometry.
+`DocumentRegionDetection` is a separate configured model role. It makes one semantic call for each source without an override that passes declared-type, extension, byte-size, decoded-format, and dimension checks. A source with an override is still decoded and orientation-normalized, but its caller-supplied proposals replace detector output and contribute no detection model usage. Detection and override proposals both pass through the same padding, duplicate/overlap, crop, useful-area, and member-limit policy. The detector returns only bounds, an optional four-point outline, and advisory confidence. The parser preserves numeric out-of-range proposals for the deterministic validator rather than treating model coordinates as trusted geometry.
 
 An invalid source returns `invalid_capture_source` without a model call. Invalid detector JSON, timeouts, and provider failures become source-specific `model_response_invalid`, `model_timeout`, or `model_provider_failed` results, allowing sibling sources to continue. Missing model configuration remains a request-level failure. Request cancellation is propagated rather than converted into a partial result.
 

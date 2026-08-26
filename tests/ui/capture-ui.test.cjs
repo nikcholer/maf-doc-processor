@@ -117,3 +117,55 @@ test("region labels expose disposition, category, and confidence without relying
     label,
     "source-001-document-002: Needs review, Receipt, detection confidence 83 percent");
 });
+
+test("drag and keyboard movement clamp rectangles to normalized image bounds", () => {
+  const original = { x: 0.1, y: 0.2, width: 0.4, height: 0.5 };
+
+  assert.deepEqual(CaptureUi.moveBounds(original, 0.15, -0.1), {
+    x: 0.25, y: 0.1, width: 0.4, height: 0.5
+  });
+  assert.deepEqual(CaptureUi.moveBounds(original, 1, 1), {
+    x: 0.6, y: 0.5, width: 0.4, height: 0.5
+  });
+});
+
+test("corner resize preserves a minimum size and stays inside the image", () => {
+  const original = { x: 0.2, y: 0.2, width: 0.4, height: 0.4 };
+
+  assert.deepEqual(CaptureUi.resizeBounds(original, "se", 0.3, 0.5), {
+    x: 0.2, y: 0.2, width: 0.7, height: 0.8
+  });
+  assert.deepEqual(CaptureUi.resizeBounds(original, "nw", 0.5, 0.5), {
+    x: 0.58,
+    y: 0.58,
+    width: 0.02,
+    height: 0.02
+  });
+});
+
+test("editor regions support add, delete, reorder, and partial-source serialization", () => {
+  const regions = CaptureUi.createEditableRegions([
+    { memberId: "one", region: { bounds: { x: 0.1, y: 0.1, width: 0.3, height: 0.4 } } },
+    { memberId: "two", region: { bounds: { x: 0.5, y: 0.2, width: 0.3, height: 0.4 } } }
+  ]);
+  const added = [...regions, { id: "three", bounds: { x: 0.35, y: 0.35, width: 0.3, height: 0.3 } }];
+  const reordered = CaptureUi.reorderRegions(added, 2, 0);
+  const afterDelete = reordered.filter((region) => region.id !== "one");
+
+  assert.deepEqual(afterDelete.map((region) => region.id), ["three", "two"]);
+  assert.deepEqual(CaptureUi.serializeRegionOverrides([
+    { sourceIndex: 2, regions: [] },
+    { sourceIndex: 1, regions: afterDelete }
+  ]), {
+    sources: [
+      {
+        sourceIndex: 1,
+        regions: [
+          { bounds: { x: 0.35, y: 0.35, width: 0.3, height: 0.3 } },
+          { bounds: { x: 0.5, y: 0.2, width: 0.3, height: 0.4 } }
+        ]
+      },
+      { sourceIndex: 2, regions: [] }
+    ]
+  });
+});

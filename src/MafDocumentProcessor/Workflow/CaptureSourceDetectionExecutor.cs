@@ -44,7 +44,8 @@ public sealed class CaptureSourceDetectionExecutor(
                 output.IsSuccess,
                 output.Proposals.Count,
                 output.ModelUsage.Calls.SingleOrDefault()?.ModelId,
-                output.Errors.Select(error => error.Code).ToArray())),
+                output.Errors.Select(error => error.Code).ToArray(),
+                UsedRegionOverrides: message.Source.RegionOverrides is not null)),
             linkedCancellation.Token);
 
         return output;

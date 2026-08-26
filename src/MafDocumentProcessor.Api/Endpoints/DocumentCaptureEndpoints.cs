@@ -11,6 +11,7 @@ namespace MafDocumentProcessor.Api.Endpoints;
 public static class DocumentCaptureEndpoints
 {
     public const string ImagesFormFieldName = "images";
+    public const string RegionOverridesFormFieldName = "regionOverrides";
 
     public static IEndpointRouteBuilder MapDocumentCaptureEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -20,7 +21,8 @@ public static class DocumentCaptureEndpoints
             .WithSummary("Process one or more capture images.")
             .WithDescription(
                 "Accepts one or more PNG or JPEG files in a repeated 'images' multipart field and an optional request-level sourceId. " +
-                "Each source is searched for document regions; every valid crop is processed through the same document workflow as an individual upload. " +
+                "An optional regionOverrides JSON field supplies normalized regions for selected one-based source indexes; those sources skip model detection. " +
+                "Other sources are searched for document regions, and every valid crop is processed through the same document workflow as an individual upload. " +
                 "The response is always the capture aggregate, including partial success. Content type: multipart/form-data.")
             .Produces<CompositeCaptureProcessingResponse>(StatusCodes.Status200OK)
             .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
@@ -92,7 +94,24 @@ public static class DocumentCaptureEndpoints
                 $"The combined image payload must be {captureOptions.MaxAggregateBytes} bytes or smaller.");
         }
 
-        var missingModelRole = GetMissingModelRole(aiModelSettings);
+        var regionOverrideJson = form.TryGetValue(RegionOverridesFormFieldName, out var regionOverrideValues)
+            ? regionOverrideValues.ToString()
+            : null;
+        var overrideParseResult = CompositeCaptureRegionOverrideParser.Parse(
+            regionOverrideJson,
+            images.Length,
+            captureOptions);
+        if (!overrideParseResult.IsSuccess)
+        {
+            return BadRequest(
+                request,
+                RegionOverridesFormFieldName,
+                overrideParseResult.Error ?? "Region overrides are invalid.");
+        }
+
+        var requiresRegionDetection = Enumerable.Range(1, images.Length)
+            .Any(index => overrideParseResult.Overrides?.ContainsKey(index) is not true);
+        var missingModelRole = GetMissingModelRole(aiModelSettings, requiresRegionDetection);
         if (missingModelRole is not null)
         {
             return ProcessingError(
@@ -129,7 +148,11 @@ public static class DocumentCaptureEndpoints
         try
         {
             var result = await workflow.RunAsync(
-                CompositeCaptureRequest.Create(sourceRequests, receivedAt, sourceId),
+                CompositeCaptureRequest.Create(
+                    sourceRequests,
+                    receivedAt,
+                    sourceId,
+                    regionOverridesBySourceIndex: overrideParseResult.Overrides),
                 cancellationToken);
             logger.LogInformation(
                 "Completed capture workflow {CaptureId} after {ElapsedMilliseconds} ms. Status={Status}, MemberCount={MemberCount}.",
@@ -231,14 +254,21 @@ public static class DocumentCaptureEndpoints
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
-    private static ModelRoleSettings? GetMissingModelRole(AiModelSettings settings)
+    private static ModelRoleSettings? GetMissingModelRole(
+        AiModelSettings settings,
+        bool requiresRegionDetection)
     {
-        foreach (var role in new[]
+        var roles = new List<ModelRoleSettings>
         {
-            settings.DocumentRegionDetection,
             settings.DocumentClassification,
             settings.DocumentExtraction
-        })
+        };
+        if (requiresRegionDetection)
+        {
+            roles.Insert(0, settings.DocumentRegionDetection);
+        }
+
+        foreach (var role in roles)
         {
             if (!ApiKeyEnvironment.HasApiKey(role.ApiKeyEnvironmentVariable))
             {

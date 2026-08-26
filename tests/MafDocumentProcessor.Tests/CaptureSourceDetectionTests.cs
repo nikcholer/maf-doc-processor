@@ -309,6 +309,85 @@ public sealed class CaptureSourceDetectionTests
         Assert.True(await detector.ObservedCancellation.Task.WaitAsync(TimeSpan.FromSeconds(2)));
     }
 
+    [Fact]
+    public async Task DetectionService_WithRegionOverrides_DecodesAndSkipsTheDetector()
+    {
+        var detector = new StubRegionDetector();
+        IReadOnlyList<DocumentRegionProposal> proposals =
+        [
+            new DocumentRegionProposal(
+                "source-001",
+                1,
+                new ProposedNormalizedBounds(0.15, 0.2, 0.5, 0.6),
+                outline: null,
+                confidence: null)
+        ];
+        var source = CreateSource(
+            CreateJpeg(40, 20, ExifOrientationMode.RightTop),
+            "desk.jpg",
+            "image/jpeg",
+            proposals);
+
+        using var output = await CreateDetectionService(detector)
+            .DetectAsync(CreateInput(source), CancellationToken.None);
+
+        Assert.True(output.IsSuccess);
+        Assert.Equal(0, detector.CallCount);
+        Assert.Same(proposals[0], Assert.Single(output.Proposals));
+        Assert.Empty(output.ModelUsage.Calls);
+        Assert.Equal(20, output.ImageMetadata?.OrientedWidthPixels);
+        Assert.Equal(40, output.ImageMetadata?.OrientedHeightPixels);
+        Assert.NotNull(output.OrientedSource);
+    }
+
+    [Fact]
+    public async Task DetectionService_WithRegionOverrides_StillHonorsRequestCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var source = CreateSource(
+            CreateJpeg(40, 20),
+            "desk.jpg",
+            "image/jpeg",
+            []);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await CreateDetectionService(new StubRegionDetector())
+                .DetectAsync(CreateInput(source), cancellation.Token));
+    }
+
+    [Fact]
+    public async Task DetectionExecutor_ReportsThatOverridesWereUsed()
+    {
+        var detector = new StubRegionDetector();
+        var source = CreateSource(
+            CreateJpeg(40, 20),
+            "desk.jpg",
+            "image/jpeg",
+            [
+                new DocumentRegionProposal(
+                    "source-001",
+                    1,
+                    new ProposedNormalizedBounds(0.1, 0.1, 0.5, 0.7),
+                    outline: null,
+                    confidence: null)
+            ]);
+        var executor = new CaptureSourceDetectionExecutor(CreateDetectionService(detector));
+        var workflow = new WorkflowBuilder(executor).WithOutputFrom(executor).Build();
+
+        var run = await InProcessExecution.RunAsync(workflow, CreateInput(source));
+        var events = run.NewEvents.ToArray();
+        using var output = GetOutput(events);
+        var completed = Assert.Single(
+            events,
+            evt => evt.Data is CaptureSourceDetectionCompletedEvent);
+        var completedData = Assert.IsType<CaptureSourceDetectionCompletedEvent>(completed.Data);
+
+        Assert.True(completedData.UsedRegionOverrides);
+        Assert.Null(completedData.ModelId);
+        Assert.Equal(0, detector.CallCount);
+    }
+
     private static CaptureSourceDetectionService CreateDetectionService(IDocumentRegionDetector detector)
     {
         return new CaptureSourceDetectionService(
@@ -326,7 +405,8 @@ public sealed class CaptureSourceDetectionTests
     private static CompositeCaptureSource CreateSource(
         byte[] content,
         string fileName,
-        string contentType)
+        string contentType,
+        IReadOnlyList<DocumentRegionProposal>? regionOverrides = null)
     {
         var request = new FileRequest(
             content,
@@ -335,7 +415,7 @@ public sealed class CaptureSourceDetectionTests
             content.LongLength,
             DateTimeOffset.Parse("2026-08-26T12:00:00Z"),
             "claim-44");
-        return new CompositeCaptureSource("source-001", 1, request);
+        return new CompositeCaptureSource("source-001", 1, request, regionOverrides);
     }
 
     private static byte[] CreateJpeg(

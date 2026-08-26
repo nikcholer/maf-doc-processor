@@ -59,6 +59,61 @@ public sealed class CompositeCaptureFoundationTests
     }
 
     [Fact]
+    public void Request_AppliesOverridesOnlyToSelectedSourcesAndPreservesAnExplicitEmptySet()
+    {
+        var receivedAt = new DateTimeOffset(2026, 8, 26, 12, 0, 0, TimeSpan.Zero);
+        var overrides = new Dictionary<int, IReadOnlyList<CaptureRegionOverride>>
+        {
+            [1] =
+            [
+                new CaptureRegionOverride(
+                    new ProposedNormalizedBounds(0.1, 0.2, 0.3, 0.4),
+                    [
+                        new ProposedNormalizedPoint(0.1, 0.2),
+                        new ProposedNormalizedPoint(0.4, 0.2),
+                        new ProposedNormalizedPoint(0.4, 0.6),
+                        new ProposedNormalizedPoint(0.1, 0.6)
+                    ])
+            ],
+            [2] = []
+        };
+
+        var request = CompositeCaptureRequest.Create(
+            [
+                CreateFileRequest("desk.jpg", receivedAt),
+                CreateFileRequest("empty.jpg", receivedAt),
+                CreateFileRequest("automatic.jpg", receivedAt)
+            ],
+            receivedAt,
+            regionOverridesBySourceIndex: overrides);
+
+        var first = Assert.Single(request.Sources[0].RegionOverrides!);
+        Assert.Equal("source-001", first.SourceItemId);
+        Assert.Equal(1, first.DetectionIndex);
+        Assert.Null(first.Confidence);
+        Assert.Equal(4, first.Outline?.Count);
+        Assert.Empty(request.Sources[1].RegionOverrides!);
+        Assert.Null(request.Sources[2].RegionOverrides);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(3)]
+    public void Request_RejectsOverrideSourceIndexesOutsideTheRequest(int sourceIndex)
+    {
+        var receivedAt = DateTimeOffset.UtcNow;
+        var overrides = new Dictionary<int, IReadOnlyList<CaptureRegionOverride>>
+        {
+            [sourceIndex] = []
+        };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => CompositeCaptureRequest.Create(
+            [CreateFileRequest("one.jpg", receivedAt), CreateFileRequest("two.jpg", receivedAt)],
+            receivedAt,
+            regionOverridesBySourceIndex: overrides));
+    }
+
+    [Fact]
     public void Geometry_RejectsNonFiniteOrOutOfRangeValues()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new NormalizedPoint(double.NaN, 0));
