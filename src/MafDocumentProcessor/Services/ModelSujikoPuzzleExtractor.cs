@@ -21,6 +21,7 @@ public sealed class ModelSujikoPuzzleExtractor(
                 [
                     ModelChatMessage.CreateSystem("""
                     You extract Sujiko puzzle starting states from newspaper-style puzzle images.
+                    Identify the main document occupying most of the image, including its centre. Ignore fragments of neighbouring documents at the edges.
                     A Sujiko puzzle is a 3x3 grid. Four circled quadrant totals appear at the internal grid intersections.
                     The quadrant totals are named topLeft, topRight, bottomLeft, and bottomRight by their position in the 2x2 set of circled totals.
                     Zero or more given cell values may appear in the 3x3 cells. Cell row and column numbers are 1-based from top-left to bottom-right.
@@ -52,7 +53,7 @@ public sealed class ModelSujikoPuzzleExtractor(
         IReadOnlyList<string>? repairInstructions)
     {
         var instruction =
-            $"Extract the Sujiko puzzle starting state from this uploaded image. File: {request.FileName}; content type: {request.ContentType}.";
+            $"{DocumentImagePrompts.MainDocumentFocus} Extract the Sujiko puzzle starting state from this uploaded image. File: {request.FileName}; content type: {request.ContentType}.";
         if (repairInstructions is not { Count: > 0 })
         {
             return instruction;

@@ -20,6 +20,7 @@ public sealed class ModelDocumentClassifier(
                 [
                     ModelChatMessage.CreateSystem("""
                     You classify document images for a local document processor.
+                    Identify the main document occupying most of the image, including its centre. Ignore fragments of neighbouring documents at the edges.
                     Do not explain, reason aloud, use markdown, or include any text outside the JSON object.
                     Return only compact JSON with this shape:
                     {"category":"Receipt|Invoice|ShoppingList|SujikoPuzzle|Unknown","confidence":0.0,"documentTypeDescription":"short human document type","confidenceReasoning":"short reason"}
@@ -30,7 +31,7 @@ public sealed class ModelDocumentClassifier(
                     """),
                     ModelChatMessage.CreateUser(
                         new ModelTextContent(
-                            $"Classify this uploaded document image. File: {request.FileName}; content type: {request.ContentType}."),
+                            $"{DocumentImagePrompts.MainDocumentFocus} Classify this uploaded document image. File: {request.FileName}; content type: {request.ContentType}."),
                         new ModelImageContent(request.Content, request.ContentType))
                 ],
                 MaxOutputTokens: 80),

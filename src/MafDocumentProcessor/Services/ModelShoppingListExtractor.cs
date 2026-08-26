@@ -21,6 +21,7 @@ public sealed class ModelShoppingListExtractor(
                 [
                     ModelChatMessage.CreateSystem("""
                     You extract shopping list items from document images.
+                    Identify the main document occupying most of the image, including its centre. Ignore fragments of neighbouring documents at the edges.
                     Do not explain, reason aloud, use markdown, or include any text outside the JSON object.
                     Return only compact JSON with this exact shape:
                     {"title":"string|null","items":[{"name":"string","quantity":0.0|null,"unit":"string|null","isChecked":true|null}],"notes":"string|null"}
@@ -44,7 +45,7 @@ public sealed class ModelShoppingListExtractor(
         IReadOnlyList<string>? repairInstructions)
     {
         var instruction =
-            $"Extract shopping list items from this uploaded image. File: {request.FileName}; content type: {request.ContentType}.";
+            $"{DocumentImagePrompts.MainDocumentFocus} Extract shopping list items from this uploaded image. File: {request.FileName}; content type: {request.ContentType}.";
         if (repairInstructions is not { Count: > 0 })
         {
             return instruction;

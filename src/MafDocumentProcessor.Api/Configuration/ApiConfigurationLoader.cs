@@ -86,7 +86,9 @@ public static class ApiConfigurationLoader
             section.GetValue<int?>(nameof(CompositeCaptureOptions.MaxConcurrentSources))
                 ?? defaults.MaxConcurrentSources,
             section.GetValue<int?>(nameof(CompositeCaptureOptions.MaxConcurrentMembers))
-                ?? defaults.MaxConcurrentMembers)
+                ?? defaults.MaxConcurrentMembers,
+            section.GetValue<double?>(nameof(CompositeCaptureOptions.RegionEdgePadding))
+                ?? defaults.RegionEdgePadding)
             .Validate();
     }
 
