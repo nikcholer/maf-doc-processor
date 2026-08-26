@@ -39,6 +39,7 @@ builder.Services.AddScoped<IDocumentRegionDetector>(sp =>
         sp.GetRequiredService<CompositeCaptureOptions>());
 });
 builder.Services.AddScoped<ICaptureSourceDetectionService, CaptureSourceDetectionService>();
+builder.Services.AddSingleton<ICaptureRegionValidationService, CaptureRegionValidationService>();
 builder.Services.AddScoped<IDocumentClassifier>(sp =>
 {
     var settings = sp.GetRequiredService<AiModelSettings>();
