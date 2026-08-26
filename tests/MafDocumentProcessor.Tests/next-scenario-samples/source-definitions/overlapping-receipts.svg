@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <rect width="1600" height="1000" fill="#aeb7b0"/>
+  <g transform="rotate(-4 550 500)">
+    <rect x="300" y="120" width="500" height="760" fill="#fffdf7" stroke="#444" stroke-width="3"/>
+    <g fill="#222" font-family="Consolas, monospace" text-anchor="middle">
+      <text x="550" y="205" font-size="30" font-weight="700">NORTH STAR CAFE</text>
+      <text x="550" y="280" font-size="22">COFFEE GBP 3.20</text>
+      <text x="550" y="335" font-size="22">TOAST GBP 4.80</text>
+      <text x="550" y="420" font-size="24" font-weight="700">TOTAL GBP 8.00</text>
+      <text x="550" y="800" font-size="19">SYNTHETIC RECEIPT A</text>
+    </g>
+  </g>
+  <g transform="rotate(5 930 540)">
+    <rect x="680" y="180" width="500" height="720" fill="#fdfbf4" stroke="#444" stroke-width="3"/>
+    <g fill="#222" font-family="Consolas, monospace" text-anchor="middle">
+      <text x="930" y="270" font-size="30" font-weight="700">MEADOW MARKET</text>
+      <text x="930" y="350" font-size="22">MILK GBP 2.40</text>
+      <text x="930" y="405" font-size="22">BREAD GBP 1.80</text>
+      <text x="930" y="490" font-size="24" font-weight="700">TOTAL GBP 4.20</text>
+      <text x="930" y="820" font-size="19">SYNTHETIC RECEIPT B</text>
+    </g>
+  </g>
+</svg>

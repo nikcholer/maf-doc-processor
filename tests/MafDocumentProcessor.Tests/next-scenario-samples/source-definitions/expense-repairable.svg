@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1400" viewBox="0 0 1000 1400">
+  <rect width="1000" height="1400" fill="#d7d8da"/>
+  <rect x="100" y="50" width="800" height="1300" fill="#fff" stroke="#30343b" stroke-width="3"/>
+  <g fill="#20242a" font-family="Arial, sans-serif">
+    <text x="150" y="145" font-size="42" font-weight="700">EXPENSE REPORT</text>
+    <text x="150" y="205" font-size="24">Report: ER-2026-016</text>
+    <text x="150" y="248" font-size="24">Employee: Alex Example</text>
+    <text x="150" y="291" font-size="24">Period: 01 Aug 2026 – 20 Aug 2026</text>
+    <text x="150" y="334" font-size="24">Currency: GBP</text>
+    <line x1="145" y1="385" x2="855" y2="385" stroke="#30343b" stroke-width="2"/>
+    <text x="155" y="440" font-size="22" font-weight="700">DATE</text><text x="325" y="440" font-size="22" font-weight="700">DESCRIPTION</text><text x="780" y="440" font-size="22" font-weight="700">AMOUNT</text>
+    <text x="155" y="500" font-size="22">04 Aug</text><text x="325" y="500" font-size="22">Train fare · R-101</text><text x="850" y="500" font-size="22" text-anchor="end">18.50</text>
+    <text x="155" y="560" font-size="22">12 Aug</text><text x="325" y="560" font-size="22">Client lunch · R-102</text><text x="850" y="560" font-size="22" text-anchor="end">30.00</text>
+    <line x1="145" y1="620" x2="855" y2="620" stroke="#30343b" stroke-width="2"/>
+    <text x="480" y="690" font-size="23" font-weight="700">CLAIMED TOTAL</text><text x="850" y="690" font-size="25" font-weight="700" text-anchor="end">GBP 48.50</text>
+    <text x="150" y="800" font-size="22">Repair scenario: first saved model answer omits line two.</text>
+  </g>
+</svg>

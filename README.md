@@ -158,6 +158,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - [Dependency baseline decision](docs/dependency-baseline-decision.md)
 - [Current workflow baseline measurements](docs/baseline-measurements.md)
 - [Current document golden set](docs/golden-set.md)
+- [Composite capture and expense report sample set](docs/next-scenario-sample-set.md)
 - [Top-level document routing design](docs/top-level-routing-design.md)
 - [Delivery workflow](docs/delivery-workflow.md)
 - [Beginner's guide to a completed document slice](docs/slice-guide.md)

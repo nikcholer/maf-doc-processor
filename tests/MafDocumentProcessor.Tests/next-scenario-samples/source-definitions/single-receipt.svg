@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1200" viewBox="0 0 800 1200">
+  <rect width="800" height="1200" fill="#c8b99f"/>
+  <rect x="100" y="50" width="600" height="1100" rx="4" fill="#fffdf7" stroke="#605b52" stroke-width="3"/>
+  <g fill="#222" font-family="Consolas, monospace" text-anchor="middle">
+    <text x="400" y="145" font-size="38" font-weight="700">NORTH STAR CAFE</text>
+    <text x="400" y="195" font-size="24">SYNTHETIC RECEIPT</text>
+    <text x="400" y="255" font-size="22">20 AUG 2026</text>
+  </g>
+  <g fill="#222" font-family="Consolas, monospace" font-size="23">
+    <text x="160" y="350">COFFEE</text><text x="610" y="350" text-anchor="end">GBP 3.20</text>
+    <text x="160" y="405">TOAST</text><text x="610" y="405" text-anchor="end">GBP 4.80</text>
+    <text x="160" y="460">FRUIT</text><text x="610" y="460" text-anchor="end">GBP 2.50</text>
+    <line x1="150" y1="520" x2="650" y2="520" stroke="#333" stroke-width="2" stroke-dasharray="10 8"/>
+    <text x="160" y="580" font-weight="700">TOTAL</text><text x="610" y="580" text-anchor="end" font-weight="700">GBP 10.50</text>
+    <text x="160" y="655">PAID</text><text x="610" y="655" text-anchor="end">VISA</text>
+  </g>
+  <text x="400" y="1010" fill="#333" font-family="Consolas, monospace" font-size="23" text-anchor="middle">THANK YOU</text>
+</svg>
