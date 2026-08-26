@@ -114,10 +114,17 @@ $env:MAF_RUN_LOCAL_CAPTURE_SAMPLES = "1"
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~CaptureLocalSampleTests
 ```
 
-The normal suite includes a small, non-confidential [golden set](docs/golden-set.md) for the receipt, shopping-list, Sujiko, and unsupported routes. Run it alone with:
+The normal suite includes a small, non-confidential [golden set](docs/golden-set.md) for the receipt, shopping-list, Sujiko, and unsupported routes, plus the [composite capture corpus](docs/next-scenario-sample-set.md). Run them with:
 
 ```powershell
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~GoldenSetTests
+dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~CaptureGoldenSetTests
+```
+
+The bounded-parallel capture harness compares one source/member lane with two of each, using simulated model delays:
+
+```powershell
+dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~CaptureParallelismMeasurementTests
 ```
 
 The annotated-capture UI keeps its geometry, selection, status, and accessibility model dependency-free. Run those focused checks with Node's built-in test runner:
@@ -136,6 +143,7 @@ Runtime settings live in [appsettings.json](src/MafDocumentProcessor.Api/appsett
 - `AiModels:TextTesting`: reserved model role used only when explicitly constructing experimental text/quality workflows.
 - `ModelImagePreprocessing`: region-detection, classification, and extraction resize limits plus JPEG quality.
 - `DocumentIntake`: upload field name, size limit, content types, and extensions.
+- `CompositeCapture`: source count, byte and pixel limits, useful-region thresholds, duplicate/overlap policy, crop padding, and source/member lane counts.
 - `ReceiptPolicy`: review threshold and default currency.
 
 Each model role includes its provider, endpoint, model ID, API-key environment variable, timeout, retry policy, and token pricing. Pricing is used only for local estimated-cost reporting. Legacy `AiModels:ImageRecognition` configuration is still accepted as a fallback for classification and extraction, but new configuration should use the named roles. Region detection is deliberately separate because it acts on a whole capture image and has different prompts, image sizing, usage, and future model-selection needs.
@@ -175,7 +183,7 @@ The core local demo has no incomplete required milestone. The remaining work is 
 
 Forward architectural work is organized in the [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md) and tracked in the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1).
 
-- The selected next application path adds multi-source composite capture, processing every detected document through the existing category workflow, followed by expense report as the next distinct document type.
+- Composite capture is implemented through the API and Capture set UI, including region correction. Expense report is the next distinct document type.
 - Measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
 - Maintain the current .NET 10, MAF 1.19, OpenAI 2.13, and test-tooling baseline. ImageSharp 4 and xUnit v3 are explicitly deferred as separate migrations.
 - Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, a rate-limited hosted demo, and later comparison of other vision models for document region detection.
@@ -192,6 +200,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - [Capture and expense report MAF capability selection](docs/capture-expense-maf-capabilities.md)
 - [Dependency baseline decision](docs/dependency-baseline-decision.md)
 - [Current workflow baseline measurements](docs/baseline-measurements.md)
+- [Composite capture measurements](docs/composite-capture-measurements.md)
 - [Current document golden set](docs/golden-set.md)
 - [Composite capture and expense report sample set](docs/next-scenario-sample-set.md)
 - [Top-level document routing design](docs/top-level-routing-design.md)

@@ -54,9 +54,9 @@ These expectations follow the accepted [capture and expense report model boundar
 
 ## What The Set Does Not Prove
 
-The manifest records agreed answers before the features are implemented. It is not yet an end-to-end composite-capture or expense-report test, and it does not claim that a live model will always return the saved classifications or extraction values.
+`CaptureGoldenSetTests` now runs every composite-capture case through the real capture workflow with the manifest's saved detector boxes and expected classifications. It checks capture status, source status, processed-member dispositions, and exact detection/classification call counts. It does not claim that a live model will always return those boxes or classifications.
 
-As E3 and E4 are built, their offline tests can supply the manifest's saved detector and model outputs at project interfaces, then compare real application results with the expected semantics. Separate opt-in checks may later measure the configured provider against the same image assets.
+Expense-report cases remain fixtures for E4. Separate opt-in checks may later measure the configured provider against the same image assets.
 
 ## Validation and Regeneration
 
