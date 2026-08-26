@@ -183,7 +183,28 @@ CaptureSourceDetectionOutput
   -> CaptureRegionValidationOutput
 ```
 
-`CaptureRegionValidationExecutor` is the MAF adapter around this boundary. It emits a project-owned `CaptureRegionValidationCompletedEvent` with proposal, accepted, and rejected counts, then disposes the oriented source once the crops exist. Overlapping but distinct documents continue with the `detected regions overlap` warning; a successful detection that yields no accepted crop becomes `no_usable_document_region`. Crops may include a little neighbouring paper. Classification and extraction prompts tell the model to use the main document occupying most of the image, including its centre. Member classification and bounded fan-out remain deferred to the orchestration task.
+`CaptureRegionValidationExecutor` is the MAF adapter around this boundary. It emits a project-owned `CaptureRegionValidationCompletedEvent` with proposal, accepted, and rejected counts, then disposes the oriented source once the crops exist. Overlapping but distinct documents continue with the `detected regions overlap` warning; a successful detection that yields no accepted crop becomes `no_usable_document_region`. Crops may include a little neighbouring paper. Classification and extraction prompts tell the model to use the main document occupying most of the image, including its centre.
+
+## Composite Capture Orchestration (E3)
+
+Accepted crops are processed through the reusable document workflow with a fixed number of MAF worker lanes:
+
+```text
+CompositeCaptureRequest
+  -> source partitioner
+  -> fan-out to MaxConcurrentSources lanes
+     -> detect, validate, and crop each assigned source sequentially
+  -> source fan-in
+  -> member partitioner
+  -> fan-out to MaxConcurrentMembers lanes
+     -> run DocumentProcessingWorkflow for each assigned crop sequentially
+  -> member fan-in
+  -> CompositeCaptureResult
+```
+
+The graph never grows a node per upload. Empty lanes still report so the fan-in barrier has a known contributor set. Ordinary source and member failures become result data; request cancellation still aborts the capture. `CaptureResultComposer` restores source order, assigns capture-wide member indexes, sums model usage once, and calculates `Succeeded` / `PartiallySucceeded` / `Failed` plus member dispositions.
+
+The capture API and annotated previews remain later E3 tasks.
 
 ## MAF Workflow Usage
 
@@ -413,6 +434,7 @@ Parser/model service tests:
 - `tests/MafDocumentProcessor.Tests/ModelDocumentServicesTests.cs`
 - `tests/MafDocumentProcessor.Tests/CaptureSourceDetectionTests.cs`
 - `tests/MafDocumentProcessor.Tests/CaptureRegionValidationTests.cs`
+- `tests/MafDocumentProcessor.Tests/CaptureWorkflowTests.cs`
 
 API and UI mapping tests:
 

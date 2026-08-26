@@ -132,7 +132,7 @@ The child workflows use deterministic executors around model extraction, validat
 
 The provider boundary is a local `IModelChatClient` abstraction. It is retained because TogetherAI-specific protocol options are required to disable Qwen thinking mode. OpenAI-compatible clients are cached by model settings, and transient provider failures use bounded retries.
 
-The E3 composite-capture source boundary is implemented but is not yet exposed through the API or UI. It validates and orientation-normalizes each source once, makes one region-detection call, then deterministically validates, orders, and crops accepted regions from the oriented high-resolution image. See the [technical process flow](docs/technical-process-flow.md#composite-capture-source-detection-e3) and [composite capture contract](docs/composite-capture-contract.md).
+The E3 composite-capture workflow is implemented but is not yet exposed through the API or UI. It detects and crops regions from each source, then processes accepted members through the same reusable document workflow used by individual uploads, using a fixed number of source and member lanes. See the [technical process flow](docs/technical-process-flow.md#composite-capture-orchestration-e3) and [composite capture contract](docs/composite-capture-contract.md).
 
 The demo is local-only. It has no authentication, persistence, workflow history, reviewer UI, or external hosting. Durable pause/resume is deliberately deferred while processing remains bounded foreground HTTP work; failed or canceled requests are safe to resubmit.
 

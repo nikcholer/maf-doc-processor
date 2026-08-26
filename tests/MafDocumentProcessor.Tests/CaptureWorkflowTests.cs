@@ -1,0 +1,418 @@
+using MafDocumentProcessor.Configuration;
+using MafDocumentProcessor.Domain;
+using MafDocumentProcessor.Services;
+using MafDocumentProcessor.Workflow;
+using Microsoft.Agents.AI.Workflows;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace MafDocumentProcessor.Tests;
+
+public sealed class CaptureWorkflowTests
+{
+    [Fact]
+    public void LaneAssignment_RoundRobinsAndCanBeEmpty()
+    {
+        var items = new[] { "a", "b", "c" };
+
+        Assert.Equal(["a", "c"], CaptureLaneAssignment.ForLane(items, 0, 2));
+        Assert.Equal(["b"], CaptureLaneAssignment.ForLane(items, 1, 2));
+        Assert.Empty(CaptureLaneAssignment.ForLane(items, 3, 4));
+    }
+
+    [Fact]
+    public void SourceTopology_HasFixedLanesAndFanIn()
+    {
+        var workflow = CaptureWorkflowFactory.BuildSourceWorkflow(
+            new CaptureSourceDetectionService(
+                new CaptureSourceImageDecoder(new CompositeCaptureOptions()),
+                new StubRegionDetector()),
+            new CaptureRegionValidationService(new CompositeCaptureOptions(RegionEdgePadding: 0)),
+            new CompositeCaptureOptions(MaxConcurrentSources: 2, MaxConcurrentMembers: 2));
+        var mermaid = WorkflowVisualizer.ToMermaidString(workflow);
+
+        Assert.Contains("capture-source-partitioner", mermaid, StringComparison.Ordinal);
+        Assert.Contains("capture-source-lane-1", mermaid, StringComparison.Ordinal);
+        Assert.Contains("capture-source-lane-2", mermaid, StringComparison.Ordinal);
+        Assert.Contains("capture-source-fan-in", mermaid, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MemberTopology_HasFixedLanesAndFanIn()
+    {
+        var workflow = CaptureWorkflowFactory.BuildMemberWorkflow(
+            CreateDocumentWorkflow(new StubClassifier(), new StubReceiptExtractor()),
+            new CompositeCaptureOptions(MaxConcurrentMembers: 2));
+        var mermaid = WorkflowVisualizer.ToMermaidString(workflow);
+
+        Assert.Contains("capture-member-partitioner", mermaid, StringComparison.Ordinal);
+        Assert.Contains("capture-member-lane-1", mermaid, StringComparison.Ordinal);
+        Assert.Contains("capture-member-lane-2", mermaid, StringComparison.Ordinal);
+        Assert.Contains("capture-member-fan-in", mermaid, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RunAsync_ProcessesASingleReceiptMember()
+    {
+        var detector = new StubRegionDetector();
+        var classifier = new StubClassifier();
+        var extractor = new StubReceiptExtractor();
+        var workflow = CreateCaptureWorkflow(detector, classifier, extractor);
+        var request = CreateRequest(CreateSource("receipt.png", CreatePng(80, 80)));
+
+        var result = await workflow.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(CaptureProcessingStatus.Succeeded, result.Status);
+        var member = Assert.Single(result.Members);
+        Assert.Equal(CaptureMemberDisposition.Accepted, member.Disposition);
+        Assert.Equal(DocumentCategory.Receipt, member.Result?.Category);
+        Assert.Equal(1, detector.CallCount);
+        Assert.Single(classifier.Files);
+        Assert.Single(extractor.Files);
+        Assert.Contains(result.ModelUsage.Calls, call => call.Operation == ModelDocumentRegionDetector.Operation);
+        Assert.Contains(result.ModelUsage.Calls, call => call.Operation == "classification");
+        Assert.Contains(result.ModelUsage.Calls, call => call.Operation == "receipt_extraction");
+        Assert.Equal(3, result.ModelUsage.Calls.Count);
+    }
+
+    [Fact]
+    public async Task RunAsync_IsolatesAFailedSourceAndKeepsAValidSibling()
+    {
+        var detector = new StubRegionDetector();
+        var workflow = CreateCaptureWorkflow(detector, new StubClassifier(), new StubReceiptExtractor());
+        var request = CreateRequest(
+            CreateSource("broken.png", [1, 2, 3]),
+            CreateSource("receipt.png", CreatePng(80, 80)));
+
+        var result = await workflow.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(CaptureProcessingStatus.PartiallySucceeded, result.Status);
+        Assert.Equal(CaptureProcessingStatus.Failed, result.Sources[0].Status);
+        Assert.NotEmpty(result.Sources[0].Errors);
+        Assert.Equal(CaptureProcessingStatus.Succeeded, result.Sources[1].Status);
+        Assert.Single(result.Members, member => member.Disposition == CaptureMemberDisposition.Accepted);
+        Assert.Equal(1, detector.CallCount);
+    }
+
+    [Fact]
+    public async Task RunAsync_ReturnsFailedWhenNoUsableRegionExists()
+    {
+        var detector = new StubRegionDetector { Proposals = [] };
+        var classifier = new StubClassifier();
+        var workflow = CreateCaptureWorkflow(detector, classifier, new StubReceiptExtractor());
+        var request = CreateRequest(CreateSource("empty.png", CreatePng(80, 80)));
+
+        var result = await workflow.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(CaptureProcessingStatus.Failed, result.Status);
+        Assert.DoesNotContain(result.Members, member => member.Status == CaptureMemberStatus.Processed);
+        Assert.Empty(classifier.Files);
+    }
+
+    [Fact]
+    public async Task RunAsync_DoesNotClassifyARejectedDuplicate()
+    {
+        var detector = new StubRegionDetector
+        {
+            Proposals =
+            [
+                new ProposedNormalizedBounds(0.1, 0.1, 0.5, 0.5),
+                new ProposedNormalizedBounds(0.11, 0.11, 0.5, 0.5)
+            ]
+        };
+        var classifier = new StubClassifier();
+        var workflow = CreateCaptureWorkflow(detector, classifier, new StubReceiptExtractor());
+        var request = CreateRequest(CreateSource("receipt.png", CreatePng(80, 80)));
+
+        var result = await workflow.RunAsync(request, CancellationToken.None);
+
+        Assert.Single(classifier.Files);
+        Assert.Contains(result.Members, member => member.Disposition == CaptureMemberDisposition.Accepted);
+        Assert.Contains(
+            result.Members,
+            member => member.Status == CaptureMemberStatus.Failed
+                && member.Error?.Code == CaptureRegionValidationService.InvalidDetectedRegionCode);
+    }
+
+    [Fact]
+    public async Task RunAsync_IsolatesAMemberWorkflowFailure()
+    {
+        var detector = new StubRegionDetector();
+        var extractor = new StubReceiptExtractor { Exception = new ModelProviderException("down", new HttpRequestException()) };
+        var workflow = CreateCaptureWorkflow(detector, new StubClassifier(), extractor);
+        var request = CreateRequest(CreateSource("receipt.png", CreatePng(80, 80)));
+
+        var result = await workflow.RunAsync(request, CancellationToken.None);
+
+        var member = Assert.Single(result.Members);
+        Assert.Equal(CaptureMemberStatus.Failed, member.Status);
+        Assert.Equal("model_provider_failed", member.Error?.Code);
+        Assert.Equal(CaptureProcessingStatus.Failed, result.Status);
+    }
+
+    [Fact]
+    public async Task RunAsync_RoutesAnUnsupportedCropWithoutCallingReceiptExtraction()
+    {
+        var detector = new StubRegionDetector();
+        var extractor = new StubReceiptExtractor();
+        var workflow = CreateCaptureWorkflow(
+            detector,
+            new StubClassifier { Category = DocumentCategory.Unknown, Confidence = 0.4m },
+            extractor);
+        var request = CreateRequest(CreateSource("ticket.png", CreatePng(80, 80)));
+
+        var result = await workflow.RunAsync(request, CancellationToken.None);
+
+        var member = Assert.Single(result.Members);
+        Assert.Equal(CaptureMemberDisposition.Rejected, member.Disposition);
+        Assert.False(member.Result?.IsSuccess);
+        Assert.Empty(extractor.Files);
+        Assert.Equal(CaptureProcessingStatus.Failed, result.Status);
+    }
+
+    [Fact]
+    public async Task RunAsync_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var detector = new CancellationObservingRegionDetector();
+        var workflow = CreateCaptureWorkflow(detector, new StubClassifier(), new StubReceiptExtractor());
+        var request = CreateRequest(CreateSource("receipt.png", CreatePng(80, 80)));
+        var run = workflow.RunAsync(request, cancellation.Token);
+        await detector.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await run);
+    }
+
+    [Fact]
+    public async Task RunAsync_EmitsSourceAndMemberBoundaryEvents()
+    {
+        var workflow = CaptureWorkflowFactory.BuildSourceWorkflow(
+            new CaptureSourceDetectionService(
+                new CaptureSourceImageDecoder(new CompositeCaptureOptions()),
+                new StubRegionDetector()),
+            new CaptureRegionValidationService(new CompositeCaptureOptions(RegionEdgePadding: 0)),
+            new CompositeCaptureOptions(MaxConcurrentSources: 2, MaxConcurrentMembers: 2, RegionEdgePadding: 0));
+        var request = CreateRequest(CreateSource("receipt.png", CreatePng(80, 80)));
+        var run = await InProcessExecution.RunAsync(workflow, request);
+        var events = run.NewEvents.Select(evt => evt.Data).ToArray();
+
+        Assert.Contains(events, data => data is CaptureStartedEvent);
+        Assert.Contains(events, data => data is CaptureSourceCompletedEvent);
+        Assert.Contains(events, data => data is CaptureSourcesAggregatedEvent);
+    }
+
+    [Fact]
+    public void Composer_MarksOverlapAndLowDetectionConfidenceAsReview()
+    {
+        var region = new DetectedDocumentRegion(
+            "source-001",
+            1,
+            new NormalizedBounds(0.1, 0.1, 0.4, 0.4),
+            confidence: 0.62m,
+            warnings: [CaptureRegionValidationService.OverlapWarning]);
+        var member = new CaptureMember(
+            "source-001",
+            CaptureIdentifiers.MemberId("source-001", 1),
+            1,
+            1,
+            region);
+        var result = new DocumentProcessingResult(
+            DocumentCategory.Receipt,
+            DocumentMetadata.FromRequest(CreateFileRequest("receipt.png"), "model", 0.91m),
+            new DocumentClassification(DocumentCategory.Receipt, 0.91m, "ok"),
+            DocumentModelUsage.FromCalls([]),
+            new ReceiptData("Shop", 1.00m, null, "Card", "GBP"),
+            ShoppingList: null,
+            SujikoPuzzle: null,
+            PolicyResult: null,
+            ValidationResult.Valid,
+            HumanReviewResult.NotRequired,
+            IsSuccess: true,
+            [],
+            []);
+
+        var composed = CaptureResultComposer.FromOutcome(
+            member,
+            new CaptureMemberWorkflowOutcome(
+                new CaptureMemberProcessingInput(
+                    new CaptureWorkflowContext("t", "c"),
+                    member,
+                    CreateFileRequest("receipt.png"),
+                    new PixelRectangle(1, 1, 10, 10)),
+                result,
+                Error: null));
+
+        Assert.Equal(CaptureMemberDisposition.Review, composed.Disposition);
+        Assert.Contains(CaptureRegionValidationService.OverlapWarning, composed.DispositionReasons);
+        Assert.Contains(
+            composed.DispositionReasons,
+            reason => reason.Contains("Detection confidence", StringComparison.Ordinal));
+    }
+
+    private static CompositeCaptureWorkflow CreateCaptureWorkflow(
+        IDocumentRegionDetector detector,
+        StubClassifier classifier,
+        StubReceiptExtractor extractor)
+    {
+        var options = new CompositeCaptureOptions(
+            MaxConcurrentSources: 2,
+            MaxConcurrentMembers: 2,
+            RegionEdgePadding: 0);
+        return new CompositeCaptureWorkflow(
+            new CaptureSourceDetectionService(new CaptureSourceImageDecoder(options), detector),
+            new CaptureRegionValidationService(options),
+            classifier,
+            extractor,
+            new StubShoppingListExtractor(),
+            new ReceiptPolicyOptions(),
+            options,
+            ModelImagePreprocessor.CreateDefault());
+    }
+
+    private static DocumentProcessingWorkflow CreateDocumentWorkflow(
+        IDocumentClassifier classifier,
+        IReceiptExtractor extractor)
+    {
+        return new DocumentProcessingWorkflow(
+            classifier,
+            extractor,
+            new StubShoppingListExtractor(),
+            new ReceiptPolicyOptions(),
+            ModelImagePreprocessor.CreateDefault());
+    }
+
+    private static CompositeCaptureRequest CreateRequest(params CompositeCaptureSource[] sources)
+    {
+        return CompositeCaptureRequest.Create(
+            sources.Select(source => source.Request).ToArray(),
+            DateTimeOffset.Parse("2026-08-26T12:00:00Z"),
+            "capture-test");
+    }
+
+    private static CompositeCaptureSource CreateSource(string fileName, byte[] content)
+    {
+        return new CompositeCaptureSource(
+            "source-001",
+            1,
+            CreateFileRequest(fileName, content));
+    }
+
+    private static FileRequest CreateFileRequest(string fileName, byte[]? content = null)
+    {
+        content ??= [1, 2, 3];
+        return new FileRequest(
+            content,
+            fileName,
+            fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg",
+            content.LongLength,
+            DateTimeOffset.Parse("2026-08-26T12:00:00Z"),
+            "capture-test");
+    }
+
+    private static byte[] CreatePng(int width, int height)
+    {
+        using var image = new Image<Rgba32>(width, height, Color.White);
+        using var output = new MemoryStream();
+        image.SaveAsPng(output);
+        return output.ToArray();
+    }
+
+    private sealed class StubRegionDetector : IDocumentRegionDetector
+    {
+        public int CallCount { get; private set; }
+
+        public IReadOnlyList<ProposedNormalizedBounds> Proposals { get; init; } =
+        [
+            new ProposedNormalizedBounds(0.1, 0.1, 0.6, 0.6)
+        ];
+
+        public ValueTask<ModelResult<IReadOnlyList<DocumentRegionProposal>>> DetectAsync(
+            OrientedCaptureSourceImage source,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            IReadOnlyList<DocumentRegionProposal> proposals = Proposals
+                .Select((bounds, index) => new DocumentRegionProposal(
+                    source.Source.SourceItemId,
+                    index + 1,
+                    bounds,
+                    outline: null,
+                    confidence: 0.95m))
+                .ToArray();
+            return ValueTask.FromResult(new ModelResult<IReadOnlyList<DocumentRegionProposal>>(
+                proposals,
+                new ModelTokenUsage(ModelDocumentRegionDetector.Operation, "capture-detector", 4, 2, 6)));
+        }
+    }
+
+    private sealed class CancellationObservingRegionDetector : IDocumentRegionDetector
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async ValueTask<ModelResult<IReadOnlyList<DocumentRegionProposal>>> DetectAsync(
+            OrientedCaptureSourceImage source,
+            CancellationToken cancellationToken)
+        {
+            Started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            throw new InvalidOperationException("The cancellation test should not complete.");
+        }
+    }
+
+    private sealed class StubClassifier : IDocumentClassifier
+    {
+        public List<string> Files { get; } = [];
+
+        public DocumentCategory Category { get; init; } = DocumentCategory.Receipt;
+
+        public decimal Confidence { get; init; } = 0.91m;
+
+        public ValueTask<ModelResult<DocumentClassification>> ClassifyAsync(
+            FileRequest request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Files.Add(request.FileName);
+            return ValueTask.FromResult(new ModelResult<DocumentClassification>(
+                new DocumentClassification(Category, Confidence, "stub"),
+                new ModelTokenUsage("classification", "stub-classifier", 3, 1, 4)));
+        }
+    }
+
+    private sealed class StubReceiptExtractor : IReceiptExtractor
+    {
+        public List<string> Files { get; } = [];
+
+        public Exception? Exception { get; init; }
+
+        public ValueTask<ModelResult<ReceiptData>> ExtractReceiptAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Exception is not null)
+            {
+                throw Exception;
+            }
+
+            Files.Add(request.FileName);
+            return ValueTask.FromResult(new ModelResult<ReceiptData>(
+                new ReceiptData("Stub Shop", 4.50m, new DateOnly(2026, 8, 26), "Card", "GBP"),
+                new ModelTokenUsage("receipt_extraction", "stub-extractor", 5, 2, 7)));
+        }
+    }
+
+    private sealed class StubShoppingListExtractor : IShoppingListExtractor
+    {
+        public ValueTask<ModelResult<ShoppingListData>> ExtractShoppingListAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            throw new InvalidOperationException("Shopping-list extraction should not run in these tests.");
+        }
+    }
+}
