@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines the accepted contract for composite document capture. Shared types, configuration, source decoding/orientation, and the one-call region-detection boundary are implemented. Deterministic region validation, cropping, orchestration, the API, and the UI are still being delivered through E3. The existing single-document API has not changed.
+This document defines the accepted contract for composite document capture. Shared types, configuration, source decoding/orientation, one-call region detection, deterministic region validation, and high-resolution cropping are implemented. Orchestration, the API, and the UI are still being delivered through E3. The existing single-document API has not changed.
 
 Model and deterministic responsibilities are defined in [Capture and expense report model boundaries](capture-expense-model-boundaries.md).
 
@@ -188,7 +188,9 @@ Every detector-proposed region receives either a processed result or a region/me
 
 Each valid source is decoded and orientation-normalized once. Region detection may use a lower-resolution layout derivative, but normalized coordinates are mapped back to that oriented high-resolution source. Each crop then enters the existing classification and extraction preprocessing paths independently.
 
-The implemented source hand-off retains the decoded, oriented high-resolution image in memory for the later crop stage. The detector receives a JPEG derivative whose longest edge is limited by `RegionDetectionMaxLongEdgePixels`; producing that derivative clones the in-memory image and does not decode the upload again. The source image is disposable request-scoped state and is never persisted.
+The implemented source hand-off retains the decoded, oriented high-resolution image in memory for the crop stage. The detector receives a JPEG derivative whose longest edge is limited by `RegionDetectionMaxLongEdgePixels`; producing that derivative clones the in-memory image and does not decode the upload again. Accepted regions are cropped from that oriented source using mapped pixel bounds, then encoded as PNG `FileRequest` values for the existing classification and extraction preprocessors. The source image is disposable request-scoped state and is never persisted.
+
+Region validation is deterministic. It converts untrusted `ProposedNormalizedBounds` into `NormalizedBounds` only when coordinates are finite, contained in the `0`–`1` image space, and above the configured useful-region thresholds. It then maps those bounds onto the oriented source by rounding opposite edges independently, rejects empty pixel crops, orders remaining regions top-to-bottom then left-to-right, drops near-duplicates at `DuplicateIntersectionOverUnionThreshold`, caps accepted members at the smaller of `MaxDetectedRegionsPerSource` and `MaxMembersPerCapture`, and records `detected regions overlap` when distinct retained regions exceed `OverlapReviewIntersectionOverUnionThreshold`. Invalid, duplicate, empty, and overflow regions become `invalid_detected_region` results. A successful detection that yields no accepted crop becomes `no_usable_document_region`.
 
 `DocumentRegionDetection` is a separate configured model role. It makes one semantic call for each source that passes declared-type, extension, byte-size, decoded-format, and dimension checks. It returns only bounds, an optional four-point outline, and advisory confidence. The parser preserves numeric out-of-range proposals for the deterministic validator rather than treating model coordinates as trusted geometry.
 
@@ -216,7 +218,7 @@ The `CompositeCapture` section in `appsettings.json` holds the limits used by th
 | `OverlapReviewIntersectionOverUnionThreshold` | 0.10 | Distinct overlap that should be surfaced for review |
 | `MaxConcurrentSources`, `MaxConcurrentMembers` | 2, 4 | Fixed source and document processing lanes |
 
-These are safe starting values, not business constants. Later E3 tasks will enforce them at the request, image, geometry, and workflow boundaries and will measure the concurrency values before the phase is complete.
+These are safe starting values, not business constants. Source decoding and region validation now enforce the image, geometry, duplicate, overlap, and per-source member limits. Later E3 tasks will enforce request-level intake limits and the capture-wide workflow concurrency values, and will measure those concurrency values before the phase is complete.
 
 ## Model Usage and Correlation
 
