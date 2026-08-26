@@ -144,6 +144,7 @@ public sealed class ModelDocumentServicesTests
         Assert.NotEqual(settings.DocumentExtraction.ServiceId, settings.TextTesting.ServiceId);
         Assert.Equal("TOGETHER_API_KEY", settings.DocumentClassification.ApiKeyEnvironmentVariable);
         Assert.Equal("TOGETHER_API_KEY", settings.DocumentExtraction.ApiKeyEnvironmentVariable);
+        Assert.Equal("TOGETHER_API_KEY", settings.DocumentRegionDetection.ApiKeyEnvironmentVariable);
         Assert.Equal("TOGETHER_API_KEY", settings.TextTesting.ApiKeyEnvironmentVariable);
         Assert.Equal(0.10m, settings.DocumentClassification.InputTokenPricePerMillionUsd);
         Assert.Equal(0.15m, settings.DocumentClassification.OutputTokenPricePerMillionUsd);

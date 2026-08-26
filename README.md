@@ -88,6 +88,13 @@ To collect offline test coverage:
 dotnet test .\MafDocumentProcessor.sln --collect:"XPlat Code Coverage"
 ```
 
+The composite-capture detector also has an opt-in provider check against the non-confidential three-document desk sample:
+
+```powershell
+$env:MAF_RUN_LIVE_CAPTURE_DETECTION_TESTS = "1"
+dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~CaptureRegionDetectionLiveTests
+```
+
 The normal suite includes a small, non-confidential [golden set](docs/golden-set.md) for the receipt, shopping-list, Sujiko, and unsupported routes. Run it alone with:
 
 ```powershell
@@ -100,12 +107,13 @@ Runtime settings live in [appsettings.json](src/MafDocumentProcessor.Api/appsett
 
 - `AiModels:DocumentClassification`: Qwen vision model used before workflow routing.
 - `AiModels:DocumentExtraction`: Qwen vision model used by all supported document extractors.
+- `AiModels:DocumentRegionDetection`: Qwen vision model used to locate physical documents in a composite capture before classification.
 - `AiModels:TextTesting`: reserved model role used only when explicitly constructing experimental text/quality workflows.
-- `ModelImagePreprocessing`: classification/extraction resize limits and JPEG quality.
+- `ModelImagePreprocessing`: region-detection, classification, and extraction resize limits plus JPEG quality.
 - `DocumentIntake`: upload field name, size limit, content types, and extensions.
 - `ReceiptPolicy`: review threshold and default currency.
 
-Each model role includes its provider, endpoint, model ID, API-key environment variable, timeout, retry policy, and token pricing. Pricing is used only for local estimated-cost reporting. Legacy `AiModels:ImageRecognition` configuration is still accepted as a fallback, but new configuration should use the separate classification and extraction roles.
+Each model role includes its provider, endpoint, model ID, API-key environment variable, timeout, retry policy, and token pricing. Pricing is used only for local estimated-cost reporting. Legacy `AiModels:ImageRecognition` configuration is still accepted as a fallback for classification and extraction, but new configuration should use the named roles. Region detection is deliberately separate because it acts on a whole capture image and has different prompts, image sizing, usage, and future model-selection needs.
 
 See [TogetherAI local setup](docs/together-ai-local-setup.md) for the current model defaults.
 
@@ -116,6 +124,8 @@ Each request runs through one top-level MAF graph. Its classification executor p
 The child workflows use deterministic executors around model extraction, validation, one repair pass, optional policy, and result construction. Classification, route selection, and the selected child completion are visible in the same workflow event stream. The graph is built per request and runs locally in-process; it does not add persistence or background processing.
 
 The provider boundary is a local `IModelChatClient` abstraction. It is retained because TogetherAI-specific protocol options are required to disable Qwen thinking mode. OpenAI-compatible clients are cached by model settings, and transient provider failures use bounded retries.
+
+The E3 composite-capture source boundary is implemented but is not yet exposed through the API or UI. It validates and orientation-normalizes each source once, makes one region-detection call, and returns untrusted typed proposals for deterministic validation. See the [technical process flow](docs/technical-process-flow.md#composite-capture-source-detection-e3) and [composite capture contract](docs/composite-capture-contract.md).
 
 The demo is local-only. It has no authentication, persistence, workflow history, reviewer UI, or external hosting. Durable pause/resume is deliberately deferred while processing remains bounded foreground HTTP work; failed or canceled requests are safe to resubmit.
 
@@ -141,7 +151,7 @@ The core local demo has no incomplete required milestone. The remaining work is 
 Forward architectural work is organized in the [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md) and tracked in the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1).
 
 - The selected next application path adds multi-source composite capture, processing every detected document through the existing category workflow, followed by expense report as the next distinct document type.
-- Build a representative golden sample set and measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
+- Measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
 - Maintain the current .NET 10, MAF 1.19, OpenAI 2.13, and test-tooling baseline. ImageSharp 4 and xUnit v3 are explicitly deferred as separate migrations.
 - Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, and a rate-limited hosted demo.
 
