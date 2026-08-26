@@ -39,7 +39,7 @@ The next stage should strengthen the application architecture, not simply add an
 - [x] Define unsupported, invalid, repairable, and review-required outcomes.
 - [x] Select the primary MAF capabilities the slice will exercise; limit the initial selection to the smallest coherent set.
 - [x] Record the decision and rejected alternatives in a short design document.
-- [ ] Assemble representative sample inputs, including success, repair, review, and failure cases.
+- [x] Assemble representative sample inputs, including success, repair, review, and failure cases.
 
 **Candidate capabilities:** conditional routing, reusable sub-workflows, parallel fan-out/fan-in, custom workflow events, request/response handling, checkpointing, or agent collaboration.
 
@@ -52,6 +52,8 @@ Accepted direction: [Batch capture and expense report sequencing decision](batch
 Model and result boundary: [Capture and expense report model boundaries](capture-expense-model-boundaries.md).
 
 Selected workflow capabilities: [Capture and expense report MAF capability selection](capture-expense-maf-capabilities.md).
+
+Versioned implementation fixtures: [Composite capture and expense report sample set](next-scenario-sample-set.md).
 
 ## Phase E1: Refresh and Protect the Baseline
 

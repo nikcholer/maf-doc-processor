@@ -1,0 +1,463 @@
+{
+  "version": 1,
+  "purpose": "Non-confidential fixtures for composite capture and the first expense-report slice.",
+  "assets": [
+    {
+      "id": "empty-desk",
+      "path": "sources/empty-desk.png",
+      "contentType": "image/png",
+      "width": 1600,
+      "height": 1000,
+      "sha256": "01f654d0b7c0c4987567aedf55f3b0eb661ea0619afa7014d631fc5422daff01",
+      "origin": "Project-authored synthetic SVG rendered by render-fixtures.ps1.",
+      "definition": "source-definitions/empty-desk.svg",
+      "containsPersonalData": false
+    },
+    {
+      "id": "single-receipt",
+      "path": "sources/single-receipt.png",
+      "contentType": "image/png",
+      "width": 800,
+      "height": 1200,
+      "sha256": "bce351a05c9df0da050672bd14151093b16015cda6c43132d1aafc18f31881aa",
+      "origin": "Project-authored synthetic SVG rendered by render-fixtures.ps1.",
+      "definition": "source-definitions/single-receipt.svg",
+      "containsPersonalData": false
+    },
+    {
+      "id": "natural-desk-three-documents",
+      "path": "sources/natural-desk-three-documents.png",
+      "contentType": "image/png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "d61b24fa91552c72e25fb895fcbc5508eff1fcf5e2b333f77f93bd0f7f3af08e",
+      "origin": "Generated for this repository with OpenAI built-in image generation; fictional text only.",
+      "generationNotes": "generation-notes.md",
+      "containsPersonalData": false
+    },
+    {
+      "id": "overlapping-receipts",
+      "path": "sources/overlapping-receipts.png",
+      "contentType": "image/png",
+      "width": 1600,
+      "height": 1000,
+      "sha256": "7b1356ec6dea26dd9eb0f57afe1a49a4ecdd6fcdadef81f1ba5bfc166dece6b1",
+      "origin": "Project-authored synthetic SVG rendered by render-fixtures.ps1.",
+      "definition": "source-definitions/overlapping-receipts.svg",
+      "containsPersonalData": false
+    },
+    {
+      "id": "receipt-and-ticket",
+      "path": "sources/receipt-and-ticket.png",
+      "contentType": "image/png",
+      "width": 1600,
+      "height": 1000,
+      "sha256": "7b052881cf768ca491c38d51217eb90b546236efc8ba9a2ec00631802f878999",
+      "origin": "Project-authored synthetic SVG rendered by render-fixtures.ps1.",
+      "definition": "source-definitions/receipt-and-ticket.svg",
+      "containsPersonalData": false
+    },
+    {
+      "id": "invalid-source",
+      "path": "sources/invalid-source.jpg",
+      "contentType": "image/jpeg",
+      "width": null,
+      "height": null,
+      "sha256": "727d417898e7eaf708621c017c20ad0e38fbe7b88885de9727d10baf8af95cfe",
+      "origin": "Project-authored text bytes deliberately given an image extension to exercise decode failure.",
+      "containsPersonalData": false
+    },
+    {
+      "id": "expense-valid",
+      "path": "sources/expense-valid.png",
+      "contentType": "image/png",
+      "width": 1000,
+      "height": 1400,
+      "sha256": "50a861cb23e3acdab133592283c25ac7412b0b39c6b294e442054e65dbe1258c",
+      "origin": "Project-authored synthetic SVG rendered by render-fixtures.ps1.",
+      "definition": "source-definitions/expense-valid.svg",
+      "containsPersonalData": false
+    },
+    {
+      "id": "expense-invalid-total",
+      "path": "sources/expense-invalid-total.png",
+      "contentType": "image/png",
+      "width": 1000,
+      "height": 1400,
+      "sha256": "5eea986c9869817f842f1a507dbe8468c7540055060ca59e3ef946f1c1621872",
+      "origin": "Project-authored synthetic SVG rendered by render-fixtures.ps1.",
+      "definition": "source-definitions/expense-invalid-total.svg",
+      "containsPersonalData": false
+    },
+    {
+      "id": "expense-repairable",
+      "path": "sources/expense-repairable.png",
+      "contentType": "image/png",
+      "width": 1000,
+      "height": 1400,
+      "sha256": "d58eda2ba645c00ed2fdbacd890d43699570a310b7ca744fe72a3c55176531a7",
+      "origin": "Project-authored synthetic SVG rendered by render-fixtures.ps1.",
+      "definition": "source-definitions/expense-repairable.svg",
+      "containsPersonalData": false
+    },
+    {
+      "id": "expense-review",
+      "path": "sources/expense-review.png",
+      "contentType": "image/png",
+      "width": 1000,
+      "height": 1400,
+      "sha256": "ebb1f17ff1362093e9f5d18cc387a0cbf371e375f757b04119119dfe1d101aad",
+      "origin": "Project-authored synthetic SVG rendered by render-fixtures.ps1.",
+      "definition": "source-definitions/expense-review.svg",
+      "containsPersonalData": false
+    }
+  ],
+  "cases": [
+    {
+      "id": "capture-single-source-single-document",
+      "kind": "CompositeCapture",
+      "covers": ["single-source", "single-document", "accepted"],
+      "sources": [
+        {
+          "assetId": "single-receipt",
+          "expectedSourceStatus": "Succeeded",
+          "regions": [
+            {
+              "bounds": { "x": 0.125, "y": 0.041667, "width": 0.75, "height": 0.916667 },
+              "detectionConfidence": 0.98,
+              "expectedClassification": "Receipt",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Accepted"
+            }
+          ]
+        }
+      ],
+      "expectedCaptureStatus": "Succeeded"
+    },
+    {
+      "id": "capture-single-source-three-documents",
+      "kind": "CompositeCapture",
+      "covers": ["single-source", "multi-document", "natural-photo", "accepted"],
+      "sources": [
+        {
+          "assetId": "natural-desk-three-documents",
+          "expectedSourceStatus": "Succeeded",
+          "regions": [
+            {
+              "bounds": { "x": 0.108, "y": 0.203, "width": 0.199, "height": 0.557 },
+              "detectionConfidence": 0.96,
+              "expectedClassification": "Receipt",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Accepted"
+            },
+            {
+              "bounds": { "x": 0.342, "y": 0.107, "width": 0.215, "height": 0.783 },
+              "detectionConfidence": 0.97,
+              "expectedClassification": "Receipt",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Accepted"
+            },
+            {
+              "bounds": { "x": 0.618, "y": 0.187, "width": 0.307, "height": 0.648 },
+              "detectionConfidence": 0.98,
+              "expectedClassification": "ShoppingList",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Accepted"
+            }
+          ]
+        }
+      ],
+      "expectedCaptureStatus": "Succeeded"
+    },
+    {
+      "id": "capture-multiple-sources",
+      "kind": "CompositeCapture",
+      "covers": ["multi-source", "multi-document", "accepted"],
+      "sources": [
+        {
+          "assetId": "single-receipt",
+          "expectedSourceStatus": "Succeeded",
+          "regions": [
+            {
+              "bounds": { "x": 0.125, "y": 0.041667, "width": 0.75, "height": 0.916667 },
+              "expectedClassification": "Receipt",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Accepted"
+            }
+          ]
+        },
+        {
+          "assetId": "receipt-and-ticket",
+          "expectedSourceStatus": "PartiallySucceeded",
+          "regions": [
+            {
+              "bounds": { "x": 0.075, "y": 0.088, "width": 0.325, "height": 0.804 },
+              "expectedClassification": "Receipt",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Accepted"
+            },
+            {
+              "bounds": { "x": 0.559, "y": 0.211, "width": 0.332, "height": 0.348 },
+              "expectedClassification": "Unknown",
+              "expectedChildIsSuccess": false,
+              "expectedValidation": "Invalid",
+              "expectedHumanReview": "Required",
+              "expectedDisposition": "Rejected"
+            }
+          ]
+        }
+      ],
+      "expectedCaptureStatus": "PartiallySucceeded"
+    },
+    {
+      "id": "capture-overlapping-documents",
+      "kind": "CompositeCapture",
+      "covers": ["overlap", "review"],
+      "sources": [
+        {
+          "assetId": "overlapping-receipts",
+          "expectedSourceStatus": "Succeeded",
+          "expectedWarnings": ["detected regions overlap"],
+          "regions": [
+            {
+              "bounds": { "x": 0.171, "y": 0.104, "width": 0.345, "height": 0.793 },
+              "expectedClassification": "Receipt",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Review"
+            },
+            {
+              "bounds": { "x": 0.406, "y": 0.16, "width": 0.351, "height": 0.761 },
+              "expectedClassification": "Receipt",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Review"
+            }
+          ]
+        }
+      ],
+      "expectedCaptureStatus": "Succeeded"
+    },
+    {
+      "id": "capture-duplicate-detection",
+      "kind": "CompositeCapture",
+      "covers": ["duplicate", "rejected-region", "no-duplicate-model-charge"],
+      "sources": [
+        {
+          "assetId": "single-receipt",
+          "expectedSourceStatus": "PartiallySucceeded",
+          "regions": [
+            {
+              "bounds": { "x": 0.125, "y": 0.041667, "width": 0.75, "height": 0.916667 },
+              "expectedRegionValidation": "Accepted",
+              "expectedClassification": "Receipt",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Accepted"
+            },
+            {
+              "bounds": { "x": 0.127, "y": 0.043, "width": 0.748, "height": 0.914 },
+              "expectedRegionValidation": "RejectedDuplicate",
+              "expectedClassification": null,
+              "expectedChildIsSuccess": null,
+              "expectedValidation": "NotRun",
+              "expectedHumanReview": "NotRun",
+              "expectedDisposition": "Rejected"
+            }
+          ]
+        }
+      ],
+      "expectedCaptureStatus": "PartiallySucceeded"
+    },
+    {
+      "id": "capture-unsupported-member",
+      "kind": "CompositeCapture",
+      "covers": ["unsupported-member", "partial-success", "rejected"],
+      "sources": [
+        {
+          "assetId": "receipt-and-ticket",
+          "expectedSourceStatus": "PartiallySucceeded",
+          "regions": [
+            {
+              "bounds": { "x": 0.075, "y": 0.088, "width": 0.325, "height": 0.804 },
+              "expectedClassification": "Receipt",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Accepted"
+            },
+            {
+              "bounds": { "x": 0.559, "y": 0.211, "width": 0.332, "height": 0.348 },
+              "expectedClassification": "Unknown",
+              "expectedChildIsSuccess": false,
+              "expectedValidation": "Invalid",
+              "expectedHumanReview": "Required",
+              "expectedDisposition": "Rejected"
+            }
+          ]
+        }
+      ],
+      "expectedCaptureStatus": "PartiallySucceeded"
+    },
+    {
+      "id": "capture-source-failure-with-valid-sibling",
+      "kind": "CompositeCapture",
+      "covers": ["source-failure", "failure-isolation", "partial-success"],
+      "sources": [
+        {
+          "assetId": "invalid-source",
+          "expectedSourceStatus": "Failed",
+          "expectedErrorCode": "invalid_document_image",
+          "regions": []
+        },
+        {
+          "assetId": "single-receipt",
+          "expectedSourceStatus": "Succeeded",
+          "regions": [
+            {
+              "bounds": { "x": 0.125, "y": 0.041667, "width": 0.75, "height": 0.916667 },
+              "expectedClassification": "Receipt",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Accepted"
+            }
+          ]
+        }
+      ],
+      "expectedCaptureStatus": "PartiallySucceeded"
+    },
+    {
+      "id": "capture-no-useful-region",
+      "kind": "CompositeCapture",
+      "covers": ["zero-region", "failed-capture"],
+      "sources": [
+        {
+          "assetId": "empty-desk",
+          "expectedSourceStatus": "Failed",
+          "expectedErrorCode": "no_usable_document_region",
+          "regions": []
+        }
+      ],
+      "expectedCaptureStatus": "Failed"
+    },
+    {
+      "id": "capture-low-detection-confidence-review",
+      "kind": "CompositeCapture",
+      "covers": ["review", "advisory-detection-confidence"],
+      "sources": [
+        {
+          "assetId": "natural-desk-three-documents",
+          "expectedSourceStatus": "Succeeded",
+          "regions": [
+            {
+              "bounds": { "x": 0.108, "y": 0.203, "width": 0.199, "height": 0.557 },
+              "detectionConfidence": 0.62,
+              "expectedClassification": "Receipt",
+              "expectedChildIsSuccess": true,
+              "expectedValidation": "Valid",
+              "expectedHumanReview": "NotRequired",
+              "expectedDisposition": "Review"
+            }
+          ]
+        }
+      ],
+      "expectedCaptureStatus": "Succeeded"
+    },
+    {
+      "id": "expense-report-valid",
+      "kind": "ExpenseReport",
+      "covers": ["valid", "attestation-review"],
+      "assetId": "expense-valid",
+      "expectedClassification": "ExpenseReport",
+      "classificationConfidence": 0.97,
+      "modelOutputs": {
+        "claimedTotal": 48.50,
+        "currency": "GBP",
+        "lineAmounts": [18.50, 30.00]
+      },
+      "expectedValidation": "Valid",
+      "expectedRepairCalls": 0,
+      "expectedIsSuccess": true,
+      "expectedHumanReview": "Required",
+      "expectedDisposition": "Review",
+      "expectedReviewReasons": ["ownership attestation required"]
+    },
+    {
+      "id": "expense-report-invalid-total",
+      "kind": "ExpenseReport",
+      "covers": ["invalid", "arithmetic", "rejected"],
+      "assetId": "expense-invalid-total",
+      "expectedClassification": "ExpenseReport",
+      "classificationConfidence": 0.97,
+      "modelOutputs": {
+        "claimedTotal": 60.00,
+        "currency": "GBP",
+        "lineAmounts": [18.50, 30.00]
+      },
+      "expectedValidation": "Invalid",
+      "expectedValidationReasons": ["claimed total does not equal the sum of line amounts"],
+      "expectedRepairCalls": 0,
+      "expectedIsSuccess": false,
+      "expectedHumanReview": "Required",
+      "expectedDisposition": "Rejected"
+    },
+    {
+      "id": "expense-report-repairable",
+      "kind": "ExpenseReport",
+      "covers": ["repairable", "one-bounded-repair"],
+      "assetId": "expense-repairable",
+      "expectedClassification": "ExpenseReport",
+      "classificationConfidence": 0.96,
+      "modelOutputs": {
+        "firstExtraction": { "claimedTotal": 48.50, "currency": "GBP", "lineAmounts": [18.50] },
+        "repairExtraction": { "claimedTotal": 48.50, "currency": "GBP", "lineAmounts": [18.50, 30.00] }
+      },
+      "expectedFirstValidation": "Invalid",
+      "expectedValidation": "Valid",
+      "expectedRepairCalls": 1,
+      "expectedIsSuccess": true,
+      "expectedHumanReview": "Required",
+      "expectedDisposition": "Review"
+    },
+    {
+      "id": "expense-report-review-required",
+      "kind": "ExpenseReport",
+      "covers": ["valid", "high-value", "missing-receipt-reference", "review"],
+      "assetId": "expense-review",
+      "expectedClassification": "ExpenseReport",
+      "classificationConfidence": 0.96,
+      "modelOutputs": {
+        "claimedTotal": 480.00,
+        "currency": "GBP",
+        "lineAmounts": [480.00],
+        "receiptReferences": []
+      },
+      "expectedValidation": "Valid",
+      "expectedRepairCalls": 0,
+      "expectedIsSuccess": true,
+      "expectedHumanReview": "Required",
+      "expectedDisposition": "Review",
+      "expectedReviewReasons": [
+        "ownership attestation required",
+        "high-value expense requires review",
+        "receipt reference is not visible"
+      ]
+    }
+  ]
+}

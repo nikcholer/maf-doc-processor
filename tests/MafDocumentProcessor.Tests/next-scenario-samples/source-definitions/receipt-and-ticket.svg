@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <rect width="1600" height="1000" fill="#bca98d"/>
+  <g transform="rotate(-3 380 490)">
+    <rect x="140" y="100" width="480" height="780" fill="#fffdf7" stroke="#514c45" stroke-width="3"/>
+    <g fill="#222" font-family="Consolas, monospace">
+      <text x="380" y="180" font-size="30" font-weight="700" text-anchor="middle">MEADOW MARKET</text>
+      <text x="190" y="250" font-size="20">MILK</text><text x="570" y="250" font-size="20" text-anchor="end">GBP 2.40</text>
+      <text x="190" y="300" font-size="20">BREAD</text><text x="570" y="300" font-size="20" text-anchor="end">GBP 1.80</text>
+      <line x1="185" y1="350" x2="575" y2="350" stroke="#333" stroke-width="2" stroke-dasharray="8 7"/>
+      <text x="190" y="410" font-size="22" font-weight="700">TOTAL</text><text x="570" y="410" font-size="22" font-weight="700" text-anchor="end">GBP 4.20</text>
+      <text x="380" y="760" font-size="19" text-anchor="middle">SYNTHETIC RECEIPT</text>
+    </g>
+  </g>
+  <g transform="rotate(2 1160 385)">
+    <rect x="900" y="220" width="520" height="330" rx="18" fill="#f4e4ad" stroke="#514c45" stroke-width="4"/>
+    <g fill="#26221b" font-family="Arial, sans-serif" text-anchor="middle">
+      <text x="1160" y="305" font-size="34" font-weight="700">RIVER HALL</text>
+      <text x="1160" y="365" font-size="27">EVENT TICKET</text>
+      <text x="1160" y="425" font-size="23">SEAT B12 · 20 AUG 2026</text>
+      <text x="1160" y="490" font-size="21">FICTIONAL · ADMIT ONE</text>
+    </g>
+  </g>
+</svg>
