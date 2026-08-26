@@ -31,6 +31,8 @@ public sealed class ApiDemoTests
         Assert.Equal(500, settings.DocumentExtraction.RetryBaseDelayMilliseconds);
         Assert.Equal(0.10m, settings.DocumentExtraction.InputTokenPricePerMillionUsd);
         Assert.Equal(0.15m, settings.DocumentExtraction.OutputTokenPricePerMillionUsd);
+        Assert.Equal("Qwen/Qwen3.5-9B", settings.DocumentRegionDetection.ModelId);
+        Assert.Equal("document-region-detection", settings.DocumentRegionDetection.ServiceId);
         Assert.Equal("google/gemma-4-31B-it", settings.TextTesting.ModelId);
     }
 
@@ -85,7 +87,8 @@ public sealed class ApiDemoTests
                 ["ModelImagePreprocessing:Enabled"] = "true",
                 ["ModelImagePreprocessing:ClassificationMaxLongEdgePixels"] = "960",
                 ["ModelImagePreprocessing:ExtractionMaxLongEdgePixels"] = "1800",
-                ["ModelImagePreprocessing:JpegQuality"] = "82"
+                ["ModelImagePreprocessing:JpegQuality"] = "82",
+                ["ModelImagePreprocessing:RegionDetectionMaxLongEdgePixels"] = "1400"
             })
             .Build();
 
@@ -95,6 +98,7 @@ public sealed class ApiDemoTests
         Assert.Equal(960, settings.ClassificationMaxLongEdgePixels);
         Assert.Equal(1800, settings.ExtractionMaxLongEdgePixels);
         Assert.Equal(82, settings.JpegQuality);
+        Assert.Equal(1400, settings.RegionDetectionMaxLongEdgePixels);
     }
 
     [Fact]

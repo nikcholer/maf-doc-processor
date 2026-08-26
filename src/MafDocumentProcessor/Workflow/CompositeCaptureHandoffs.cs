@@ -52,10 +52,20 @@ public sealed record CaptureSourceDetectionInput(
 public sealed record CaptureSourceDetectionOutput(
     CaptureWorkflowContext Context,
     CompositeCaptureSource Source,
-    IReadOnlyList<DetectedDocumentRegion> Regions,
+    CaptureSourceImageMetadata? ImageMetadata,
+    OrientedCaptureSourceImage? OrientedSource,
+    IReadOnlyList<DocumentRegionProposal> Proposals,
     DocumentModelUsage ModelUsage,
     IReadOnlyList<CaptureProcessingError> Errors,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings) : IDisposable
+{
+    public bool IsSuccess => Errors.Count == 0;
+
+    public void Dispose()
+    {
+        OrientedSource?.Dispose();
+    }
+}
 
 public sealed record CaptureRegionValidationInput(
     CaptureWorkflowContext Context,

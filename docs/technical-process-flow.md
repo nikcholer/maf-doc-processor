@@ -133,6 +133,39 @@ Code:
 
 The original upload remains intact at intake. The model-facing image can be resized/downsampled per purpose to reduce latency and token/image cost.
 
+## Composite Capture Source Detection (E3)
+
+The composite-capture endpoint and UI are not connected yet, but the first source-processing boundary is implemented for the E3 workflow:
+
+```text
+CompositeCaptureSource
+  -> CaptureSourceImageDecoder
+     -> check declared type, extension, bytes, decoded format, and dimensions
+     -> decode pixels once and apply EXIF orientation
+     -> retain OrientedCaptureSourceImage in request-scoped memory
+  -> CaptureDetectionImagePreparer
+     -> clone and resize a model-facing JPEG derivative
+  -> ModelDocumentRegionDetector
+     -> one DocumentRegionDetection model call
+  -> DocumentRegionResponseParser
+     -> typed, still-untrusted DocumentRegionProposal values
+  -> CaptureSourceDetectionOutput
+```
+
+The names above are project code except for ImageSharp's decoding and orientation operations. `DocumentRegionDetection` is a project configuration role; it is not a MAF or .NET feature.
+
+`CaptureSourceDetectionExecutor` is the MAF adapter around this boundary. It is a project-owned class derived from MAF's `Executor<CaptureSourceDetectionInput, CaptureSourceDetectionOutput>`. It emits project-owned `CaptureSourceDecodedEvent` and `CaptureSourceDetectionCompletedEvent` records with trace, capture, caller-source, and source-item identifiers. The bounded parent graph that will run several of these executors is deferred to the orchestration task.
+
+The detector does not decide whether a rectangle is usable. Its output uses `ProposedNormalizedBounds`, which can represent an out-of-range model answer. The next deterministic stage will reject bad coordinates, duplicates, or negligible regions and will convert accepted proposals into the stricter `NormalizedBounds` type. This is why detection JSON can be parsed successfully without being trusted.
+
+Expected source-level failures are data rather than workflow crashes:
+
+- an invalid source produces `invalid_capture_source` and no model call;
+- invalid model JSON preserves the call's known usage and produces `model_response_invalid`;
+- detector timeout or provider failure produces a source error;
+- missing model configuration still fails the whole request; and
+- cancellation propagates immediately.
+
 ## MAF Workflow Usage
 
 The production path uses one Microsoft Agent Framework workflow from classification through the final document result.

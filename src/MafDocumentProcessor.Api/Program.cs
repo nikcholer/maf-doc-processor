@@ -26,7 +26,19 @@ builder.Services.AddSingleton(ApiConfigurationLoader.LoadModelImagePreprocessing
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadReceiptPolicyOptions(builder.Configuration));
 builder.Services.AddSingleton<DocumentImageValidator>();
 builder.Services.AddSingleton<IModelImagePreprocessor, ModelImagePreprocessor>();
+builder.Services.AddSingleton<ICaptureSourceImageDecoder, CaptureSourceImageDecoder>();
+builder.Services.AddSingleton<ICaptureDetectionImagePreparer, CaptureDetectionImagePreparer>();
 builder.Services.AddSingleton<IModelChatClient, OpenAICompatibleModelChatClient>();
+builder.Services.AddScoped<IDocumentRegionDetector>(sp =>
+{
+    var settings = sp.GetRequiredService<AiModelSettings>();
+    return new ModelDocumentRegionDetector(
+        sp.GetRequiredService<IModelChatClient>(),
+        sp.GetRequiredService<ICaptureDetectionImagePreparer>(),
+        settings.DocumentRegionDetection,
+        sp.GetRequiredService<CompositeCaptureOptions>());
+});
+builder.Services.AddScoped<ICaptureSourceDetectionService, CaptureSourceDetectionService>();
 builder.Services.AddScoped<IDocumentClassifier>(sp =>
 {
     var settings = sp.GetRequiredService<AiModelSettings>();

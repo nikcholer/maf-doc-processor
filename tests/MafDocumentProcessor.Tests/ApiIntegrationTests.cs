@@ -525,6 +525,10 @@ public sealed class ApiIntegrationTests
                 defaults.TextTesting with
                 {
                     ApiKeyEnvironmentVariable = apiKeyEnvironmentVariable
+                },
+                defaults.DocumentRegionDetection with
+                {
+                    ApiKeyEnvironmentVariable = apiKeyEnvironmentVariable
                 });
         }
     }
