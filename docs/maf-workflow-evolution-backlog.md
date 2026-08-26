@@ -187,6 +187,10 @@ Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc
 
 **Exit criteria:** Documentation matches the implementation, required checks pass, operational trade-offs are recorded, and the new milestone is reproducible from a clean checkout.
 
+## Icebox
+
+- Evaluate alternative vision models for document-region detection if Qwen's tight boxes remain a quality limit after the current padding and main-document prompts. Tracked as [#53](https://github.com/nikcholer/maf-doc-processor/issues/53).
+
 ## Explicit Non-Goals for the Initial Evolution
 
 - Public hosting, authentication, quotas, and abuse prevention unless separately approved.
