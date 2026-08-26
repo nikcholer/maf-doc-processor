@@ -109,7 +109,7 @@ Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc
 - [x] Isolate non-cancellation source and member failures without discarding trustworthy siblings.
 - [x] Preserve correlation and account for every detection, classification, extraction, and repair call exactly once.
 - [x] Emit progress events for source detection, member routing, completion, and aggregation.
-- [ ] Add per-source annotated previews with accessible accepted, review, and rejected treatments.
+- [x] Add per-source annotated previews with accessible accepted, review, and rejected treatments.
 - [ ] Cover single-source, multi-source, overlapping, duplicate, unsupported, partial-failure, timeout, and cancellation paths.
 - [ ] Compare bounded parallel execution with a sequential baseline for latency and resource use.
 

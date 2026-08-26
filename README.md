@@ -12,6 +12,7 @@ The local vertical slice is complete and covered by unit and API integration tes
 - Shopping lists, including item validation.
 - Sujiko puzzles, including quadrant-total and given-cell validation. The current scope extracts the starting state; it does not solve the puzzle.
 - Human-review recommendations returned with the response. There is no reviewer queue or pause/resume flow yet.
+- A two-mode local UI: direct single-document processing and composite capture with multi-source previews, annotated document regions, and accessible member inspection.
 - An opt-in Analyst/Critic quality-review prototype. It is not part of the default API path because its quality benefit has not yet been measured against a representative sample set.
 
 The [initial migration backlog](docs/maf-migration-backlog.md) records the completed milestones. Forward architectural work is tracked in the [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md).
@@ -20,6 +21,7 @@ The [initial migration backlog](docs/maf-migration-backlog.md) records the compl
 
 - .NET SDK `10.0.400` or a compatible later .NET 10 feature band. The repository pins this in `global.json`.
 - A TogetherAI API key in `TOGETHER_API_KEY` for live processing.
+- Node.js 18 or later only when running the dependency-free browser UI model tests.
 
 Set the API key for your Windows user:
 
@@ -42,7 +44,7 @@ dotnet restore .\MafDocumentProcessor.sln
 dotnet run --project .\src\MafDocumentProcessor.Api\MafDocumentProcessor.Api.csproj
 ```
 
-Then open <http://127.0.0.1:5095/>. The launch profile binds to that address by default.
+Then open <http://127.0.0.1:5095/>. The launch profile binds to that address by default. Choose **Single document** for the original direct route or **Capture set** to submit up to five source images and inspect every detected document on its source preview.
 
 If the API is already running, stop it before rebuilding so Windows does not keep the output executable locked.
 
@@ -116,6 +118,12 @@ The normal suite includes a small, non-confidential [golden set](docs/golden-set
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~GoldenSetTests
 ```
 
+The annotated-capture UI keeps its geometry, selection, status, and accessibility model dependency-free. Run those focused checks with Node's built-in test runner:
+
+```powershell
+node --test .\tests\ui\capture-ui.test.cjs
+```
+
 ## Configuration
 
 Runtime settings live in [appsettings.json](src/MafDocumentProcessor.Api/appsettings.json):
@@ -140,7 +148,7 @@ The child workflows use deterministic executors around model extraction, validat
 
 The provider boundary is a local `IModelChatClient` abstraction. It is retained because TogetherAI-specific protocol options are required to disable Qwen thinking mode. OpenAI-compatible clients are cached by model settings, and transient provider failures use bounded retries.
 
-The E3 composite-capture workflow is exposed as `POST /api/document-captures/process`. It detects and crops regions from each source, then processes accepted members through the same reusable document workflow used by individual uploads, using a fixed number of source and member lanes. The demo UI still uses the individual-document path; annotated capture previews are a later E3 task. See the [technical process flow](docs/technical-process-flow.md#composite-capture-orchestration-e3) and [composite capture contract](docs/composite-capture-contract.md).
+The E3 composite-capture workflow is exposed as `POST /api/document-captures/process`. It detects and crops regions from each source, then processes accepted members through the same reusable document workflow used by individual uploads, using a fixed number of source and member lanes. The demo UI offers this as an additive **Capture set** mode. It retains the selected local images, draws the response's normalized bounds or outlines over the correctly ordered source previews, and exposes accepted, review, rejected, and failed outcomes through both symbols and text. Selecting an overlay or member row reveals that document's extracted data and findings. See the [technical process flow](docs/technical-process-flow.md#composite-capture-orchestration-e3) and [composite capture contract](docs/composite-capture-contract.md).
 
 The demo is local-only. It has no authentication, persistence, workflow history, reviewer UI, or external hosting. Durable pause/resume is deliberately deferred while processing remains bounded foreground HTTP work; failed or canceled requests are safe to resubmit.
 

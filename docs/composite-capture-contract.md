@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines the accepted contract for composite document capture. Shared types, configuration, source decoding/orientation, one-call region detection, deterministic region validation, high-resolution cropping, bounded source/member orchestration, and `POST /api/document-captures/process` are implemented. Annotated capture previews in the UI are still being delivered through E3. The existing single-document API has not changed.
+This document defines the accepted contract for composite document capture. Shared types, configuration, source decoding/orientation, one-call region detection, deterministic region validation, high-resolution cropping, bounded source/member orchestration, `POST /api/document-captures/process`, and annotated capture previews in the local UI are implemented. The existing single-document API and UI mode remain available.
 
 Model and deterministic responsibilities are defined in [Capture and expense report model boundaries](capture-expense-model-boundaries.md).
 
@@ -166,7 +166,7 @@ Colour is not the only signal: tick, question-mark, and cross symbols have acces
 
 The canonical API response remains geometry and structured status rather than additional encoded copies of the source images. The browser retains local previews of the selected files, so it can render overlays without another image payload. An optional **Download annotated image** action may rasterize one selected source preview and its vector overlay client-side; the downloaded image is a presentation artifact, not a persisted processing result.
 
-The implementation must test overlay alignment for normal and EXIF-rotated fixtures and at responsive display sizes. The preview, source pixel dimensions, and normalized coordinates must all use the same orientation convention.
+The browser renders overlays in a `0`–`100` vector coordinate space directly over each locally retained image, so the API's normalized coordinates scale with the preview at every responsive size. Modern browser image decoding applies EXIF orientation before display; the UI also compares the preview aspect ratio with the API's oriented source dimensions and surfaces a warning when they disagree. Pure UI-model tests cover bounds and outline mapping at desktop, mobile, and portrait/rotated dimensions, while API/image tests retain server-side EXIF coverage.
 
 ## Deterministic Region Validation
 
