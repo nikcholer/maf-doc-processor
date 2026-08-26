@@ -59,7 +59,7 @@ The pinned `Microsoft.Agents.AI.Workflows` 1.19.0 package directly supports the 
 The selected implementation will therefore:
 
 1. Add a project-owned classification executor. It will prepare the classification image, call `IDocumentClassifier` once, record classification usage and metadata, prepare the extraction image when needed, and produce a `ClassifiedDocument`.
-2. Move construction of each existing document graph into a reusable builder method. These methods will still connect the same project-owned extraction, validation, repair, policy, and result executors.
+2. Use `DocumentWorkflowFactory`, which now builds each existing document graph through a reusable project-owned method. These methods connect the same extraction, validation, repair, policy, and result executors used by the current path.
 3. Bind the receipt, shopping-list, and Sujiko workflows as child workflow executors in the top-level graph.
 4. Add a project-owned unsupported-document executor for `Invoice` and `Unknown` classifications.
 5. Connect classification to those four destinations using labelled, typed conditional edges.
@@ -116,7 +116,7 @@ MAF 1.19.0 also provides an `AddSwitch` builder. The project already selected ty
 
 The production work should remain split into reviewable changes:
 
-1. Extract reusable builders for the existing document workflows without changing routing.
+1. **Completed:** extract `DocumentWorkflowFactory` builders for the existing document workflows without changing routing.
 2. Add the classification and unsupported-result executors with focused tests.
 3. Build and enable the top-level graph with conditional edges and bound child workflows.
 4. Add full topology, cancellation, event, golden-set, API contract, and model-call-count regression coverage.

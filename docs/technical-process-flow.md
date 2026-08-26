@@ -149,6 +149,9 @@ Main MAF concepts used:
 Shared orchestration code:
 
 - `src/MafDocumentProcessor/Workflow/DocumentProcessingWorkflow.cs`
+- `src/MafDocumentProcessor/Workflow/DocumentWorkflowFactory.cs`
+
+`DocumentProcessingWorkflow` currently classifies the image, selects a route with a C# `switch`, runs the selected MAF graph, and interprets its output or error events. `DocumentWorkflowFactory` owns the reusable graph definitions for receipts, shopping lists, and Sujiko puzzles. It creates and connects the document-specific executors but does not classify documents or choose which graph to run.
 
 The app currently uses local in-process workflows only. Durable pause/resume is deliberately deferred; see `docs/durability-decision.md`.
 
@@ -164,6 +167,8 @@ ClassifiedDocument
   -> optional policy executor
   -> result executor
 ```
+
+The three graphs are built by the project-owned `DocumentWorkflowFactory` using MAF's `WorkflowBuilder`. They can be executed on their own and are ready to be bound as child workflows when the top-level routing graph is introduced.
 
 ### Receipt
 
@@ -353,5 +358,5 @@ The live asset regression is opt-in:
 
 ```powershell
 $env:MAF_RUN_LIVE_ASSET_TESTS = "1"
-dotnet test .\MafDocumentProcessor.sln --no-restore -p:UseAppHost=false -p:OutDir=.build\test\ --filter "SujikoAssetRegressionTests.ExtractSujikoPuzzleAsync_CanBeLiveCheckedAgainstRotatedAsset"
+dotnet test .\MafDocumentProcessor.sln --no-restore -p:UseAppHost=false -p:OutDir=.build\test\ --filter "FullyQualifiedName~RunAsync_CanBeLiveCheckedAndMeasuredAgainstRotatedSujikoAsset"
 ```

@@ -63,11 +63,16 @@ Decide these first:
 
    Model-call executors should link the workflow cancellation token with the executor token, matching the receipt and shopping-list executors.
 
-7. Route the category in `DocumentProcessingWorkflow`.
+7. Build the document graph and route the category.
 
-   File: `src/MafDocumentProcessor/Workflow/DocumentProcessingWorkflow.cs`
+   Files:
 
-   Add a `Run{Type}WorkflowAsync` method and route the new `DocumentCategory` in the classification switch.
+   - `src/MafDocumentProcessor/Workflow/DocumentWorkflowFactory.cs`
+   - `src/MafDocumentProcessor/Workflow/DocumentProcessingWorkflow.cs`
+
+   Add a `Build{Type}Workflow` method to the project-owned factory. Connect the new executors with MAF's `WorkflowBuilder`, give the workflow a clear name and description, and expose its result executor with `WithOutputFrom`.
+
+   Then add a `Run{Type}WorkflowAsync` method and route the new `DocumentCategory` in the current classification switch. The switch remains the production route until the planned top-level MAF graph replaces it.
 
 8. Register services in the API host.
 
