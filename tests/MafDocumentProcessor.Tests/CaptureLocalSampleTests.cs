@@ -104,16 +104,25 @@ public sealed class CaptureLocalSampleTests(ITestOutputHelper output)
                 proposal.Confidence);
         }
 
+        var cropDirectory = Path.Combine(
+            Path.GetDirectoryName(samplePath) ?? ".",
+            "crops",
+            Path.GetFileNameWithoutExtension(samplePath));
+        Directory.CreateDirectory(cropDirectory);
+
         foreach (var member in validation.AcceptedMembers)
         {
             using var crop = Image.Load(member.CropRequest.Content);
+            var cropPath = Path.Combine(cropDirectory, member.CropRequest.FileName);
+            await File.WriteAllBytesAsync(cropPath, member.CropRequest.Content, cancellationToken);
             output.WriteLine(
-                "  member {0}: crop {1}x{2} at {3},{4}",
+                "  member {0}: crop {1}x{2} at {3},{4} -> {5}",
                 member.Member.MemberId,
                 crop.Width,
                 crop.Height,
                 member.CropPixels.X,
-                member.CropPixels.Y);
+                member.CropPixels.Y,
+                cropPath);
             Assert.Equal(member.CropPixels.Width, crop.Width);
             Assert.Equal(member.CropPixels.Height, crop.Height);
         }
@@ -161,7 +170,6 @@ public sealed class CaptureLocalSampleTests(ITestOutputHelper output)
             "..",
             "..",
             "..",
-            "..",
             "assets",
             "local")));
 
@@ -169,8 +177,11 @@ public sealed class CaptureLocalSampleTests(ITestOutputHelper output)
             .Where(Directory.Exists)
             .SelectMany(directory => Directory.EnumerateFiles(directory)
                 .Where(path => GetContentType(path) is not null))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+            .Select(group => group
+                .OrderBy(path => path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}") ? 1 : 0)
+                .First())
+            .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
 
