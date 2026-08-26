@@ -1,4 +1,5 @@
 using System.Reflection;
+using MafDocumentProcessor.Domain;
 using Microsoft.Agents.AI.Workflows;
 
 namespace MafDocumentProcessor.Tests;
@@ -6,56 +7,87 @@ namespace MafDocumentProcessor.Tests;
 public sealed class MafWorkflowCompatibilityTests
 {
     [Theory]
-    [InlineData(4, 8, "positive-subworkflow")]
-    [InlineData(-4, -5, "negative-route")]
-    public async Task ConditionalRoute_UsesExactlyOneTypedDestination(
-        int input,
-        int expectedOutput,
+    [InlineData(DocumentCategory.Receipt, "receipt-workflow")]
+    [InlineData(DocumentCategory.ShoppingList, "shopping-list-workflow")]
+    [InlineData(DocumentCategory.SujikoPuzzle, "sujiko-workflow")]
+    [InlineData(DocumentCategory.Invoice, "unsupported-document")]
+    [InlineData(DocumentCategory.Unknown, "unsupported-document")]
+    public async Task DocumentCategoryRoute_UsesExactlyOneWorkflowDestination(
+        DocumentCategory category,
         string expectedDestination)
     {
-        var route = new RouteExecutor();
-        var multiply = new MultiplyExecutor();
-        var positiveWorkflow = new WorkflowBuilder(multiply)
-            .WithOutputFrom(multiply)
-            .WithName("Positive Route")
-            .Build();
-        var positive = positiveWorkflow.BindAsExecutor("positive-subworkflow");
-        var negative = new NegativeRouteExecutor();
+        var classification = new ClassificationRouteExecutor();
+        var receipt = BuildDocumentRouteWorkflow(DocumentCategory.Receipt, "receipt")
+            .BindAsExecutor("receipt-workflow");
+        var shoppingList = BuildDocumentRouteWorkflow(DocumentCategory.ShoppingList, "shopping-list")
+            .BindAsExecutor("shopping-list-workflow");
+        var sujiko = BuildDocumentRouteWorkflow(DocumentCategory.SujikoPuzzle, "sujiko")
+            .BindAsExecutor("sujiko-workflow");
+        var unsupported = new UnsupportedDocumentRouteExecutor();
 
-        var workflow = new WorkflowBuilder(route)
-            .AddEdge<int>(route, positive, value => value >= 0, "non-negative")
-            .AddEdge<int>(route, negative, value => value < 0, "negative")
-            .WithOutputFrom(positive, negative)
-            .WithName("Conditional Compatibility")
+        var workflow = new WorkflowBuilder(classification)
+            .AddEdge<ClassifiedRoute>(
+                classification,
+                receipt,
+                document => document is { Category: DocumentCategory.Receipt },
+                "receipt")
+            .AddEdge<ClassifiedRoute>(
+                classification,
+                shoppingList,
+                document => document is { Category: DocumentCategory.ShoppingList },
+                "shopping-list")
+            .AddEdge<ClassifiedRoute>(
+                classification,
+                sujiko,
+                document => document is { Category: DocumentCategory.SujikoPuzzle },
+                "sujiko")
+            .AddEdge<ClassifiedRoute>(
+                classification,
+                unsupported,
+                document => document is
+                    { Category: DocumentCategory.Invoice or DocumentCategory.Unknown },
+                "unsupported")
+            .WithOutputFrom(receipt, shoppingList, sujiko, unsupported)
+            .WithName("Document Routing Compatibility")
             .Build();
 
-        var run = await InProcessExecution.RunAsync(workflow, input);
+        var run = await InProcessExecution.RunAsync(workflow, category);
         var events = run.NewEvents.ToArray();
         var output = Assert.Single(events.OfType<WorkflowOutputEvent>());
+        var outcome = Assert.IsType<DocumentRouteOutcome>(output.Data);
 
-        Assert.Equal(expectedOutput, Assert.IsType<int>(output.Data));
+        Assert.Equal(category, outcome.Category);
+        Assert.Equal(expectedDestination, outcome.Destination);
+        var completedExecutorIds = events
+            .OfType<ExecutorCompletedEvent>()
+            .Select(completed => completed.ExecutorId)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.Equal(
+            [expectedDestination],
+            AllDocumentDestinations.Where(completedExecutorIds.Contains).ToArray());
         Assert.Contains(
-            events.OfType<ExecutorCompletedEvent>(),
-            completed => completed.ExecutorId == expectedDestination);
-        Assert.DoesNotContain(
-            events.OfType<ExecutorCompletedEvent>(),
-            completed => completed.ExecutorId == (input >= 0 ? "negative-route" : "positive-subworkflow"));
-
-        if (input >= 0)
-        {
-            Assert.Contains(events, evt => evt.Data is CompatibilityEvent { Stage: "sub-workflow" });
-        }
-        else
-        {
-            Assert.DoesNotContain(events, evt => evt.Data is CompatibilityEvent { Stage: "sub-workflow" });
-        }
+            events,
+            evt => evt.Data is CompatibilityEvent { Stage: var stage }
+                && stage == expectedDestination);
 
         var mermaid = WorkflowVisualizer.ToMermaidString(workflow);
         var dot = WorkflowVisualizer.ToDotString(workflow);
-        Assert.Contains("positive-subworkflow", mermaid, StringComparison.Ordinal);
-        Assert.Contains("negative-route", mermaid, StringComparison.Ordinal);
-        Assert.Contains("positive-subworkflow", dot, StringComparison.Ordinal);
-        Assert.Contains("negative-route", dot, StringComparison.Ordinal);
+        foreach (var destination in AllDocumentDestinations)
+        {
+            Assert.Contains(destination, mermaid, StringComparison.Ordinal);
+            Assert.Contains(destination, dot, StringComparison.Ordinal);
+        }
+    }
+
+    private static Microsoft.Agents.AI.Workflows.Workflow BuildDocumentRouteWorkflow(
+        DocumentCategory category,
+        string routeName)
+    {
+        var route = new DocumentRouteExecutor(category, routeName);
+        return new WorkflowBuilder(route)
+            .WithOutputFrom(route)
+            .WithName($"{routeName} document route")
+            .Build();
     }
 
     [Fact]
@@ -128,39 +160,58 @@ public sealed class MafWorkflowCompatibilityTests
         };
     }
 
-    private sealed class RouteExecutor() : Executor<int, int>("typed-route")
+    private static readonly string[] AllDocumentDestinations =
+    [
+        "receipt-workflow",
+        "shopping-list-workflow",
+        "sujiko-workflow",
+        "unsupported-document"
+    ];
+
+    private sealed class ClassificationRouteExecutor()
+        : Executor<DocumentCategory, ClassifiedRoute>("classification")
     {
-        public override ValueTask<int> HandleAsync(
-            int message,
+        public override ValueTask<ClassifiedRoute> HandleAsync(
+            DocumentCategory message,
             IWorkflowContext context,
             CancellationToken cancellationToken = default)
         {
-            return ValueTask.FromResult(message);
+            return ValueTask.FromResult(new ClassifiedRoute(message));
         }
     }
 
-    private sealed class MultiplyExecutor() : Executor<int, int>("multiply")
+    private sealed class DocumentRouteExecutor(
+        DocumentCategory acceptedCategory,
+        string routeName)
+        : Executor<ClassifiedRoute, DocumentRouteOutcome>($"{routeName}-handler")
     {
-        public override async ValueTask<int> HandleAsync(
-            int message,
+        public override async ValueTask<DocumentRouteOutcome> HandleAsync(
+            ClassifiedRoute message,
             IWorkflowContext context,
             CancellationToken cancellationToken = default)
         {
+            Assert.Equal(acceptedCategory, message.Category);
+            var destination = $"{routeName}-workflow";
             await context.AddEventAsync(
-                new WorkflowEvent(new CompatibilityEvent("sub-workflow")),
+                new WorkflowEvent(new CompatibilityEvent(destination)),
                 cancellationToken);
-            return message * 2;
+            return new DocumentRouteOutcome(message.Category, destination);
         }
     }
 
-    private sealed class NegativeRouteExecutor() : Executor<int, int>("negative-route")
+    private sealed class UnsupportedDocumentRouteExecutor()
+        : Executor<ClassifiedRoute, DocumentRouteOutcome>("unsupported-document")
     {
-        public override ValueTask<int> HandleAsync(
-            int message,
+        public override async ValueTask<DocumentRouteOutcome> HandleAsync(
+            ClassifiedRoute message,
             IWorkflowContext context,
             CancellationToken cancellationToken = default)
         {
-            return ValueTask.FromResult(message - 1);
+            Assert.True(message.Category is DocumentCategory.Invoice or DocumentCategory.Unknown);
+            await context.AddEventAsync(
+                new WorkflowEvent(new CompatibilityEvent("unsupported-document")),
+                cancellationToken);
+            return new DocumentRouteOutcome(message.Category, "unsupported-document");
         }
     }
 
@@ -310,6 +361,12 @@ public sealed class MafWorkflowCompatibilityTests
     }
 
     private sealed record CompatibilityEvent(string Stage);
+
+    private sealed record ClassifiedRoute(DocumentCategory Category);
+
+    private sealed record DocumentRouteOutcome(
+        DocumentCategory Category,
+        string Destination);
 
     private sealed record CaptureWork(string CaptureId);
 
