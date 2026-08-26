@@ -101,8 +101,8 @@ Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc
 
 - [ ] Add the repeated-file capture endpoint without changing the individual document endpoint.
 - [x] Decode and orient each source once, then make one typed document-region detection call.
-- [ ] Deterministically validate detected document regions before cropping.
-- [ ] Crop every valid region from its high-resolution source before normal classification and extraction preprocessing.
+- [x] Deterministically validate detected document regions before cropping.
+- [x] Crop every valid region from its high-resolution source before normal classification and extraction preprocessing.
 - [ ] Fan sources and members out with explicit concurrency and resource limits.
 - [ ] Route each member through the reusable top-level document workflow.
 - [ ] Aggregate source and member outcomes with deterministic success, partial-success, and failure semantics.

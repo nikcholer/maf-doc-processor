@@ -75,7 +75,28 @@ public sealed record CaptureRegionValidationInput(
 public sealed record CaptureMemberProcessingInput(
     CaptureWorkflowContext Context,
     CaptureMember Member,
-    FileRequest CropRequest);
+    FileRequest CropRequest,
+    PixelRectangle CropPixels);
+
+public sealed record CaptureRejectedRegion(
+    string SourceItemId,
+    int DetectionIndex,
+    ProposedNormalizedBounds Bounds,
+    NormalizedBounds? TrustedBounds,
+    CaptureProcessingError Error);
+
+public sealed record CaptureRegionValidationOutput(
+    CaptureWorkflowContext Context,
+    CompositeCaptureSource Source,
+    CaptureSourceImageMetadata? ImageMetadata,
+    IReadOnlyList<CaptureMemberProcessingInput> AcceptedMembers,
+    IReadOnlyList<CaptureRejectedRegion> RejectedRegions,
+    DocumentModelUsage ModelUsage,
+    IReadOnlyList<CaptureProcessingError> Errors,
+    IReadOnlyList<string> Warnings)
+{
+    public bool IsSuccess => Errors.Count == 0;
+}
 
 public sealed record CaptureAggregationInput(
     CaptureWorkflowContext Context,
