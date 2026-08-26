@@ -103,12 +103,12 @@ Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc
 - [x] Decode and orient each source once, then make one typed document-region detection call.
 - [x] Deterministically validate detected document regions before cropping.
 - [x] Crop every valid region from its high-resolution source before normal classification and extraction preprocessing.
-- [ ] Fan sources and members out with explicit concurrency and resource limits.
-- [ ] Route each member through the reusable top-level document workflow.
-- [ ] Aggregate source and member outcomes with deterministic success, partial-success, and failure semantics.
-- [ ] Isolate non-cancellation source and member failures without discarding trustworthy siblings.
-- [ ] Preserve correlation and account for every detection, classification, extraction, and repair call exactly once.
-- [ ] Emit progress events for source detection, member routing, completion, and aggregation.
+- [x] Fan sources and members out with explicit concurrency and resource limits.
+- [x] Route each member through the reusable top-level document workflow.
+- [x] Aggregate source and member outcomes with deterministic success, partial-success, and failure semantics.
+- [x] Isolate non-cancellation source and member failures without discarding trustworthy siblings.
+- [x] Preserve correlation and account for every detection, classification, extraction, and repair call exactly once.
+- [x] Emit progress events for source detection, member routing, completion, and aggregation.
 - [ ] Add per-source annotated previews with accessible accepted, review, and rejected treatments.
 - [ ] Cover single-source, multi-source, overlapping, duplicate, unsupported, partial-failure, timeout, and cancellation paths.
 - [ ] Compare bounded parallel execution with a sequential baseline for latency and resource use.

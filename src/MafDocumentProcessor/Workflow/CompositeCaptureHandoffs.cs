@@ -104,3 +104,46 @@ public sealed record CaptureAggregationInput(
     IReadOnlyList<CaptureMemberResult> Members,
     IReadOnlyList<CaptureProcessingError> Errors,
     IReadOnlyList<string> Warnings);
+
+public sealed record CaptureSourceWork(
+    CaptureWorkflowContext Context,
+    CompositeCaptureRequest Request);
+
+public sealed record CaptureProcessedSource(
+    CompositeCaptureSource Source,
+    CaptureSourceImageMetadata? ImageMetadata,
+    int ProposedRegionCount,
+    DocumentModelUsage DetectionUsage,
+    IReadOnlyList<CaptureMemberProcessingInput> AcceptedMembers,
+    IReadOnlyList<CaptureRejectedRegion> RejectedRegions,
+    IReadOnlyList<CaptureProcessingError> Errors,
+    IReadOnlyList<string> Warnings);
+
+public sealed record CaptureSourceLaneResult(
+    CaptureWorkflowContext Context,
+    CompositeCaptureRequest Request,
+    int LaneIndex,
+    IReadOnlyList<CaptureProcessedSource> Sources);
+
+public sealed record CaptureSourceStageResult(
+    CaptureWorkflowContext Context,
+    CompositeCaptureRequest Request,
+    IReadOnlyList<CaptureProcessedSource> Sources,
+    IReadOnlyList<CaptureMemberProcessingInput> MembersToProcess,
+    IReadOnlyList<CaptureRejectedRegion> AdditionalRejectedRegions);
+
+public sealed record CaptureMemberWork(
+    CaptureWorkflowContext Context,
+    CaptureSourceStageResult Stage,
+    IReadOnlyList<CaptureMemberProcessingInput> Members);
+
+public sealed record CaptureMemberLaneResult(
+    CaptureWorkflowContext Context,
+    CaptureSourceStageResult Stage,
+    int LaneIndex,
+    IReadOnlyList<CaptureMemberWorkflowOutcome> Outcomes);
+
+public sealed record CaptureMemberWorkflowOutcome(
+    CaptureMemberProcessingInput Member,
+    DocumentProcessingResult? Result,
+    CaptureProcessingError? Error);
