@@ -77,7 +77,7 @@ Versioned regression corpus: [Current document golden set](golden-set.md).
 
 **Objective:** Move classification and document routing into an explicit MAF workflow while preserving current behaviour.
 
-- [ ] Confirm the supported MAF pattern for composing document-specific workflows with the pinned package version.
+- [x] Confirm the supported MAF pattern for composing document-specific workflows with the pinned package version.
 - [ ] Reintroduce classification as a typed executor within the top-level workflow.
 - [ ] Route classifications using MAF conditional edges rather than an application-level switch outside the graph.
 - [ ] Represent receipt, shopping-list, Sujiko, and unsupported handling as typed workflow destinations.
@@ -88,6 +88,8 @@ Versioned regression corpus: [Current document golden set](golden-set.md).
 - [ ] Add compatibility tests proving that existing inputs retain their response semantics.
 
 **Exit criteria:** All current document types run through one inspectable top-level MAF graph with no API contract regression and no additional model calls.
+
+Selected routing and child-workflow pattern: [Top-level document routing design](top-level-routing-design.md).
 
 ## Phase E3: Add Multi-Source Composite Capture
 
