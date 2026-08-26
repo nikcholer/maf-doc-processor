@@ -25,6 +25,9 @@ public sealed class ModelDocumentServicesTests
         Assert.Contains(
             chatClient.LastRequest!.Messages.SelectMany(message => message.Content),
             part => part is ModelImageContent);
+        Assert.Contains(
+            chatClient.LastRequest.Messages.SelectMany(message => message.Content).OfType<ModelTextContent>(),
+            part => part.Text.Contains(DocumentImagePrompts.MainDocumentFocus, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -42,6 +45,9 @@ public sealed class ModelDocumentServicesTests
         Assert.Equal("GBP", result.Value.CurrencyCode);
         Assert.Equal("receipt_extraction", chatClient.LastRequest?.Operation);
         Assert.Equal(settings, chatClient.LastRequest?.Settings);
+        Assert.Contains(
+            chatClient.LastRequest!.Messages.SelectMany(message => message.Content).OfType<ModelTextContent>(),
+            part => part.Text.Contains(DocumentImagePrompts.MainDocumentFocus, StringComparison.Ordinal));
     }
 
     [Fact]

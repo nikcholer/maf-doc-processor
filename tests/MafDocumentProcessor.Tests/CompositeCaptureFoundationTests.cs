@@ -180,6 +180,7 @@ public sealed class CompositeCaptureFoundationTests
         Assert.True(
             options.OverlapReviewIntersectionOverUnionThreshold
             < options.DuplicateIntersectionOverUnionThreshold);
+        Assert.Equal(0.03, options.RegionEdgePadding);
     }
 
     [Fact]
@@ -197,6 +198,8 @@ public sealed class CompositeCaptureFoundationTests
             }).Validate());
         Assert.Throws<CompositeCaptureConfigurationException>(() =>
             (new CompositeCaptureOptions() with { MinRegionArea = double.NaN }).Validate());
+        Assert.Throws<CompositeCaptureConfigurationException>(() =>
+            (new CompositeCaptureOptions() with { RegionEdgePadding = 1.2 }).Validate());
     }
 
     [Fact]

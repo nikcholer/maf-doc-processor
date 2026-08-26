@@ -178,11 +178,12 @@ CaptureSourceDetectionOutput
      -> map opposite edges independently onto the oriented source
      -> reject empty pixel crops, near-duplicates, and member-limit overflow
      -> order remaining regions top-to-bottom, then left-to-right
+     -> expand accepted boxes by RegionEdgePadding so headers and edges are less likely to clip
      -> crop accepted regions from OrientedCaptureSourceImage as PNG FileRequest values
   -> CaptureRegionValidationOutput
 ```
 
-`CaptureRegionValidationExecutor` is the MAF adapter around this boundary. It emits a project-owned `CaptureRegionValidationCompletedEvent` with proposal, accepted, and rejected counts, then disposes the oriented source once the crops exist. Overlapping but distinct documents continue with the `detected regions overlap` warning; a successful detection that yields no accepted crop becomes `no_usable_document_region`. Member classification and bounded fan-out remain deferred to the orchestration task.
+`CaptureRegionValidationExecutor` is the MAF adapter around this boundary. It emits a project-owned `CaptureRegionValidationCompletedEvent` with proposal, accepted, and rejected counts, then disposes the oriented source once the crops exist. Overlapping but distinct documents continue with the `detected regions overlap` warning; a successful detection that yields no accepted crop becomes `no_usable_document_region`. Crops may include a little neighbouring paper. Classification and extraction prompts tell the model to use the main document occupying most of the image, including its centre. Member classification and bounded fan-out remain deferred to the orchestration task.
 
 ## MAF Workflow Usage
 

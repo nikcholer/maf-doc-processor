@@ -15,7 +15,8 @@ public sealed record CompositeCaptureOptions(
     double DuplicateIntersectionOverUnionThreshold = 0.90,
     double OverlapReviewIntersectionOverUnionThreshold = 0.10,
     int MaxConcurrentSources = 2,
-    int MaxConcurrentMembers = 4)
+    int MaxConcurrentMembers = 4,
+    double RegionEdgePadding = 0.03)
 {
     public CompositeCaptureOptions Validate()
     {
@@ -40,6 +41,7 @@ public sealed record CompositeCaptureOptions(
             allowZero: true);
         RequirePositive(MaxConcurrentSources, nameof(MaxConcurrentSources));
         RequirePositive(MaxConcurrentMembers, nameof(MaxConcurrentMembers));
+        RequireUnitInterval(RegionEdgePadding, nameof(RegionEdgePadding), allowZero: true);
 
         if (OverlapReviewIntersectionOverUnionThreshold >= DuplicateIntersectionOverUnionThreshold)
         {

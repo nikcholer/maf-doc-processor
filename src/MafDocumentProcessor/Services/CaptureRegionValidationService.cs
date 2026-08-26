@@ -58,6 +58,7 @@ public sealed class CaptureRegionValidationService(
         }
 
         var acceptedCandidates = ApplyDuplicateAndLimitPolicy(candidates, rejected);
+        ApplyEdgePadding(acceptedCandidates, orientedSource);
         ApplyOverlapWarnings(acceptedCandidates);
 
         var acceptedMembers = new List<CaptureMemberProcessingInput>(acceptedCandidates.Count);
@@ -204,6 +205,25 @@ public sealed class CaptureRegionValidationService(
         return kept.Take(maxAccepted).ToArray();
     }
 
+    private void ApplyEdgePadding(
+        IReadOnlyList<RegionCandidate> accepted,
+        OrientedCaptureSourceImage source)
+    {
+        if (options.RegionEdgePadding <= 0)
+        {
+            return;
+        }
+
+        foreach (var candidate in accepted)
+        {
+            candidate.Bounds = CaptureRegionGeometry.Expand(candidate.Bounds, options.RegionEdgePadding);
+            candidate.Pixels = CaptureRegionGeometry.MapToPixels(
+                candidate.Bounds,
+                source.WidthPixels,
+                source.HeightPixels);
+        }
+    }
+
     private void ApplyOverlapWarnings(IReadOnlyList<RegionCandidate> accepted)
     {
         for (var left = 0; left < accepted.Count; left++)
@@ -336,9 +356,9 @@ public sealed class CaptureRegionValidationService(
     {
         public required DocumentRegionProposal Proposal { get; init; }
 
-        public required NormalizedBounds Bounds { get; init; }
+        public required NormalizedBounds Bounds { get; set; }
 
-        public required PixelRectangle Pixels { get; init; }
+        public required PixelRectangle Pixels { get; set; }
 
         public IReadOnlyList<NormalizedPoint>? Outline { get; init; }
 
