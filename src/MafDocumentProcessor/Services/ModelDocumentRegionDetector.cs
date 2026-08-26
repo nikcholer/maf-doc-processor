@@ -29,11 +29,15 @@ public sealed class ModelDocumentRegionDetector(
                     {"regions":[{"bounds":{"x":0.0,"y":0.0,"width":0.0,"height":0.0},"outline":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.0},{"x":0.0,"y":0.0},{"x":0.0,"y":0.0}],"confidence":0.0}]}
                     Use an empty regions array when no physical document is visible.
                     Bounds are required. Outline is optional, but when present it must contain the four document corners in clockwise order.
+                    Each box must contain the whole document: headers, logos, store names, addresses, barcodes, footers, and paper edges.
+                    Prefer extra surrounding background over a tight crop. A little desk, carpet, or shadow around the document is better than clipping content.
+                    Do not zoom in on the densest text, and do not crop through a header, footer, or side margin.
+                    Do not merge separate documents into one region merely to add padding.
                     Confidence expresses visual certainty only. Do not omit a visible document merely because its type is unfamiliar.
                     """),
                     ModelChatMessage.CreateUser(
                         new ModelTextContent(
-                            $"Locate the documents in this image. Oriented source dimensions: {source.WidthPixels}x{source.HeightPixels}. File: {source.Source.Request.FileName}."),
+                            $"Locate the documents in this image. Include a margin of background around each one. Oriented source dimensions: {source.WidthPixels}x{source.HeightPixels}. File: {source.Source.Request.FileName}."),
                         new ModelImageContent(modelImage.Content, modelImage.ContentType))
                 ],
                 MaxOutputTokens: Math.Min(
