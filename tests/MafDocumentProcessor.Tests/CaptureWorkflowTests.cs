@@ -171,6 +171,86 @@ public sealed class CaptureWorkflowTests
     }
 
     [Fact]
+    public async Task RunAsync_RoutesShoppingListAndSujikoMembers()
+    {
+        var shopping = new StubShoppingListExtractor { AllowCalls = true };
+        var sujiko = new StubSujikoExtractor();
+        var receipt = new StubReceiptExtractor();
+        var shoppingWorkflow = CreateCaptureWorkflow(
+            new StubRegionDetector(),
+            new StubClassifier { Category = DocumentCategory.ShoppingList },
+            receipt,
+            shopping,
+            sujiko);
+        var sujikoWorkflow = CreateCaptureWorkflow(
+            new StubRegionDetector(),
+            new StubClassifier { Category = DocumentCategory.SujikoPuzzle },
+            receipt,
+            shopping,
+            sujiko);
+        var request = CreateRequest(CreateSource("list.png", CreatePng(80, 80)));
+
+        var shoppingResult = await shoppingWorkflow.RunAsync(request, CancellationToken.None);
+        var sujikoResult = await sujikoWorkflow.RunAsync(
+            CreateRequest(CreateSource("sujiko.png", CreatePng(80, 80))),
+            CancellationToken.None);
+
+        Assert.Equal(DocumentCategory.ShoppingList, Assert.Single(shoppingResult.Members).Result?.Category);
+        Assert.Equal(DocumentCategory.SujikoPuzzle, Assert.Single(sujikoResult.Members).Result?.Category);
+        Assert.Empty(receipt.Files);
+        Assert.Contains(shoppingResult.ModelUsage.Calls, call => call.Operation == "shopping_list_extraction");
+        Assert.Contains(sujikoResult.ModelUsage.Calls, call => call.Operation == "sujiko_puzzle_extraction");
+    }
+
+    [Fact]
+    public async Task RunAsync_EnforcesCaptureMemberLimitWithoutExtraClassification()
+    {
+        var detector = new StubRegionDetector
+        {
+            Proposals =
+            [
+                new ProposedNormalizedBounds(0.05, 0.05, 0.3, 0.3),
+                new ProposedNormalizedBounds(0.55, 0.55, 0.3, 0.3)
+            ]
+        };
+        var classifier = new StubClassifier();
+        var workflow = CreateCaptureWorkflow(
+            detector,
+            classifier,
+            new StubReceiptExtractor(),
+            options: new CompositeCaptureOptions(
+                MaxConcurrentSources: 1,
+                MaxConcurrentMembers: 1,
+                MaxMembersPerCapture: 1,
+                RegionEdgePadding: 0));
+        var request = CreateRequest(CreateSource("desk.png", CreatePng(100, 100)));
+
+        var result = await workflow.RunAsync(request, CancellationToken.None);
+
+        Assert.Single(classifier.Files);
+        Assert.Single(result.Members, member => member.Status == CaptureMemberStatus.Processed);
+        Assert.Contains(
+            result.Members,
+            member => member.Status == CaptureMemberStatus.Failed
+                && member.Error?.Message.Contains("member limit", StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    [Fact]
+    public async Task RunAsync_IsolatesADetectorTimeoutToTheSource()
+    {
+        var detector = new StubRegionDetector { Exception = new TimeoutException("slow detector") };
+        var classifier = new StubClassifier();
+        var workflow = CreateCaptureWorkflow(detector, classifier, new StubReceiptExtractor());
+        var request = CreateRequest(CreateSource("desk.png", CreatePng(80, 80)));
+
+        var result = await workflow.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(CaptureProcessingStatus.Failed, result.Status);
+        Assert.Contains(result.Sources[0].Errors, error => error.Contains("timed out", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(classifier.Files);
+    }
+
+    [Fact]
     public async Task RunAsync_PropagatesCancellation()
     {
         using var cancellation = new CancellationTokenSource();
@@ -253,9 +333,12 @@ public sealed class CaptureWorkflowTests
     private static CompositeCaptureWorkflow CreateCaptureWorkflow(
         IDocumentRegionDetector detector,
         StubClassifier classifier,
-        StubReceiptExtractor extractor)
+        StubReceiptExtractor extractor,
+        StubShoppingListExtractor? shoppingListExtractor = null,
+        StubSujikoExtractor? sujikoExtractor = null,
+        CompositeCaptureOptions? options = null)
     {
-        var options = new CompositeCaptureOptions(
+        options ??= new CompositeCaptureOptions(
             MaxConcurrentSources: 2,
             MaxConcurrentMembers: 2,
             RegionEdgePadding: 0);
@@ -264,10 +347,11 @@ public sealed class CaptureWorkflowTests
             new CaptureRegionValidationService(options),
             classifier,
             extractor,
-            new StubShoppingListExtractor(),
+            shoppingListExtractor ?? new StubShoppingListExtractor(),
             new ReceiptPolicyOptions(),
             options,
-            ModelImagePreprocessor.CreateDefault());
+            ModelImagePreprocessor.CreateDefault(),
+            sujikoExtractor);
     }
 
     private static DocumentProcessingWorkflow CreateDocumentWorkflow(
@@ -327,12 +411,18 @@ public sealed class CaptureWorkflowTests
             new ProposedNormalizedBounds(0.1, 0.1, 0.6, 0.6)
         ];
 
+        public Exception? Exception { get; init; }
+
         public ValueTask<ModelResult<IReadOnlyList<DocumentRegionProposal>>> DetectAsync(
             OrientedCaptureSourceImage source,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             CallCount++;
+            if (Exception is not null)
+            {
+                throw Exception;
+            }
             IReadOnlyList<DocumentRegionProposal> proposals = Proposals
                 .Select((bounds, index) => new DocumentRegionProposal(
                     source.Source.SourceItemId,
@@ -407,12 +497,34 @@ public sealed class CaptureWorkflowTests
 
     private sealed class StubShoppingListExtractor : IShoppingListExtractor
     {
+        public bool AllowCalls { get; init; }
+
         public ValueTask<ModelResult<ShoppingListData>> ExtractShoppingListAsync(
             FileRequest request,
             CancellationToken cancellationToken,
             IReadOnlyList<string>? repairInstructions = null)
         {
-            throw new InvalidOperationException("Shopping-list extraction should not run in these tests.");
+            if (!AllowCalls)
+            {
+                throw new InvalidOperationException("Shopping-list extraction should not run in these tests.");
+            }
+
+            return ValueTask.FromResult(new ModelResult<ShoppingListData>(
+                new ShoppingListData("Weekly", [new ShoppingListItem("milk", 1, "pint", false)], null),
+                new ModelTokenUsage("shopping_list_extraction", "stub-list", 5, 2, 7)));
+        }
+    }
+
+    private sealed class StubSujikoExtractor : ISujikoPuzzleExtractor
+    {
+        public ValueTask<ModelResult<SujikoPuzzleData>> ExtractSujikoPuzzleAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            return ValueTask.FromResult(new ModelResult<SujikoPuzzleData>(
+                new SujikoPuzzleData(new SujikoQuadrantTotals(21, 12, 21, 17), [new SujikoCellValue(2, 2, 1)]),
+                new ModelTokenUsage("sujiko_puzzle_extraction", "stub-sujiko", 5, 2, 7)));
         }
     }
 }

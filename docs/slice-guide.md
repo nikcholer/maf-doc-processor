@@ -400,3 +400,5 @@ Try these in order:
 6. Draw the shopping-list graph from its executor generic types without reading `WorkflowBuilder`, then verify it against the code.
 
 After this guide, use `docs/technical-process-flow.md` for a more complete architectural reference and `docs/adding-document-types.md` when you are ready to build a new slice.
+
+Composite capture is a separate intake envelope, not a fourth document type. After the receipt slice is clear, read `POST /api/document-captures/process`, `CompositeCaptureWorkflow`, and `CaptureResultComposer`. Each accepted crop still enters this same document route.

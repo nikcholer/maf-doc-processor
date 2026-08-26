@@ -110,8 +110,8 @@ Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc
 - [x] Preserve correlation and account for every detection, classification, extraction, and repair call exactly once.
 - [x] Emit progress events for source detection, member routing, completion, and aggregation.
 - [x] Add per-source annotated previews with accessible accepted, review, and rejected treatments.
-- [ ] Cover single-source, multi-source, overlapping, duplicate, unsupported, partial-failure, timeout, and cancellation paths.
-- [ ] Compare bounded parallel execution with a sequential baseline for latency and resource use.
+- [x] Cover single-source, multi-source, overlapping, duplicate, unsupported, partial-failure, timeout, and cancellation paths.
+- [x] Compare bounded parallel execution with a sequential baseline for latency and resource use.
 
 **Exit criteria:** Multi-source and composite images produce independently processed member results through the API and UI, with bounded fan-out, deterministic aggregation, complete route coverage, and no regression to individual uploads.
 

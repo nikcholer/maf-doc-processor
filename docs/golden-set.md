@@ -8,7 +8,7 @@ For example, the sample receipt should be recognised as a receipt, its total sho
 
 Whenever the application changes, the tests run these examples again and compare the results with the agreed answers. If a result changes, the test fails. A developer can then decide whether the change is intentional or whether a bug has been introduced.
 
-This repository starts with four examples: one receipt, one shopping list, one Sujiko puzzle, and one unsupported document.
+This repository starts with four individual-document examples: one receipt, one shopping list, one Sujiko puzzle, and one unsupported document. Composite capture has a separate corpus in the [next-scenario sample set](next-scenario-sample-set.md), exercised offline by `CaptureGoldenSetTests`.
 
 ## Cases
 
@@ -42,6 +42,12 @@ The golden-set test is part of the normal offline suite. It can also be run alon
 
 ```powershell
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~GoldenSetTests
+```
+
+The composite-capture corpus is:
+
+```powershell
+dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~CaptureGoldenSetTests
 ```
 
 ## Adding or Changing an Example
