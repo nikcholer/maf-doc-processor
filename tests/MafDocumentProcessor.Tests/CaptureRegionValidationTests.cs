@@ -114,7 +114,7 @@ public sealed class CaptureRegionValidationTests
         using var detection = CreateSuccessfulDetection(
             CreateSource(content, "blocks.png", "image/png"),
             [CreateProposal(1, 0.1, 0.1, 0.3, 0.3)]);
-        var output = await ValidateAsync(detection);
+        var output = await ValidateAsync(detection, new CompositeCaptureOptions(RegionEdgePadding: 0));
 
         var accepted = Assert.Single(output.AcceptedMembers);
         Assert.Equal(10, accepted.CropPixels.X);
@@ -129,12 +129,51 @@ public sealed class CaptureRegionValidationTests
     }
 
     [Fact]
+    public void Geometry_ExpandsBoundsAndClampsToTheImage()
+    {
+        var expanded = CaptureRegionGeometry.Expand(new NormalizedBounds(0.1, 0.1, 0.3, 0.3), 0.05);
+
+        Assert.Equal(0.05, expanded.X, 8);
+        Assert.Equal(0.05, expanded.Y, 8);
+        Assert.Equal(0.4, expanded.Width, 8);
+        Assert.Equal(0.4, expanded.Height, 8);
+
+        var clamped = CaptureRegionGeometry.Expand(new NormalizedBounds(0.04, 0.92, 0.92, 0.06), 0.03);
+        Assert.Equal(0.01, clamped.X, 8);
+        Assert.Equal(0.89, clamped.Y, 8);
+        Assert.Equal(0.98, clamped.Width, 8);
+        Assert.Equal(0.11, clamped.Height, 8);
+    }
+
+    [Fact]
+    public async Task Crop_ExpandsDetectorBoundsByConfiguredPadding()
+    {
+        var content = CreatePng(100, 100, image =>
+        {
+            Fill(image, 10, 10, 40, 40, Color.Red);
+        });
+        using var detection = CreateSuccessfulDetection(
+            CreateSource(content, "blocks.png", "image/png"),
+            [CreateProposal(1, 0.1, 0.1, 0.3, 0.3)]);
+        var output = await ValidateAsync(detection, new CompositeCaptureOptions(RegionEdgePadding: 0.05));
+
+        var accepted = Assert.Single(output.AcceptedMembers);
+        Assert.Equal(5, accepted.CropPixels.X);
+        Assert.Equal(5, accepted.CropPixels.Y);
+        Assert.Equal(40, accepted.CropPixels.Width);
+        Assert.Equal(40, accepted.CropPixels.Height);
+        using var crop = Image.Load<Rgba32>(accepted.CropRequest.Content);
+        Assert.Equal(Color.White.ToPixel<Rgba32>(), crop[0, 0]);
+        Assert.Equal(Color.Red.ToPixel<Rgba32>(), crop[5, 5]);
+    }
+
+    [Fact]
     public async Task SampleCorpus_CropsTheSingleReceiptFromItsKnownBounds()
     {
         using var detection = CreateSuccessfulDetection(
             LoadSample("single-receipt.png"),
             [CreateProposal(1, 0.125, 0.041667, 0.75, 0.916667, 0.98m)]);
-        var output = await ValidateAsync(detection);
+        var output = await ValidateAsync(detection, new CompositeCaptureOptions(RegionEdgePadding: 0));
 
         var accepted = Assert.Single(output.AcceptedMembers);
         Assert.True(output.IsSuccess);
@@ -267,7 +306,7 @@ public sealed class CaptureRegionValidationTests
         using var detection = CreateSuccessfulDetection(
             CreateSource(CreatePng(10, 10), "tiny.png", "image/png"),
             [CreateProposal(1, 0, 0, 0.02, 0.4)]);
-        var output = await ValidateAsync(detection);
+        var output = await ValidateAsync(detection, new CompositeCaptureOptions(RegionEdgePadding: 0));
 
         Assert.False(output.IsSuccess);
         var rejected = Assert.Single(output.RejectedRegions);
