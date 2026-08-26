@@ -147,6 +147,7 @@ CompositeCaptureSource
      -> clone and resize a model-facing JPEG derivative
   -> ModelDocumentRegionDetector
      -> one DocumentRegionDetection model call
+     -> boxes are asked to include a margin of background rather than a tight text crop
   -> DocumentRegionResponseParser
      -> typed, still-untrusted DocumentRegionProposal values
   -> CaptureSourceDetectionOutput
