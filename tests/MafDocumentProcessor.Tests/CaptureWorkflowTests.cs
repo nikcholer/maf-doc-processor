@@ -203,6 +203,31 @@ public sealed class CaptureWorkflowTests
     }
 
     [Fact]
+    public async Task RunAsync_RoutesExpenseReportMembersWithReviewDisposition()
+    {
+        var expense = new StubExpenseReportExtractor { AllowCalls = true };
+        var receipt = new StubReceiptExtractor();
+        var workflow = CreateCaptureWorkflow(
+            new StubRegionDetector(),
+            new StubClassifier { Category = DocumentCategory.ExpenseReport, Confidence = 0.97m },
+            receipt,
+            expenseReportExtractor: expense);
+        var request = CreateRequest(CreateSource("expense.png", CreatePng(80, 80)));
+
+        var result = await workflow.RunAsync(request, CancellationToken.None);
+
+        var member = Assert.Single(result.Members);
+        Assert.Equal(DocumentCategory.ExpenseReport, member.Result?.Category);
+        Assert.True(member.Result?.IsSuccess);
+        Assert.Equal(CaptureMemberDisposition.Review, member.Disposition);
+        Assert.Contains(
+            member.DispositionReasons,
+            reason => reason == ExpenseReportResultExecutor.AttestationPrompt);
+        Assert.Empty(receipt.Files);
+        Assert.Contains(result.ModelUsage.Calls, call => call.Operation == "expense_report_extraction");
+    }
+
+    [Fact]
     public async Task RunAsync_EnforcesCaptureMemberLimitWithoutExtraClassification()
     {
         var detector = new StubRegionDetector
@@ -305,7 +330,9 @@ public sealed class CaptureWorkflowTests
             new ReceiptData("Shop", 1.00m, null, "Card", "GBP"),
             ShoppingList: null,
             SujikoPuzzle: null,
+            ExpenseReport: null,
             PolicyResult: null,
+            ExpensePolicy: null,
             ValidationResult.Valid,
             HumanReviewResult.NotRequired,
             IsSuccess: true,
@@ -336,6 +363,7 @@ public sealed class CaptureWorkflowTests
         StubReceiptExtractor extractor,
         StubShoppingListExtractor? shoppingListExtractor = null,
         StubSujikoExtractor? sujikoExtractor = null,
+        StubExpenseReportExtractor? expenseReportExtractor = null,
         CompositeCaptureOptions? options = null)
     {
         options ??= new CompositeCaptureOptions(
@@ -351,7 +379,8 @@ public sealed class CaptureWorkflowTests
             new ReceiptPolicyOptions(),
             options,
             ModelImagePreprocessor.CreateDefault(),
-            sujikoExtractor);
+            sujikoExtractor,
+            expenseReportExtractor);
     }
 
     private static DocumentProcessingWorkflow CreateDocumentWorkflow(
@@ -512,6 +541,39 @@ public sealed class CaptureWorkflowTests
             return ValueTask.FromResult(new ModelResult<ShoppingListData>(
                 new ShoppingListData("Weekly", [new ShoppingListItem("milk", 1, "pint", false)], null),
                 new ModelTokenUsage("shopping_list_extraction", "stub-list", 5, 2, 7)));
+        }
+    }
+
+    private sealed class StubExpenseReportExtractor : IExpenseReportExtractor
+    {
+        public bool AllowCalls { get; init; }
+
+        public ValueTask<ModelResult<ExpenseReportData>> ExtractExpenseReportAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            if (!AllowCalls)
+            {
+                throw new InvalidOperationException("Expense-report extraction should not run in these tests.");
+            }
+
+            return ValueTask.FromResult(new ModelResult<ExpenseReportData>(
+                new ExpenseReportData(
+                    "ER-2026-014",
+                    "EXPENSE REPORT",
+                    "Alex Example",
+                    new DateOnly(2026, 8, 1),
+                    new DateOnly(2026, 8, 20),
+                    "GBP",
+                    48.50m,
+                    [
+                        new ExpenseReportLine(new DateOnly(2026, 8, 4), "Train fare", null, 18.50m, "R-001"),
+                        new ExpenseReportLine(new DateOnly(2026, 8, 12), "Client lunch", null, 30.00m, "R-002")
+                    ],
+                    Notes: null,
+                    VisibleApprovalStatus: null),
+                new ModelTokenUsage("expense_report_extraction", "stub-expense", 5, 2, 7)));
         }
     }
 

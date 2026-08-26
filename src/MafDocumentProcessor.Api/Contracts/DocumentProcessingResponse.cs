@@ -18,4 +18,5 @@ public sealed record ProcessedDocumentResponse(
     DocumentMetadata Metadata,
     object Data,
     ReceiptPolicyResult? PolicyResult,
-    ValidationResult Validation);
+    ValidationResult Validation,
+    ExpensePolicyResult? ExpensePolicy = null);

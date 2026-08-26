@@ -32,6 +32,7 @@ builder.Services.AddSingleton(captureOptions);
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadAiModelSettings(builder.Configuration));
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadModelImagePreprocessingSettings(builder.Configuration));
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadReceiptPolicyOptions(builder.Configuration));
+builder.Services.AddSingleton(ApiConfigurationLoader.LoadExpensePolicyOptions(builder.Configuration));
 builder.Services.AddSingleton<DocumentImageValidator>();
 builder.Services.AddSingleton<IModelImagePreprocessor, ModelImagePreprocessor>();
 builder.Services.AddSingleton<ICaptureSourceImageDecoder, CaptureSourceImageDecoder>();
@@ -73,6 +74,13 @@ builder.Services.AddScoped<ISujikoPuzzleExtractor>(sp =>
 {
     var settings = sp.GetRequiredService<AiModelSettings>();
     return new ModelSujikoPuzzleExtractor(
+        sp.GetRequiredService<IModelChatClient>(),
+        settings.DocumentExtraction);
+});
+builder.Services.AddScoped<IExpenseReportExtractor>(sp =>
+{
+    var settings = sp.GetRequiredService<AiModelSettings>();
+    return new ModelExpenseReportExtractor(
         sp.GetRequiredService<IModelChatClient>(),
         settings.DocumentExtraction);
 });

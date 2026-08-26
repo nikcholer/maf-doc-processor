@@ -9,6 +9,7 @@ public static class ApiConfigurationLoader
     private const string DocumentIntakeSectionName = "DocumentIntake";
     private const string CompositeCaptureSectionName = "CompositeCapture";
     private const string ReceiptPolicySectionName = "ReceiptPolicy";
+    private const string ExpensePolicySectionName = "ExpensePolicy";
 
     public static AiModelSettings LoadAiModelSettings(IConfiguration configuration)
     {
@@ -121,6 +122,16 @@ public static class ApiConfigurationLoader
                 ?? defaults.ReviewThreshold,
             section.GetValue<string>(nameof(ReceiptPolicyOptions.DefaultCurrencyCode))
                 ?? defaults.DefaultCurrencyCode);
+    }
+
+    public static ExpensePolicyOptions LoadExpensePolicyOptions(IConfiguration configuration)
+    {
+        var defaults = new ExpensePolicyOptions();
+        var section = configuration.GetSection(ExpensePolicySectionName);
+
+        return new ExpensePolicyOptions(
+            section.GetValue<decimal?>(nameof(ExpensePolicyOptions.HighValueReviewThreshold))
+                ?? defaults.HighValueReviewThreshold);
     }
 
     private static ModelRoleSettings LoadModelRole(

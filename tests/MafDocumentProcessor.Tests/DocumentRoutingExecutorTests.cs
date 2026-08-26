@@ -12,6 +12,7 @@ public sealed class DocumentRoutingExecutorTests
     [InlineData(DocumentCategory.Receipt)]
     [InlineData(DocumentCategory.ShoppingList)]
     [InlineData(DocumentCategory.SujikoPuzzle)]
+    [InlineData(DocumentCategory.ExpenseReport)]
     public async Task ClassificationExecutor_PreparesSupportedDocumentForExtraction(
         DocumentCategory category)
     {

@@ -15,7 +15,8 @@ public static class DocumentProcessingResponseMapper
                 result.Metadata,
                 documentData,
                 result.PolicyResult,
-                result.Validation);
+                result.Validation,
+                result.ExpensePolicy);
 
         return new DocumentProcessingResponse(
             result.Category,
@@ -36,6 +37,7 @@ public static class DocumentProcessingResponseMapper
             DocumentCategory.Receipt => result.Receipt,
             DocumentCategory.ShoppingList => result.ShoppingList,
             DocumentCategory.SujikoPuzzle => result.SujikoPuzzle,
+            DocumentCategory.ExpenseReport => result.ExpenseReport,
             _ => null
         };
     }

@@ -28,7 +28,9 @@ public sealed class UnsupportedDocumentResultExecutor()
             Receipt: null,
             ShoppingList: null,
             SujikoPuzzle: null,
+            ExpenseReport: null,
             PolicyResult: null,
+            ExpensePolicy: null,
             ValidationResult.Invalid(message),
             HumanReviewEvaluator.Evaluate(
                 document.Classification,
@@ -45,7 +47,7 @@ public sealed class UnsupportedDocumentResultExecutor()
         var description = NormalizeDocumentTypeDescription(classification);
         var article = GetIndefiniteArticle(description);
 
-        return $"This appears to be {article} {description}. This demo can process receipts, shopping lists, and Sujiko puzzles right now.";
+        return $"This appears to be {article} {description}. This demo can process receipts, shopping lists, Sujiko puzzles, and expense reports right now.";
     }
 
     private static string NormalizeDocumentTypeDescription(DocumentClassification classification)

@@ -73,6 +73,9 @@ This is the application's composition root: the place where concrete implementat
 - `IModelChatClient` -> `OpenAICompatibleModelChatClient`
 - `IDocumentClassifier` -> `ModelDocumentClassifier`
 - `IReceiptExtractor` -> `ModelReceiptExtractor`
+- `IShoppingListExtractor` -> `ModelShoppingListExtractor`
+- `ISujikoPuzzleExtractor` -> `ModelSujikoPuzzleExtractor`
+- `IExpenseReportExtractor` -> `ModelExpenseReportExtractor`
 - `IModelImagePreprocessor` -> `ModelImagePreprocessor`
 - `DocumentProcessingWorkflow`
 

@@ -46,12 +46,24 @@ Sujiko puzzles are successful only when the starting state is structurally usabl
 
 The extracted starting state contains the four required quadrant totals and zero or more given cells. Cell coordinates are 1-based: row `1`, column `1` is the top-left cell. Sujiko validation currently requires positive quadrant totals, given cell rows and columns in the 1-3 grid, given values in the 1-9 range, and no duplicate given-cell locations.
 
+## Expense Report
+
+Expense reports are successful only when the parsed report is structurally usable. A valid report still requires user attestation, so `HumanReview` is `Required` and a capture member receives the `Review` disposition until attestation exists.
+
+| Condition | `IsSuccess` | `Errors` | `Warnings` |
+| --- | --- | --- | --- |
+| Valid report, policy approved | `true` | Empty | Empty |
+| Valid report, high-value or missing receipt-reference policy | `true` | Empty | Empty |
+| Report still invalid after repair | `false` | Validation reasons | Empty |
+
+Expense-report validation currently requires a report number or title, at least one readable line, non-negative amounts, a three-letter currency code, consistently ordered dates, and claimed-total arithmetic within 0.01 of the line sum. Policy review currently flags totals or lines above the configured high-value threshold and lines without a visible receipt reference. Policy and attestation never imply that the claim was approved, matched to stored receipts, or submitted.
+
 ## Unsupported Document Types
 
 Unsupported documents return a normal workflow response with `IsSuccess=false`, no parsed document payload, and a human-readable error such as:
 
 ```text
-This appears to be a car registration document. This demo can process receipts, shopping lists, and Sujiko puzzles right now.
+This appears to be a car registration document. This demo can process receipts, shopping lists, Sujiko puzzles, and expense reports right now.
 ```
 
 This is not an API failure. It means the system recognized the request and deliberately declined to process that document type.

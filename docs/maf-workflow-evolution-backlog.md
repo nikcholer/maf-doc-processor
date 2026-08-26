@@ -119,18 +119,18 @@ Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc
 
 **Objective:** Implement expense report as the next complete, independently testable business document workflow.
 
-- [ ] Add the expense-report category, domain records, API mapping, and UI representation.
-- [ ] Define a dedicated extractor interface and model-backed implementation.
-- [ ] Add a separate model role only if expense reports require different model capabilities or operational settings.
-- [ ] Implement deterministic structural, line-total, claimed-total, date, and currency validation.
-- [ ] Implement one bounded repair path for model-correctable failures.
-- [ ] Define policy, ownership attestation, and human-review evaluation separately from structural validation.
-- [ ] Build the workflow from typed executors and hand-off records.
-- [ ] Connect the workflow to individual and batch member routing without special-case batch logic.
-- [ ] Add parser, extractor, executor, workflow, response-mapping, HTTP, and annotated-batch integration tests.
-- [ ] Verify representative expense-report samples against the configured live provider.
-- [ ] Document result semantics and update the guide for adding document types.
-- [ ] Keep persistent receipt linking and external claim submission out of the initial slice.
+- [x] Add the expense-report category, domain records, API mapping, and UI representation.
+- [x] Define a dedicated extractor interface and model-backed implementation.
+- [x] Add a separate model role only if expense reports require different model capabilities or operational settings.
+- [x] Implement deterministic structural, line-total, claimed-total, date, and currency validation.
+- [x] Implement one bounded repair path for model-correctable failures.
+- [x] Define policy, ownership attestation, and human-review evaluation separately from structural validation.
+- [x] Build the workflow from typed executors and hand-off records.
+- [x] Connect the workflow to individual and batch member routing without special-case batch logic.
+- [x] Add parser, extractor, executor, workflow, response-mapping, HTTP, and annotated-batch integration tests.
+- [x] Verify representative expense-report samples against the configured live provider.
+- [x] Document result semantics and update the guide for adding document types.
+- [x] Keep persistent receipt linking and external claim submission out of the initial slice.
 
 **Exit criteria:** Expense reports process end to end individually and as batch members, have explicit success/failure/review/attestation semantics, and pass offline and representative live verification.
 

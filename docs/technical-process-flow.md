@@ -52,6 +52,7 @@ Important registrations:
 - `IReceiptExtractor` -> `ModelReceiptExtractor`
 - `IShoppingListExtractor` -> `ModelShoppingListExtractor`
 - `ISujikoPuzzleExtractor` -> `ModelSujikoPuzzleExtractor`
+- `IExpenseReportExtractor` -> `ModelExpenseReportExtractor`
 - `DocumentProcessingWorkflow`
 - `IModelChatClient` -> `OpenAICompatibleModelChatClient`
 
