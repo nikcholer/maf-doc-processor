@@ -140,9 +140,11 @@ It then creates `ClassifiedDocument`, found in `src/MafDocumentProcessor/Workflo
 
 ## 4. See How the Receipt Graph Is Built
 
-Still in `DocumentProcessingWorkflow.cs`, find `RunReceiptWorkflowAsync`.
+Still in `DocumentProcessingWorkflow.cs`, find `RunReceiptWorkflowAsync`. This method keeps responsibility for running the selected graph and interpreting its events, but it no longer contains the graph definition itself.
 
-The method constructs five project-owned executors and connects them with MAF's `Microsoft.Agents.AI.Workflows.WorkflowBuilder`. `WorkflowBuilder`, `AddEdge`, `WithOutputFrom`, and `Build` in the following snippet all come from the **MAF Workflows NuGet package**:
+Follow its call to `DocumentWorkflowFactory.BuildReceiptWorkflow`, then open `src/MafDocumentProcessor/Workflow/DocumentWorkflowFactory.cs`.
+
+`DocumentWorkflowFactory` is a **project-owned** class. It provides one reusable builder method for each supported document type. The receipt method constructs five project-owned executors and connects them with MAF's `Microsoft.Agents.AI.Workflows.WorkflowBuilder`. `WorkflowBuilder`, `AddEdge`, `WithOutputFrom`, and `Build` in the following snippet all come from the **MAF Workflows NuGet package**:
 
 ```csharp
 var workflow = new WorkflowBuilder(extractionExecutor)
@@ -157,6 +159,8 @@ var workflow = new WorkflowBuilder(extractionExecutor)
 In MAF, `AddEdge(source, target)` adds a directed connection to the workflow graph. When the source executor produces its output, MAF delivers that message to the target executor. The compiler-visible generic types on the executors make these hand-offs easier to reason about than an untyped bag of workflow state.
 
 The executor instances and their document rules are project code. The graph builder and edge semantics are framework code.
+
+Keeping graph construction in `DocumentWorkflowFactory` means the same receipt workflow can be run directly today and bound as a child of the planned top-level routing graph later. The factory does not classify documents or choose a route; `DocumentProcessingWorkflow.RunAsync` still makes that choice with its existing C# `switch` at this stage.
 
 The graph is linear, but it is still useful MAF practice: execution, events, typed stages, and workflow output are all real framework behavior. The repair executor contains the conditional decision about whether a second extraction is necessary.
 
@@ -348,7 +352,7 @@ Use this rule of thumb:
 | Review threshold or payment rule | `ReceiptPolicyOptions`, `ReceiptPolicyExecutor` |
 | Shared result semantics | `ReceiptResultExecutor`, `DocumentProcessingResult` |
 | HTTP response shape | API contracts and `DocumentProcessingResponseMapper` |
-| Workflow topology | `RunReceiptWorkflowAsync` in `DocumentProcessingWorkflow` |
+| Workflow topology | `BuildReceiptWorkflow` in `DocumentWorkflowFactory` |
 
 ## 12. Compare the Other Completed Slices
 

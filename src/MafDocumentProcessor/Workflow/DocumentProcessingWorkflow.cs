@@ -92,23 +92,17 @@ public sealed class DocumentProcessingWorkflow(
         ClassifiedDocument classifiedDocument,
         CancellationToken cancellationToken)
     {
-        var extractionExecutor = new ReceiptExtractionExecutor(receiptExtractor, cancellationToken);
-        var validationExecutor = new ReceiptValidationExecutor();
-        var repairExecutor = new ReceiptValidationRepairExecutor(receiptExtractor, cancellationToken);
-        var policyExecutor = new ReceiptPolicyExecutor(policyOptions);
-        var resultExecutor = new ReceiptResultExecutor();
+        var workflow = DocumentWorkflowFactory.BuildReceiptWorkflow(
+            receiptExtractor,
+            policyOptions,
+            cancellationToken);
 
-        var workflow = new WorkflowBuilder(extractionExecutor)
-            .AddEdge(extractionExecutor, validationExecutor)
-            .AddEdge(validationExecutor, repairExecutor)
-            .AddEdge(repairExecutor, policyExecutor)
-            .AddEdge(policyExecutor, resultExecutor)
-            .WithOutputFrom(resultExecutor)
-            .WithName("Receipt Processing")
-            .WithDescription("Extracts, validates, repairs, and evaluates a receipt image.")
-            .Build();
-
-        return await RunWorkflowAsync(workflow, "Receipt Processing", classifiedDocument, _logger, cancellationToken)
+        return await RunWorkflowAsync(
+            workflow,
+            DocumentWorkflowFactory.ReceiptWorkflowName,
+            classifiedDocument,
+            _logger,
+            cancellationToken)
             ?? throw new InvalidOperationException(
                 "Receipt workflow completed without a document processing result.");
     }
@@ -117,21 +111,16 @@ public sealed class DocumentProcessingWorkflow(
         ClassifiedDocument classifiedDocument,
         CancellationToken cancellationToken)
     {
-        var extractionExecutor = new ShoppingListExtractionExecutor(shoppingListExtractor, cancellationToken);
-        var validationExecutor = new ShoppingListValidationExecutor();
-        var repairExecutor = new ShoppingListValidationRepairExecutor(shoppingListExtractor, cancellationToken);
-        var resultExecutor = new ShoppingListResultExecutor();
+        var workflow = DocumentWorkflowFactory.BuildShoppingListWorkflow(
+            shoppingListExtractor,
+            cancellationToken);
 
-        var workflow = new WorkflowBuilder(extractionExecutor)
-            .AddEdge(extractionExecutor, validationExecutor)
-            .AddEdge(validationExecutor, repairExecutor)
-            .AddEdge(repairExecutor, resultExecutor)
-            .WithOutputFrom(resultExecutor)
-            .WithName("Shopping List Processing")
-            .WithDescription("Extracts, validates, and repairs shopping list items from an image.")
-            .Build();
-
-        return await RunWorkflowAsync(workflow, "Shopping List Processing", classifiedDocument, _logger, cancellationToken)
+        return await RunWorkflowAsync(
+            workflow,
+            DocumentWorkflowFactory.ShoppingListWorkflowName,
+            classifiedDocument,
+            _logger,
+            cancellationToken)
             ?? throw new InvalidOperationException(
                 "Shopping list workflow completed without a document processing result.");
     }
@@ -145,21 +134,16 @@ public sealed class DocumentProcessingWorkflow(
             throw new InvalidOperationException("Sujiko puzzle extraction is not configured.");
         }
 
-        var extractionExecutor = new SujikoPuzzleExtractionExecutor(sujikoPuzzleExtractor, cancellationToken);
-        var validationExecutor = new SujikoPuzzleValidationExecutor();
-        var repairExecutor = new SujikoPuzzleValidationRepairExecutor(sujikoPuzzleExtractor, cancellationToken);
-        var resultExecutor = new SujikoPuzzleResultExecutor();
+        var workflow = DocumentWorkflowFactory.BuildSujikoPuzzleWorkflow(
+            sujikoPuzzleExtractor,
+            cancellationToken);
 
-        var workflow = new WorkflowBuilder(extractionExecutor)
-            .AddEdge(extractionExecutor, validationExecutor)
-            .AddEdge(validationExecutor, repairExecutor)
-            .AddEdge(repairExecutor, resultExecutor)
-            .WithOutputFrom(resultExecutor)
-            .WithName("Sujiko Puzzle Processing")
-            .WithDescription("Extracts, validates, and repairs a Sujiko puzzle starting state from an image.")
-            .Build();
-
-        return await RunWorkflowAsync(workflow, "Sujiko Puzzle Processing", classifiedDocument, _logger, cancellationToken)
+        return await RunWorkflowAsync(
+            workflow,
+            DocumentWorkflowFactory.SujikoPuzzleWorkflowName,
+            classifiedDocument,
+            _logger,
+            cancellationToken)
             ?? throw new InvalidOperationException(
                 "Sujiko puzzle workflow completed without a document processing result.");
     }

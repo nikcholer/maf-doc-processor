@@ -81,7 +81,7 @@ Versioned regression corpus: [Current document golden set](golden-set.md).
 - [ ] Reintroduce classification as a typed executor within the top-level workflow.
 - [ ] Route classifications using MAF conditional edges rather than an application-level switch outside the graph.
 - [ ] Represent receipt, shopping-list, Sujiko, and unsupported handling as typed workflow destinations.
-- [ ] Extract existing document graphs behind reusable sub-workflow or adapter boundaries.
+- [x] Extract existing document graphs behind reusable sub-workflow or adapter boundaries.
 - [ ] Preserve classification confidence, model usage, correlation data, cancellation, and error propagation.
 - [ ] Emit observable events for classification, routing, and selected workflow completion.
 - [ ] Add topology tests proving that every category reaches exactly one intended destination.
