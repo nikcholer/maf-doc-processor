@@ -99,7 +99,7 @@ Selected routing and child-workflow pattern: [Top-level document routing design]
 
 Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc-processor/issues/43), [source detection](https://github.com/nikcholer/maf-doc-processor/issues/44), [region validation and cropping](https://github.com/nikcholer/maf-doc-processor/issues/45), [bounded orchestration](https://github.com/nikcholer/maf-doc-processor/issues/46), [the capture API](https://github.com/nikcholer/maf-doc-processor/issues/47), [annotated previews](https://github.com/nikcholer/maf-doc-processor/issues/48), and [final hardening and measurement](https://github.com/nikcholer/maf-doc-processor/issues/49). The GitHub Project records which of these is ready or active.
 
-- [ ] Add the repeated-file capture endpoint without changing the individual document endpoint.
+- [x] Add the repeated-file capture endpoint without changing the individual document endpoint.
 - [x] Decode and orient each source once, then make one typed document-region detection call.
 - [x] Deterministically validate detected document regions before cropping.
 - [x] Crop every valid region from its high-resolution source before normal classification and extraction preprocessing.

@@ -13,7 +13,12 @@ public static class DocumentProcessingEndpoints
 {
     public static IEndpointRouteBuilder MapDocumentProcessingEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPost("/api/documents/process", ProcessDocumentAsync);
+        endpoints.MapPost("/api/documents/process", ProcessDocumentAsync)
+            .WithName("ProcessDocument")
+            .WithTags("Documents")
+            .WithSummary("Process one document image.")
+            .Produces<DocumentProcessingResponse>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest);
         return endpoints;
     }
 
