@@ -95,7 +95,7 @@ $env:MAF_RUN_LIVE_CAPTURE_DETECTION_TESTS = "1"
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~CaptureRegionDetectionLiveTests
 ```
 
-Personal capture photos can be dropped in `tests/MafDocumentProcessor.Tests/assets/local/` for local detection and crop checks. That folder is gitignored. The opt-in test skips when the folder is empty and does not copy those images into the repository:
+Personal capture photos can be dropped in `tests/MafDocumentProcessor.Tests/assets/local/` for local detection and crop checks. That folder is gitignored. The opt-in test skips when the folder is empty, does not copy those images into the repository, and writes accepted crops under `assets/local/crops/` so they can be inspected locally:
 
 ```powershell
 $env:MAF_RUN_LOCAL_CAPTURE_SAMPLES = "1"
