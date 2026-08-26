@@ -150,8 +150,14 @@ Shared orchestration code:
 
 - `src/MafDocumentProcessor/Workflow/DocumentProcessingWorkflow.cs`
 - `src/MafDocumentProcessor/Workflow/DocumentWorkflowFactory.cs`
+- `src/MafDocumentProcessor/Workflow/DocumentClassificationExecutor.cs`
+- `src/MafDocumentProcessor/Workflow/UnsupportedDocumentResultExecutor.cs`
 
 `DocumentProcessingWorkflow` currently classifies the image, selects a route with a C# `switch`, runs the selected MAF graph, and interprets its output or error events. `DocumentWorkflowFactory` owns the reusable graph definitions for receipts, shopping lists, and Sujiko puzzles. It creates and connects the document-specific executors but does not classify documents or choose which graph to run.
+
+Two project-owned executors are ready for the planned top-level MAF graph. `DocumentClassificationExecutor` prepares the classification image, calls the classifier once, records its result and usage, and prepares an extraction image for supported document types. `UnsupportedDocumentResultExecutor` turns `Invoice` and `Unknown` classifications into the application's existing unsupported-document response.
+
+These executors are tested but are not both active workflow nodes yet. The production path still performs classification directly in `DocumentProcessingWorkflow`; it also uses the unsupported executor's shared result-building code from the C# `switch`. The next routing change will connect both executors to the document-specific workflows in one top-level MAF graph.
 
 The app currently uses local in-process workflows only. Durable pause/resume is deliberately deferred; see `docs/durability-decision.md`.
 

@@ -134,9 +134,13 @@ anything else                 -> unsupported result
 
 This is a project design choice, not a MAF requirement. A future design could use one larger graph with conditional edges, but the current approach keeps each supported slice small and easy to inspect.
 
+`DocumentClassificationExecutor` is the first step towards that larger graph. It is a **project-owned MAF executor** containing the classification and preparation work described above. It has focused tests, but it is not connected to the application's production path yet. Until the top-level routing graph is enabled, follow `DocumentProcessingWorkflow.RunAsync` to understand what the running application does.
+
 For a supported category, the workflow preprocesses the original image again using `ModelImagePreprocessingPurpose.Extraction`. Classification can use a smaller image, while extraction retains more detail.
 
 It then creates `ClassifiedDocument`, found in `src/MafDocumentProcessor/Workflow/ClassifiedDocument.cs`. This record packages the extraction-ready request, original metadata, classification, classification usage, and original request for the selected slice.
+
+`UnsupportedDocumentResultExecutor` is another prepared **project-owned MAF executor**. It produces the existing unsupported response for `Invoice` and `Unknown`; the next routing change will connect it as a destination in the top-level graph.
 
 ## 4. See How the Receipt Graph Is Built
 
