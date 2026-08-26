@@ -147,6 +147,11 @@ public sealed class CaptureSourceDetectionTests
         Assert.Contains(
             request.Messages.SelectMany(message => message.Content),
             content => content is ModelImageContent);
+        var systemPrompt = Assert.Single(
+            request.Messages.SelectMany(message => message.Content).OfType<ModelTextContent>(),
+            content => content.Text.Contains("Find separate physical documents", StringComparison.Ordinal));
+        Assert.Contains("Prefer extra surrounding background over a tight crop", systemPrompt.Text, StringComparison.Ordinal);
+        Assert.Contains("Do not merge separate documents", systemPrompt.Text, StringComparison.Ordinal);
         Assert.Single(result.Value);
         Assert.Equal("capture-detector", result.Usage.ModelId);
     }
