@@ -80,7 +80,7 @@ For an existing vertical slice, begin with the [slice guide](docs/slice-guide.md
 - Pass `CancellationToken` through asynchronous I/O and model boundaries.
 - Keep provider-specific behaviour inside the provider adapter rather than leaking it into domain or workflow code.
 - Add or update tests with the production change. Offline tests use fakes at model boundaries and must not require credentials or network access.
-- Do not commit API keys, model responses containing sensitive source data, local build output, or ad hoc customer documents.
+- Do not commit API keys, model responses containing sensitive source data, local build output, or ad hoc customer documents. Personal capture photos for local testing belong in `tests/MafDocumentProcessor.Tests/assets/local/`, which is gitignored.
 
 ## Validation
 
