@@ -2,7 +2,7 @@
 
 Local Microsoft Agent Framework (MAF) document-processing demo for receipt, shopping-list, and Sujiko puzzle images.
 
-Upload one PNG or JPEG through the web UI or HTTP API. The application classifies the image, routes it to a document-specific MAF workflow, extracts structured data, validates it, makes one bounded repair attempt when needed, and returns model usage, latency, estimated cost, human-review state, and raw JSON.
+Upload one PNG or JPEG through the web UI or HTTP API. One top-level MAF workflow classifies the image and routes it to a document-specific child workflow, which extracts structured data, validates it, makes one bounded repair attempt when needed, and returns model usage, latency, estimated cost, human-review state, and raw JSON.
 
 ## Project Status
 
@@ -111,7 +111,9 @@ See [TogetherAI local setup](docs/together-ai-local-setup.md) for the current mo
 
 ## Processing Design
 
-Classification intentionally happens before the MAF workflow graph so the application can route into a receipt, shopping-list, or Sujiko-specific workflow. Each workflow uses deterministic executors around model extraction, validation, one repair pass, and result construction.
+Each request runs through one top-level MAF graph. Its classification executor prepares the classification image and calls the classification model once. Labelled conditional edges then send the typed result to exactly one destination: a bound receipt, shopping-list, or Sujiko child workflow, or the unsupported-document executor. Supported documents are prepared separately for extraction before entering their child workflow.
+
+The child workflows use deterministic executors around model extraction, validation, one repair pass, optional policy, and result construction. Classification, route selection, and the selected child completion are visible in the same workflow event stream. The graph is built per request and runs locally in-process; it does not add persistence or background processing.
 
 The provider boundary is a local `IModelChatClient` abstraction. It is retained because TogetherAI-specific protocol options are required to disable Qwen thinking mode. OpenAI-compatible clients are cached by model settings, and transient provider failures use bounded retries.
 

@@ -45,15 +45,18 @@ Browser or API client
   -> POST /api/documents/process
   -> validate and buffer the uploaded image
   -> create FileRequest
-  -> preprocess a classification image
-  -> classify the document
-  -> route Receipt to the receipt workflow
-  -> preprocess an extraction image
-  -> ReceiptExtractionExecutor
-  -> ReceiptValidationExecutor
-  -> ReceiptValidationRepairExecutor
-  -> ReceiptPolicyExecutor
-  -> ReceiptResultExecutor
+  -> start the top-level MAF workflow
+  -> DocumentClassificationExecutor
+     -> preprocess a classification image
+     -> classify the document
+     -> preprocess an extraction image
+  -> labelled Receipt edge
+  -> bound receipt child workflow
+     -> ReceiptExtractionExecutor
+     -> ReceiptValidationExecutor
+     -> ReceiptValidationRepairExecutor
+     -> ReceiptPolicyExecutor
+     -> ReceiptResultExecutor
   -> DocumentProcessingResult
   -> map to DocumentProcessingResponse
   -> JSON response
@@ -110,11 +113,15 @@ This is an important architectural boundary. Everything after `FileRequest` can 
 
 The endpoint also converts known exceptions into the API error contract. A normal unsupported document is different: it completes the workflow and returns a regular response with `IsSuccess=false`.
 
-## 3. Classification Happens Before the MAF Graph
+## 3. Classification Starts the Top-Level MAF Graph
 
 Open `src/MafDocumentProcessor/Workflow/DocumentProcessingWorkflow.cs` and begin at `RunAsync`.
 
-The top-level workflow first prepares a smaller image for classification by calling the image preprocessor with `ModelImagePreprocessingPurpose.Classification`. It then calls `IDocumentClassifier.ClassifyAsync`.
+`RunAsync` asks the project-owned `DocumentWorkflowFactory` to build one request-scoped top-level MAF graph. It then runs that graph once, passing the original `FileRequest` as its input.
+
+The graph's first node is the project-owned `DocumentClassificationExecutor`. Because it inherits MAF's `Executor<FileRequest, ClassifiedDocument>`, MAF knows that it accepts a `FileRequest` and produces a `ClassifiedDocument`.
+
+The executor first prepares a smaller image for classification by calling the image preprocessor with `ModelImagePreprocessingPurpose.Classification`. It then calls `IDocumentClassifier.ClassifyAsync`.
 
 The concrete classifier is `ModelDocumentClassifier` in `src/MafDocumentProcessor/Services/ModelDocumentClassifier.cs`. It:
 
@@ -123,7 +130,7 @@ The concrete classifier is `ModelDocumentClassifier` in `src/MafDocumentProcesso
 3. Parses the model response into `DocumentClassification`.
 4. Returns `ModelResult<DocumentClassification>`, which keeps the parsed value and that call's token/cost/latency usage together.
 
-Classification deliberately sits outside the document-specific MAF graphs. Its answer decides which graph should run:
+Its typed answer decides which destination should run:
 
 ```csharp
 DocumentCategory.Receipt      -> receipt workflow
@@ -132,23 +139,25 @@ DocumentCategory.SujikoPuzzle -> Sujiko workflow
 anything else                 -> unsupported result
 ```
 
-This is a project design choice, not a MAF requirement. A future design could use one larger graph with conditional edges, but the current approach keeps each supported slice small and easy to inspect.
+The selection is expressed with MAF's labelled conditional `AddEdge<ClassifiedDocument>` connections. The category checks and the rule that exactly one destination must match are **project decisions**; `AddEdge` and conditional graph execution are **MAF features**.
 
-`DocumentClassificationExecutor` is the first step towards that larger graph. It is a **project-owned MAF executor** containing the classification and preparation work described above. It has focused tests, but it is not connected to the application's production path yet. Until the top-level routing graph is enabled, follow `DocumentProcessingWorkflow.RunAsync` to understand what the running application does.
-
-For a supported category, the workflow preprocesses the original image again using `ModelImagePreprocessingPurpose.Extraction`. Classification can use a smaller image, while extraction retains more detail.
+For a supported category, the classification executor preprocesses the original image again using `ModelImagePreprocessingPurpose.Extraction` before returning its typed message. Classification can use a smaller image, while extraction retains more detail. Invoice and Unknown skip this second preparation because no extractor will run.
 
 It then creates `ClassifiedDocument`, found in `src/MafDocumentProcessor/Workflow/ClassifiedDocument.cs`. This record packages the extraction-ready request, original metadata, classification, classification usage, and original request for the selected slice.
 
-`UnsupportedDocumentResultExecutor` is another prepared **project-owned MAF executor**. It produces the existing unsupported response for `Invoice` and `Unknown`; the next routing change will connect it as a destination in the top-level graph.
+The executor also emits project-owned `DocumentClassifiedEvent` and `DocumentRouteSelectedEvent` records. They make the category, destination, filename, and source ID visible in the same MAF event stream as the selected child workflow.
+
+`UnsupportedDocumentResultExecutor` is the fourth destination. It is a **project-owned MAF executor** that produces the normal unsupported response for `Invoice` and `Unknown` without calling an extraction model.
 
 ## 4. See How the Receipt Graph Is Built
 
-Still in `DocumentProcessingWorkflow.cs`, find `RunReceiptWorkflowAsync`. This method keeps responsibility for running the selected graph and interpreting its events, but it no longer contains the graph definition itself.
+Follow `DocumentProcessingWorkflow.RunAsync` to `DocumentWorkflowFactory.BuildDocumentRoutingWorkflow`, then open `src/MafDocumentProcessor/Workflow/DocumentWorkflowFactory.cs`.
 
-Follow its call to `DocumentWorkflowFactory.BuildReceiptWorkflow`, then open `src/MafDocumentProcessor/Workflow/DocumentWorkflowFactory.cs`.
+`DocumentWorkflowFactory` is a **project-owned** class. Its top-level builder creates the classification and unsupported executors, builds the three document-specific workflows, and uses MAF's `BindAsExecutor` to place each complete child workflow behind one parent-graph node.
 
-`DocumentWorkflowFactory` is a **project-owned** class. It provides one reusable builder method for each supported document type. The receipt method constructs five project-owned executors and connects them with MAF's `Microsoft.Agents.AI.Workflows.WorkflowBuilder`. `WorkflowBuilder`, `AddEdge`, `WithOutputFrom`, and `Build` in the following snippet all come from the **MAF Workflows NuGet package**:
+The top-level graph connects classification to its four destinations with labelled conditional edges. `WithOutputFrom` declares that any one of those destinations can produce the final result. Production topology tests prove that every defined category matches exactly one edge.
+
+The same factory provides one reusable builder method for each supported document type. The receipt method constructs five project-owned executors and connects them with MAF's `Microsoft.Agents.AI.Workflows.WorkflowBuilder`. `WorkflowBuilder`, `AddEdge`, `WithOutputFrom`, `BindAsExecutor`, and `Build` all come from the **MAF Workflows NuGet package**. The inner receipt graph remains:
 
 ```csharp
 var workflow = new WorkflowBuilder(extractionExecutor)
@@ -164,7 +173,7 @@ In MAF, `AddEdge(source, target)` adds a directed connection to the workflow gra
 
 The executor instances and their document rules are project code. The graph builder and edge semantics are framework code.
 
-Keeping graph construction in `DocumentWorkflowFactory` means the same receipt workflow can be run directly today and bound as a child of the planned top-level routing graph later. The factory does not classify documents or choose a route; `DocumentProcessingWorkflow.RunAsync` still makes that choice with its existing C# `switch` at this stage.
+Keeping graph construction in `DocumentWorkflowFactory` means the receipt workflow can be tested and visualized on its own, while the running application reuses it as a child of the top-level route. There is no application-level category `switch` around separate workflow runs.
 
 The graph is linear, but it is still useful MAF practice: execution, events, typed stages, and workflow output are all real framework behavior. The repair executor contains the conditional decision about whether a second extraction is necessary.
 
@@ -274,11 +283,11 @@ When learning a new slice, inspect these records before studying every line insi
 
 ## 7. See How MAF Returns the Result
 
-Back in `DocumentProcessingWorkflow.RunWorkflowAsync`, MAF's `Microsoft.Agents.AI.Workflows.InProcessExecution.RunAsync` executes the built workflow in the current process.
+Back in `DocumentProcessingWorkflow.RunWorkflowAsync`, MAF's `Microsoft.Agents.AI.Workflows.InProcessExecution.RunAsync` executes the complete top-level workflow in the current process.
 
 MAF defines and returns the workflow event stream, including `WorkflowErrorEvent` and `WorkflowOutputEvent`. This project's surrounding method interprets those framework events as follows:
 
-1. Logs the emitted event types.
+1. Logs the emitted event types from the parent and selected child.
 2. Looks for a `WorkflowErrorEvent` and rethrows its underlying exception.
 3. Finds the last `WorkflowOutputEvent` containing `DocumentProcessingResult`.
 4. Returns that result to the API endpoint.
@@ -314,6 +323,8 @@ Start with:
 - `RunAsync_ReturnsHumanUnsupportedMessageForInvoice`
 
 These tests construct the workflow with fake classifier/extractor implementations. They are the fastest way to see expected results without making provider calls.
+
+For the outer graph itself, read `tests/MafDocumentProcessor.Tests/DocumentWorkflowFactoryTests.cs`. Its routing theory runs every `DocumentCategory`, checks that exactly one parent destination completes, confirms the classification and route events, and verifies that unsupported documents do not make an extraction call.
 
 ### Model boundary
 
@@ -356,7 +367,8 @@ Use this rule of thumb:
 | Review threshold or payment rule | `ReceiptPolicyOptions`, `ReceiptPolicyExecutor` |
 | Shared result semantics | `ReceiptResultExecutor`, `DocumentProcessingResult` |
 | HTTP response shape | API contracts and `DocumentProcessingResponseMapper` |
-| Workflow topology | `BuildReceiptWorkflow` in `DocumentWorkflowFactory` |
+| Top-level routing topology | `BuildDocumentRoutingWorkflow` in `DocumentWorkflowFactory` |
+| Receipt child-workflow topology | `BuildReceiptWorkflow` in `DocumentWorkflowFactory` |
 
 ## 12. Compare the Other Completed Slices
 

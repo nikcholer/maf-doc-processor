@@ -8,15 +8,18 @@ This document traces what happens when an image is submitted to the local demo A
 browser upload
   -> ASP.NET Minimal API endpoint
   -> upload validation and buffering
-  -> image preprocessing for classification
-  -> model classification
-  -> route to document-specific MAF workflow
-  -> image preprocessing for extraction
-  -> extract typed data
-  -> validate typed data
-  -> optional one-shot repair extraction
-  -> optional policy/review evaluation
-  -> DocumentProcessingResult
+  -> top-level MAF workflow
+     -> image preprocessing for classification
+     -> model classification
+     -> image preprocessing for extraction (supported documents only)
+     -> labelled conditional route
+        -> bound document-specific child workflow
+           -> extract typed data
+           -> validate typed data
+           -> optional one-shot repair extraction
+           -> optional policy/review evaluation
+           -> DocumentProcessingResult
+        -> or unsupported result
   -> API response mapper
   -> demo UI summary and raw JSON
 ```
@@ -84,18 +87,18 @@ Model roles and pricing are configured in:
 
 ## Classification
 
-Classification happens before the MAF workflow graph.
+Classification is the first executor in the top-level MAF workflow graph.
 
 Code:
 
-- `DocumentProcessingWorkflow.RunAsync`
+- `DocumentClassificationExecutor`
+- `DocumentWorkflowFactory.BuildDocumentRoutingWorkflow`
 - `ModelDocumentClassifier`
 - `ModelResponseParsers.ParseClassification`
 
-Reason:
+The executor prepares the classification image, calls the classifier once, records metadata and model usage, and prepares a separate extraction image for supported categories. It produces a typed `ClassifiedDocument` message. Labelled MAF conditional edges inspect its category and send it to exactly one destination.
 
-- the app needs to choose a document-specific workflow graph after classification;
-- each supported type has different extraction, validation, result semantics, and optional policy behavior.
+This keeps the route visible in the workflow while allowing each supported type to retain its own extraction, validation, result semantics, and optional policy behavior.
 
 Current categories:
 
@@ -132,7 +135,7 @@ The original upload remains intact at intake. The model-facing image can be resi
 
 ## MAF Workflow Usage
 
-The current production path uses Microsoft Agent Framework workflows for document-specific processing after classification.
+The production path uses one Microsoft Agent Framework workflow from classification through the final document result.
 
 Package:
 
@@ -153,11 +156,19 @@ Shared orchestration code:
 - `src/MafDocumentProcessor/Workflow/DocumentClassificationExecutor.cs`
 - `src/MafDocumentProcessor/Workflow/UnsupportedDocumentResultExecutor.cs`
 
-`DocumentProcessingWorkflow` currently classifies the image, selects a route with a C# `switch`, runs the selected MAF graph, and interprets its output or error events. `DocumentWorkflowFactory` owns the reusable graph definitions for receipts, shopping lists, and Sujiko puzzles. It creates and connects the document-specific executors but does not classify documents or choose which graph to run.
+`DocumentProcessingWorkflow` builds the request-scoped graph, executes it once, logs its events, unwraps workflow errors, and returns its `DocumentProcessingResult`. `DocumentWorkflowFactory.BuildDocumentRoutingWorkflow` owns the graph shape. It connects `DocumentClassificationExecutor` to four destinations with typed conditional edges:
 
-Two project-owned executors are ready for the planned top-level MAF graph. `DocumentClassificationExecutor` prepares the classification image, calls the classifier once, records its result and usage, and prepares an extraction image for supported document types. `UnsupportedDocumentResultExecutor` turns `Invoice` and `Unknown` classifications into the application's existing unsupported-document response.
+```text
+DocumentClassificationExecutor
+  -> receipt-workflow       -> bound receipt child workflow
+  -> shopping-list-workflow -> bound shopping-list child workflow
+  -> sujiko-workflow        -> bound Sujiko child workflow
+  -> UnsupportedDocumentResult -> Invoice or Unknown result
+```
 
-These executors are tested but are not both active workflow nodes yet. The production path still performs classification directly in `DocumentProcessingWorkflow`; it also uses the unsupported executor's shared result-building code from the C# `switch`. The next routing change will connect both executors to the document-specific workflows in one top-level MAF graph.
+`BindAsExecutor` makes each complete document workflow appear as one executor-shaped node in the parent graph. The child workflow still emits its own events, so it remains separately inspectable without flattening every document-specific step into the routing graph.
+
+The project emits `DocumentClassifiedEvent` and `DocumentRouteSelectedEvent` with the category, filename, and optional source ID. MAF's normal executor events show classification and the selected bound workflow completing. All of these events are observed during the same in-process run and remain inside the HTTP request's logging scope.
 
 The app currently uses local in-process workflows only. Durable pause/resume is deliberately deferred; see `docs/durability-decision.md`.
 
@@ -174,7 +185,7 @@ ClassifiedDocument
   -> result executor
 ```
 
-The three graphs are built by the project-owned `DocumentWorkflowFactory` using MAF's `WorkflowBuilder`. They can be executed on their own and are ready to be bound as child workflows when the top-level routing graph is introduced.
+The three graphs are built by the project-owned `DocumentWorkflowFactory` using MAF's `WorkflowBuilder`. They can be executed on their own and are also bound as child nodes in the top-level routing graph.
 
 ### Receipt
 
@@ -341,6 +352,8 @@ See `docs/multi-agent-quality-prototype.md` for more detail.
 Workflow tests:
 
 - `tests/MafDocumentProcessor.Tests/ReceiptProcessingWorkflowTests.cs`
+- `tests/MafDocumentProcessor.Tests/DocumentWorkflowFactoryTests.cs`
+- `tests/MafDocumentProcessor.Tests/DocumentRoutingExecutorTests.cs`
 
 Parser/model service tests:
 

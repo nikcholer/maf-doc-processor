@@ -11,8 +11,10 @@ public sealed class DocumentClassificationExecutor(
     IModelImagePreprocessor imagePreprocessor,
     CancellationToken workflowCancellationToken = default,
     ILogger<DocumentClassificationExecutor>? logger = null)
-    : Executor<FileRequest, ClassifiedDocument>("DocumentClassification")
+    : Executor<FileRequest, ClassifiedDocument>(ExecutorId)
 {
+    public const string ExecutorId = "DocumentClassification";
+
     private readonly ILogger<DocumentClassificationExecutor> _logger =
         logger ?? NullLogger<DocumentClassificationExecutor>.Instance;
 
@@ -31,6 +33,15 @@ public sealed class DocumentClassificationExecutor(
             effectiveCancellationToken);
         var classification = await classifier.ClassifyAsync(
             classificationImage.Request,
+            effectiveCancellationToken);
+
+        await context.AddEventAsync(
+            new WorkflowEvent(new DocumentClassifiedEvent(
+                classification.Value.Category,
+                classification.Value.Confidence,
+                classification.Usage.ModelId,
+                message.FileName,
+                message.SourceId)),
             effectiveCancellationToken);
 
         _logger.LogInformation(
@@ -52,6 +63,20 @@ public sealed class DocumentClassificationExecutor(
                 effectiveCancellationToken);
             workflowRequest = extractionImage.Request;
         }
+
+        var destinationExecutorId = DocumentWorkflowFactory.GetDestinationExecutorId(
+            classification.Value.Category);
+        await context.AddEventAsync(
+            new WorkflowEvent(new DocumentRouteSelectedEvent(
+                classification.Value.Category,
+                destinationExecutorId,
+                message.FileName,
+                message.SourceId)),
+            effectiveCancellationToken);
+        _logger.LogInformation(
+            "Routing document {FileName} to {Category} workflow.",
+            message.FileName,
+            classification.Value.Category);
 
         return new ClassifiedDocument(
             workflowRequest,
