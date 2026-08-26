@@ -58,10 +58,10 @@ The pinned `Microsoft.Agents.AI.Workflows` 1.19.0 package directly supports the 
 
 The selected implementation will therefore:
 
-1. Add a project-owned classification executor. It will prepare the classification image, call `IDocumentClassifier` once, record classification usage and metadata, prepare the extraction image when needed, and produce a `ClassifiedDocument`.
+1. Use the project-owned `DocumentClassificationExecutor`, which is now implemented and tested but not yet connected to the production path. It prepares the classification image, calls `IDocumentClassifier` once, records classification usage and metadata, prepares the extraction image when needed, and produces a `ClassifiedDocument`.
 2. Use `DocumentWorkflowFactory`, which now builds each existing document graph through a reusable project-owned method. These methods connect the same extraction, validation, repair, policy, and result executors used by the current path.
 3. Bind the receipt, shopping-list, and Sujiko workflows as child workflow executors in the top-level graph.
-4. Add a project-owned unsupported-document executor for `Invoice` and `Unknown` classifications.
+4. Use the project-owned `UnsupportedDocumentResultExecutor`, which is now implemented and tested but not yet a destination in the production graph, for `Invoice` and `Unknown` classifications.
 5. Connect classification to those four destinations using labelled, typed conditional edges.
 6. Run the top-level workflow once and obtain the final `DocumentProcessingResult` from its output event.
 
@@ -117,7 +117,7 @@ MAF 1.19.0 also provides an `AddSwitch` builder. The project already selected ty
 The production work should remain split into reviewable changes:
 
 1. **Completed:** extract `DocumentWorkflowFactory` builders for the existing document workflows without changing routing.
-2. Add the classification and unsupported-result executors with focused tests.
+2. **Completed:** add the classification and unsupported-result executors with focused tests, without enabling the new route.
 3. Build and enable the top-level graph with conditional edges and bound child workflows.
 4. Add full topology, cancellation, event, golden-set, API contract, and model-call-count regression coverage.
 5. Update the code-path guides to describe the implemented graph rather than this proposed design.
