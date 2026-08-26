@@ -13,6 +13,7 @@ public static class HealthEndpoints
             var apiKeyConfigured =
                 ApiKeyEnvironment.HasApiKey(settings.DocumentClassification.ApiKeyEnvironmentVariable)
                 && ApiKeyEnvironment.HasApiKey(settings.DocumentExtraction.ApiKeyEnvironmentVariable)
+                && ApiKeyEnvironment.HasApiKey(settings.DocumentRegionDetection.ApiKeyEnvironmentVariable)
                 && ApiKeyEnvironment.HasApiKey(settings.TextTesting.ApiKeyEnvironmentVariable);
 
             return Results.Ok(new HealthResponse(

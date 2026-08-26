@@ -5,14 +5,22 @@ using MafDocumentProcessor.Api.Services;
 using MafDocumentProcessor.Configuration;
 using MafDocumentProcessor.Services;
 using MafDocumentProcessor.Workflow;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 var intakeSettings = ApiConfigurationLoader.LoadDocumentIntakeSettings(builder.Configuration);
+var captureOptions = ApiConfigurationLoader.LoadCompositeCaptureOptions(builder.Configuration);
+var maxRequestBodyBytes = Math.Max(intakeSettings.MaxUploadBytes, captureOptions.MaxAggregateBytes) + 256 * 1024;
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = intakeSettings.MaxUploadBytes + 64 * 1024;
+    options.Limits.MaxRequestBodySize = maxRequestBodyBytes;
 });
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = maxRequestBodyBytes;
+});
+builder.Services.AddOpenApi();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -20,7 +28,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Services.AddSingleton(intakeSettings);
-builder.Services.AddSingleton(ApiConfigurationLoader.LoadCompositeCaptureOptions(builder.Configuration));
+builder.Services.AddSingleton(captureOptions);
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadAiModelSettings(builder.Configuration));
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadModelImagePreprocessingSettings(builder.Configuration));
 builder.Services.AddSingleton(ApiConfigurationLoader.LoadReceiptPolicyOptions(builder.Configuration));
@@ -76,8 +84,10 @@ var app = builder.Build();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.MapOpenApi();
 app.MapHealthEndpoints();
 app.MapDocumentProcessingEndpoints();
+app.MapDocumentCaptureEndpoints();
 
 app.Run();
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines the accepted contract for composite document capture. Shared types, configuration, source decoding/orientation, one-call region detection, deterministic region validation, high-resolution cropping, and bounded source/member orchestration are implemented. The capture API and UI are still being delivered through E3. The existing single-document API has not changed.
+This document defines the accepted contract for composite document capture. Shared types, configuration, source decoding/orientation, one-call region detection, deterministic region validation, high-resolution cropping, bounded source/member orchestration, and `POST /api/document-captures/process` are implemented. Annotated capture previews in the UI are still being delivered through E3. The existing single-document API has not changed.
 
 Model and deterministic responsibilities are defined in [Capture and expense report model boundaries](capture-expense-model-boundaries.md).
 
