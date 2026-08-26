@@ -95,6 +95,13 @@ $env:MAF_RUN_LIVE_CAPTURE_DETECTION_TESTS = "1"
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~CaptureRegionDetectionLiveTests
 ```
 
+Personal capture photos can be dropped in `tests/MafDocumentProcessor.Tests/assets/local/` for local detection and crop checks. That folder is gitignored. The opt-in test skips when the folder is empty and does not copy those images into the repository:
+
+```powershell
+$env:MAF_RUN_LOCAL_CAPTURE_SAMPLES = "1"
+dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~CaptureLocalSampleTests
+```
+
 The normal suite includes a small, non-confidential [golden set](docs/golden-set.md) for the receipt, shopping-list, Sujiko, and unsupported routes. Run it alone with:
 
 ```powershell
