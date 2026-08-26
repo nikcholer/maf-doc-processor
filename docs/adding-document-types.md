@@ -63,7 +63,7 @@ Decide these first:
 
    Model-call executors should link the workflow cancellation token with the executor token, matching the receipt and shopping-list executors.
 
-7. Build the document graph and route the category.
+7. Build the document graph and add it to the top-level route.
 
    Files:
 
@@ -72,7 +72,9 @@ Decide these first:
 
    Add a `Build{Type}Workflow` method to the project-owned factory. Connect the new executors with MAF's `WorkflowBuilder`, give the workflow a clear name and description, and expose its result executor with `WithOutputFrom`.
 
-   Then add a `Run{Type}WorkflowAsync` method and route the new `DocumentCategory` in the current classification switch. The switch remains the production route until the planned top-level MAF graph replaces it.
+   In `BuildDocumentRoutingWorkflow`, bind the completed workflow with MAF's `BindAsExecutor`, add one labelled `AddEdge<ClassifiedDocument>` condition for the new category, and include the bound executor in `WithOutputFrom`. Update `GetDestinationExecutorId` and the classification executor's supported-category check so its route event and extraction preprocessing agree with the graph.
+
+   Extend the production topology theory in `DocumentWorkflowFactoryTests`. Its coverage check should fail until every defined `DocumentCategory` has one expected destination, and its execution check should prove that the new category completes only that destination.
 
 8. Register services in the API host.
 
@@ -100,7 +102,8 @@ Decide these first:
     Minimum useful set:
 
     - Parser tests for valid and invalid extraction JSON.
-    - Workflow routing test from classification to the new extractor.
+    - Topology test proving complete and exclusive routing from classification to the new bound child workflow.
+    - Workflow test proving that only the new extractor is called for the category.
     - Validation repair test when the first extraction fails validation and the second succeeds.
     - API integration test if response shape or error behavior changes.
 
@@ -111,7 +114,7 @@ Decide these first:
     - `README.md`
     - `docs/document-result-semantics.md`
     - `docs/human-review-policy.md`, if ownership/review rules differ
-    - `docs/maf-migration-backlog.md`, if this completes or changes a backlog item
+    - `docs/maf-workflow-evolution-backlog.md`, if this completes or changes a backlog item
 
 ## Implementation Pattern
 
@@ -119,13 +122,15 @@ The current happy path is:
 
 ```text
 upload
-  -> classify image
-  -> route by DocumentCategory
-  -> extract typed data
-  -> validate typed data
-  -> one repair extraction if validation fails
-  -> optional policy/review executor
-  -> DocumentProcessingResult
+  -> top-level MAF workflow
+     -> classify image once
+     -> route by labelled DocumentCategory edge
+     -> bound document-specific child workflow
+        -> extract typed data
+        -> validate typed data
+        -> one repair extraction if validation fails
+        -> optional policy/review executor
+        -> DocumentProcessingResult
   -> API response mapper
 ```
 
