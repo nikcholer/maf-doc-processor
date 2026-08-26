@@ -3,15 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MAF Document Processor</title>
+  <meta name="theme-color" content="#f1eee5">
+  <title>MAF Document Intake Desk</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <main class="shell">
     <header class="masthead">
-      <div>
-        <p class="eyebrow">Microsoft Agent Framework</p>
-        <h1>Document intake demo</h1>
+      <div class="brand-lockup">
+        <span class="brand-index" aria-hidden="true">MAF / 01</span>
+        <div>
+          <p class="eyebrow">Microsoft Agent Framework</p>
+          <h1>Document intake desk</h1>
+          <p class="lede">Classify one document or survey a whole desk of them.</p>
+        </div>
       </div>
       <div class="health" aria-live="polite">
         <span class="health-dot" id="healthDot"></span>
@@ -19,47 +24,72 @@
       </div>
     </header>
 
+    <nav class="mode-switch" aria-label="Processing mode">
+      <label>
+        <input type="radio" name="processingMode" value="single" checked>
+        <span><b>01</b> Single document <small>Fast direct route</small></span>
+      </label>
+      <label>
+        <input type="radio" name="processingMode" value="capture">
+        <span><b>02</b> Capture set <small>Detect every document</small></span>
+      </label>
+    </nav>
+
     <section class="workspace" aria-label="Document processing workspace">
       <form class="upload-surface" id="uploadForm">
+        <div class="surface-heading">
+          <div>
+            <p class="eyebrow">Intake</p>
+            <h2 id="intakeTitle">One document</h2>
+          </div>
+          <span class="step-stamp" aria-hidden="true">A</span>
+        </div>
+
         <div class="drop-zone" id="dropZone">
-          <input id="imageInput" name="image" type="file" accept="image/png,image/jpeg">
-          <img class="preview" id="previewImage" alt="">
+          <input id="imageInput" name="image" type="file" accept="image/png,image/jpeg" aria-describedby="fileGuidance selectedFile">
           <div class="drop-copy" id="dropCopy">
             <span class="file-mark" aria-hidden="true">+</span>
             <div>
-              <h2>Drop a document image</h2>
-              <p>PNG or JPEG, up to the configured local API limit.</p>
+              <h2 id="dropTitle">Drop a document image</h2>
+              <p id="fileGuidance">PNG or JPEG, up to the configured local API limit.</p>
             </div>
           </div>
-          <p class="selected-file" id="selectedFile">No file selected</p>
+          <div class="intake-preview" id="intakePreview" hidden aria-label="Selected image previews"></div>
+          <p class="selected-file" id="selectedFile" aria-live="polite">No file selected</p>
         </div>
 
         <label class="field">
-          <span>Source ID</span>
+          <span>Source ID <small>optional reference</small></span>
           <input id="sourceId" name="sourceId" type="text" value="demo-upload" autocomplete="off">
         </label>
 
         <button class="primary-action" id="processButton" type="submit">
           <span>Process document</span>
+          <span aria-hidden="true">&#8594;</span>
         </button>
       </form>
 
-      <section class="result-surface" aria-label="Processing result">
+      <section class="result-surface" aria-label="Processing result" aria-busy="false" id="resultSurface">
         <div class="result-header">
           <div>
-            <p class="eyebrow">Workflow Result</p>
+            <p class="eyebrow" id="resultEyebrow">Workflow result</p>
             <h2 id="resultTitle">Waiting for upload</h2>
           </div>
           <span class="status-pill" id="statusPill">Idle</span>
         </div>
 
+        <div class="progress-strip" id="progressStrip" hidden>
+          <span class="progress-track" aria-hidden="true"><i></i></span>
+          <p id="progressText" aria-live="polite">Preparing request</p>
+        </div>
+
         <div class="metrics-grid" aria-label="Result summary">
           <div>
-            <span>Category</span>
+            <span id="metricOneLabel">Category</span>
             <strong id="categoryMetric">-</strong>
           </div>
           <div>
-            <span>Decision</span>
+            <span id="metricTwoLabel">Decision</span>
             <strong id="decisionMetric">-</strong>
           </div>
           <div>
@@ -76,20 +106,50 @@
           </div>
         </div>
 
-        <div class="detail-grid">
-          <section>
-            <h3>Extracted Data</h3>
-            <dl id="extractedData" class="data-list">
-              <div><dt>Document</dt><dd>No result yet</dd></div>
-            </dl>
-          </section>
+        <div id="singleResult">
+          <div class="detail-grid">
+            <section>
+              <h3>Extracted data</h3>
+              <dl id="extractedData" class="data-list">
+                <div><dt>Document</dt><dd>No result yet</dd></div>
+              </dl>
+            </section>
 
-          <section>
-            <h3>Review Reasons</h3>
-            <ul id="policyReasons" class="reason-list">
-              <li>Run a receipt to inspect validation and review reasoning.</li>
-            </ul>
-          </section>
+            <section>
+              <h3>Review reasons</h3>
+              <ul id="policyReasons" class="reason-list">
+                <li>Run a document to inspect validation and review reasoning.</li>
+              </ul>
+            </section>
+          </div>
+        </div>
+
+        <div id="captureResult" hidden>
+          <div class="capture-layout">
+            <section class="source-gallery" aria-labelledby="sourceGalleryTitle">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Source survey</p>
+                  <h3 id="sourceGalleryTitle">Annotated captures</h3>
+                </div>
+                <p id="captureSummary" class="section-note">Every source remains visible, including failures.</p>
+              </div>
+              <div class="source-grid" id="sourceGrid"></div>
+            </section>
+
+            <aside class="member-inspector" id="memberInspector" aria-labelledby="memberTitle">
+              <div class="inspector-heading">
+                <div>
+                  <p class="eyebrow">Selected region</p>
+                  <h3 id="memberTitle">Choose a document</h3>
+                </div>
+                <span class="step-stamp" aria-hidden="true">B</span>
+              </div>
+              <div id="memberDetail" class="member-detail">
+                <p class="empty-state">Select an outlined document or its row to inspect the result.</p>
+              </div>
+            </aside>
+          </div>
         </div>
 
         <details class="json-panel" id="jsonPanel">
@@ -100,6 +160,7 @@
     </section>
   </main>
 
+  <script src="/capture-ui.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

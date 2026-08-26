@@ -1,22 +1,38 @@
 const form = document.querySelector("#uploadForm");
+const modeInputs = [...document.querySelectorAll('input[name="processingMode"]')];
 const imageInput = document.querySelector("#imageInput");
 const sourceIdInput = document.querySelector("#sourceId");
 const dropZone = document.querySelector("#dropZone");
 const dropCopy = document.querySelector("#dropCopy");
+const dropTitle = document.querySelector("#dropTitle");
+const fileGuidance = document.querySelector("#fileGuidance");
 const selectedFile = document.querySelector("#selectedFile");
-const previewImage = document.querySelector("#previewImage");
+const intakePreview = document.querySelector("#intakePreview");
+const intakeTitle = document.querySelector("#intakeTitle");
 const processButton = document.querySelector("#processButton");
 const healthDot = document.querySelector("#healthDot");
 const healthText = document.querySelector("#healthText");
+const resultSurface = document.querySelector("#resultSurface");
+const resultEyebrow = document.querySelector("#resultEyebrow");
 const resultTitle = document.querySelector("#resultTitle");
 const statusPill = document.querySelector("#statusPill");
+const progressStrip = document.querySelector("#progressStrip");
+const progressText = document.querySelector("#progressText");
+const metricOneLabel = document.querySelector("#metricOneLabel");
+const metricTwoLabel = document.querySelector("#metricTwoLabel");
 const categoryMetric = document.querySelector("#categoryMetric");
 const decisionMetric = document.querySelector("#decisionMetric");
 const tokensMetric = document.querySelector("#tokensMetric");
 const latencyMetric = document.querySelector("#latencyMetric");
 const costMetric = document.querySelector("#costMetric");
+const singleResult = document.querySelector("#singleResult");
 const extractedData = document.querySelector("#extractedData");
 const policyReasons = document.querySelector("#policyReasons");
+const captureResult = document.querySelector("#captureResult");
+const captureSummary = document.querySelector("#captureSummary");
+const sourceGrid = document.querySelector("#sourceGrid");
+const memberTitle = document.querySelector("#memberTitle");
+const memberDetail = document.querySelector("#memberDetail");
 const jsonPanel = document.querySelector("#jsonPanel");
 const rawJson = document.querySelector("#rawJson");
 
@@ -33,15 +49,36 @@ const fieldLabels = {
   givenCells: "Given cells"
 };
 
-let previewUrl = null;
-const maxUploadBytes = 5 * 1024 * 1024;
-const requestTimeoutMs = 65 * 1000;
+const svgNamespace = "http://www.w3.org/2000/svg";
+const singleMaxUploadBytes = 5 * 1024 * 1024;
+const captureMaxSourceBytes = 10 * 1024 * 1024;
+const captureMaxAggregateBytes = 25 * 1024 * 1024;
+const captureMaxSourceCount = 5;
+const requestTimeoutByMode = { single: 65 * 1000, capture: 180 * 1000 };
+
+let processingMode = "single";
+let selectedFiles = [];
+let selectedMemberId = null;
+let capturePayload = null;
+const previewUrls = new Map();
 
 checkHealth();
 
+modeInputs.forEach((input) => {
+  input.addEventListener("change", () => {
+    if (!input.checked || input.value === processingMode) {
+      return;
+    }
+
+    processingMode = input.value;
+    resetFiles();
+    resetResult();
+    configureMode();
+  });
+});
+
 imageInput.addEventListener("change", () => {
-  const file = imageInput.files?.[0];
-  setSelectedFile(file);
+  setSelectedFiles([...imageInput.files]);
 });
 
 ["dragenter", "dragover"].forEach((eventName) => {
@@ -59,83 +96,76 @@ imageInput.addEventListener("change", () => {
 });
 
 dropZone.addEventListener("drop", (event) => {
-  const file = event.dataTransfer.files?.[0];
-  if (!file) {
+  const droppedFiles = [...(event.dataTransfer?.files ?? [])];
+  if (droppedFiles.length === 0) {
     return;
   }
 
+  const files = processingMode === "capture" ? droppedFiles : droppedFiles.slice(0, 1);
   const transfer = new DataTransfer();
-  transfer.items.add(file);
+  files.forEach((file) => transfer.items.add(file));
   imageInput.files = transfer.files;
   imageInput.dispatchEvent(new Event("change"));
 });
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-
-  const file = imageInput.files?.[0];
-  if (!file) {
-    renderError({
-      code: "missing_file",
-      message: "Choose a PNG or JPEG document image before processing.",
-      target: "image",
-      traceId: "-"
-    });
-    return;
-  }
-
-  if (file.size > maxUploadBytes) {
-    renderError({
-      code: "file_too_large",
-      message: `Choose an image smaller than ${formatBytes(maxUploadBytes)}.`,
-      target: "image",
-      traceId: "-"
-    });
+  const validationError = validateFiles(selectedFiles);
+  if (validationError) {
+    renderRequestError(validationError);
     return;
   }
 
   const body = new FormData();
-  body.append("image", file);
-
+  const fieldName = processingMode === "capture" ? "images" : "image";
+  selectedFiles.forEach((file) => body.append(fieldName, file));
   const sourceId = sourceIdInput.value.trim();
   if (sourceId.length > 0) {
     body.append("sourceId", sourceId);
   }
 
   setBusy(true);
+  if (processingMode === "capture") {
+    renderCapturePending();
+  }
+
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+  const timeoutMs = requestTimeoutByMode[processingMode];
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch("/api/documents/process", {
-      method: "POST",
-      headers: {
-        "X-Correlation-ID": crypto.randomUUID()
-      },
-      body,
-      signal: controller.signal
-    });
+    const response = await fetch(
+      processingMode === "capture" ? "/api/document-captures/process" : "/api/documents/process",
+      {
+        method: "POST",
+        headers: { "X-Correlation-ID": crypto.randomUUID() },
+        body,
+        signal: controller.signal
+      });
     const responseText = await response.text();
     const parsedPayload = parseJsonPayload(responseText);
 
     if (!parsedPayload.ok) {
-      renderError(buildNonJsonResponseError(response, responseText));
+      renderRequestError(buildNonJsonResponseError(response, responseText));
       return;
     }
 
     if (!response.ok) {
-      renderError(parsedPayload.value);
+      renderRequestError(parsedPayload.value);
       return;
     }
 
-    renderSuccess(parsedPayload.value);
+    if (processingMode === "capture") {
+      renderCaptureSuccess(parsedPayload.value);
+    } else {
+      renderDocumentSuccess(parsedPayload.value);
+    }
   } catch (error) {
-    renderError({
-      code: error instanceof DOMException && error.name === "AbortError"
-        ? "request_timeout"
-        : "request_failed",
-      message: error instanceof DOMException && error.name === "AbortError"
-        ? "Processing exceeded 65 seconds. Check the API terminal logs for the last completed stage."
+    const timedOut = error instanceof DOMException && error.name === "AbortError";
+    renderRequestError({
+      code: timedOut ? "request_timeout" : "request_failed",
+      message: timedOut
+        ? `Processing exceeded ${Math.round(timeoutMs / 1000)} seconds. Check the API terminal logs for the last completed stage.`
         : error instanceof Error ? error.message : "The request failed.",
       target: null,
       traceId: "-"
@@ -162,67 +192,468 @@ async function checkHealth() {
   }
 }
 
-function setSelectedFile(file) {
-  selectedFile.textContent = file ? `${file.name} (${formatBytes(file.size)})` : "No file selected";
+function configureMode() {
+  const isCapture = processingMode === "capture";
+  imageInput.multiple = isCapture;
+  imageInput.name = isCapture ? "images" : "image";
+  intakeTitle.textContent = isCapture ? "Composite capture" : "One document";
+  dropTitle.textContent = isCapture ? "Drop one or more capture images" : "Drop a document image";
+  fileGuidance.textContent = isCapture
+    ? "Up to five PNG or JPEG sources. Every detected document gets its own result."
+    : "PNG or JPEG, up to the configured local API limit.";
+  processButton.firstElementChild.textContent = isCapture ? "Survey capture set" : "Process document";
+}
 
-  if (previewUrl) {
-    URL.revokeObjectURL(previewUrl);
-    previewUrl = null;
-  }
+function setSelectedFiles(files) {
+  releasePreviewUrls();
+  selectedFiles = files;
+  intakePreview.replaceChildren();
+  const isEmpty = selectedFiles.length === 0;
+  intakePreview.hidden = isEmpty;
+  dropCopy.hidden = !isEmpty;
+  dropZone.classList.toggle("has-preview", !isEmpty);
 
-  if (!file) {
-    previewImage.removeAttribute("src");
-    dropZone.classList.remove("has-preview");
-    dropCopy.hidden = false;
+  if (isEmpty) {
+    selectedFile.textContent = "No file selected";
     return;
   }
 
-  previewUrl = URL.createObjectURL(file);
-  previewImage.src = previewUrl;
-  dropZone.classList.add("has-preview");
-  dropCopy.hidden = true;
+  const aggregateBytes = selectedFiles.reduce((total, file) => total + file.size, 0);
+  selectedFile.textContent = selectedFiles.length === 1
+    ? `${selectedFiles[0].name} (${formatBytes(selectedFiles[0].size)})`
+    : `${selectedFiles.length} sources / ${formatBytes(aggregateBytes)} total`;
+
+  selectedFiles.forEach((file, index) => {
+    const figure = document.createElement("figure");
+    figure.className = "intake-thumbnail";
+    const image = document.createElement("img");
+    image.src = getPreviewUrl(file);
+    image.alt = "";
+    const caption = document.createElement("figcaption");
+    caption.textContent = `${String(index + 1).padStart(2, "0")} · ${file.name}`;
+    figure.append(image, caption);
+    intakePreview.appendChild(figure);
+  });
+}
+
+function resetFiles() {
+  imageInput.value = "";
+  selectedFiles = [];
+  selectedMemberId = null;
+  capturePayload = null;
+  releasePreviewUrls();
+  setSelectedFiles([]);
+}
+
+function releasePreviewUrls() {
+  previewUrls.forEach((url) => URL.revokeObjectURL(url));
+  previewUrls.clear();
+}
+
+function getPreviewUrl(file) {
+  if (!previewUrls.has(file)) {
+    previewUrls.set(file, URL.createObjectURL(file));
+  }
+
+  return previewUrls.get(file);
+}
+
+function validateFiles(files) {
+  if (files.length === 0) {
+    return {
+      code: "missing_file",
+      message: processingMode === "capture"
+        ? "Choose at least one PNG or JPEG capture image before processing."
+        : "Choose a PNG or JPEG document image before processing.",
+      target: processingMode === "capture" ? "images" : "image",
+      traceId: "-"
+    };
+  }
+
+  if (processingMode === "single" && files[0].size > singleMaxUploadBytes) {
+    return localFileError(`Choose an image smaller than ${formatBytes(singleMaxUploadBytes)}.`);
+  }
+
+  if (processingMode === "capture") {
+    if (files.length > captureMaxSourceCount) {
+      return localFileError(`Choose at most ${captureMaxSourceCount} capture images.`);
+    }
+
+    const oversized = files.find((file) => file.size > captureMaxSourceBytes);
+    if (oversized) {
+      return localFileError(`${oversized.name} exceeds the ${formatBytes(captureMaxSourceBytes)} per-source limit.`);
+    }
+
+    const aggregateBytes = files.reduce((total, file) => total + file.size, 0);
+    if (aggregateBytes > captureMaxAggregateBytes) {
+      return localFileError(`The selected images exceed the ${formatBytes(captureMaxAggregateBytes)} combined limit.`);
+    }
+  }
+
+  return null;
+}
+
+function localFileError(message) {
+  return { code: "file_too_large", message, target: processingMode === "capture" ? "images" : "image", traceId: "-" };
 }
 
 function setBusy(isBusy) {
   processButton.disabled = isBusy;
-  processButton.querySelector("span").textContent = isBusy ? "Processing..." : "Process document";
+  imageInput.disabled = isBusy;
+  sourceIdInput.disabled = isBusy;
+  modeInputs.forEach((input) => {
+    input.disabled = isBusy;
+  });
+  resultSurface.setAttribute("aria-busy", String(isBusy));
+  progressStrip.hidden = !isBusy;
   if (isBusy) {
-    resultTitle.textContent = "Processing document";
+    resultTitle.textContent = processingMode === "capture" ? "Surveying capture set" : "Processing document";
+    progressText.textContent = processingMode === "capture"
+      ? `Detecting and routing documents across ${selectedFiles.length} source${selectedFiles.length === 1 ? "" : "s"}`
+      : "Classifying and extracting the selected document";
     statusPill.textContent = "Running";
-    statusPill.className = "status-pill";
+    statusPill.className = "status-pill running";
+    processButton.firstElementChild.textContent = processingMode === "capture" ? "Surveying..." : "Processing...";
     jsonPanel.open = false;
+  } else {
+    processButton.firstElementChild.textContent = processingMode === "capture" ? "Survey capture set" : "Process document";
   }
 }
 
-function renderSuccess(payload) {
-  const document = payload.document;
-  const policy = document?.policyResult;
+function resetResult() {
+  resultEyebrow.textContent = "Workflow result";
+  resultTitle.textContent = "Waiting for upload";
+  statusPill.textContent = "Idle";
+  statusPill.className = "status-pill";
+  metricOneLabel.textContent = processingMode === "capture" ? "Sources" : "Category";
+  metricTwoLabel.textContent = processingMode === "capture" ? "Documents" : "Decision";
+  [categoryMetric, decisionMetric, tokensMetric, latencyMetric, costMetric].forEach((element) => {
+    element.textContent = "-";
+  });
+  singleResult.hidden = false;
+  captureResult.hidden = true;
+  rawJson.textContent = "{}";
+  jsonPanel.open = false;
+}
+
+function renderDocumentSuccess(payload) {
+  singleResult.hidden = false;
+  captureResult.hidden = true;
+  metricOneLabel.textContent = "Category";
+  metricTwoLabel.textContent = "Decision";
+  const documentResult = payload.document;
+  const policy = documentResult?.policyResult;
   const humanReview = payload.humanReview;
   const hasHumanReview = humanReview?.status && humanReview.status !== "NotRequired";
-  const decision = policy?.decision ?? (hasHumanReview ? humanReview.status : (payload.isSuccess ? "Complete" : "NeedsReview"));
+  const decision = policy?.decision ?? (hasHumanReview ? humanReview.status : (payload.isSuccess ? "Complete" : "Needs review"));
 
+  resultEyebrow.textContent = "Workflow result";
   resultTitle.textContent = `${payload.category} processed`;
   categoryMetric.textContent = payload.category ?? "-";
   decisionMetric.textContent = decision;
-  const modelUsage = payload.modelUsage ?? {};
-  tokensMetric.textContent = formatInteger(modelUsage.totalTokens);
-  latencyMetric.textContent = formatDuration(getModelDuration(modelUsage));
-  costMetric.textContent = formatUsdCost(modelUsage.estimatedTotalCostUsd);
+  renderModelUsage(payload.modelUsage);
   statusPill.textContent = decision;
   statusPill.className = `status-pill ${decision === "Approved" || decision === "Complete" ? "approved" : "review"}`;
 
-  renderData(document?.data ?? {});
-  renderReasons([
+  renderData(extractedData, documentResult?.data ?? {});
+  renderReasons(policyReasons, [
     ...(humanReview?.reasons ?? []),
     ...(policy?.reasons ?? []),
     ...(payload.warnings ?? []),
     ...(payload.errors ?? [])
   ]);
-  rawJson.textContent = JSON.stringify(payload, null, 2);
-  jsonPanel.open = true;
+  showRawJson(payload);
 }
 
-function renderError(error) {
+function renderCapturePending() {
+  singleResult.hidden = true;
+  captureResult.hidden = false;
+  metricOneLabel.textContent = "Sources";
+  metricTwoLabel.textContent = "Documents";
+  categoryMetric.textContent = selectedFiles.length.toString();
+  decisionMetric.textContent = "Scanning";
+  tokensMetric.textContent = "-";
+  latencyMetric.textContent = "-";
+  costMetric.textContent = "-";
+  captureSummary.textContent = "Sources stay visible while the bounded workflow runs.";
+  sourceGrid.replaceChildren();
+  memberTitle.textContent = "Awaiting regions";
+  memberDetail.replaceChildren(createParagraph("Detection and document processing are in progress.", "empty-state"));
+
+  selectedFiles.forEach((file, index) => {
+    const source = {
+      index: index + 1,
+      sourceItemId: `source-${String(index + 1).padStart(3, "0")}`,
+      metadata: { fileName: file.name },
+      status: "Running",
+      errors: [],
+      warnings: []
+    };
+    sourceGrid.appendChild(createSourceCard(source, file, [], true));
+  });
+}
+
+function renderCaptureSuccess(payload) {
+  capturePayload = payload;
+  selectedMemberId = CaptureUi.chooseMemberId(payload, selectedMemberId);
+  singleResult.hidden = true;
+  captureResult.hidden = false;
+  metricOneLabel.textContent = "Sources";
+  metricTwoLabel.textContent = "Documents";
+  const summary = CaptureUi.summarizeCapture(payload);
+
+  resultEyebrow.textContent = "Capture aggregate";
+  resultTitle.textContent = `${summary.memberCount} document${summary.memberCount === 1 ? "" : "s"} surveyed`;
+  categoryMetric.textContent = summary.sourceCount.toString();
+  decisionMetric.textContent = summary.memberCount.toString();
+  renderModelUsage(payload.modelUsage);
+  statusPill.textContent = sentenceCase(payload.status ?? "Complete");
+  statusPill.className = `status-pill ${captureStatusClass(payload.status)}`;
+  captureSummary.textContent = [
+    `${summary.acceptedCount} accepted`,
+    `${summary.reviewCount} review`,
+    `${summary.rejectedCount} rejected`,
+    summary.failedSourceCount > 0 ? `${summary.failedSourceCount} failed source${summary.failedSourceCount === 1 ? "" : "s"}` : null
+  ].filter(Boolean).join(" · ");
+
+  sourceGrid.replaceChildren();
+  const sources = Array.isArray(payload.sources) ? payload.sources : [];
+  sources.forEach((source) => {
+    const file = selectedFiles[Number(source.index) - 1];
+    const members = CaptureUi.getMembersForSource(payload, source.sourceItemId);
+    sourceGrid.appendChild(createSourceCard(source, file, members, false));
+  });
+
+  updateMemberSelection(selectedMemberId, false);
+  showRawJson(payload, false);
+}
+
+function createSourceCard(source, file, members, pending) {
+  const card = document.createElement("article");
+  card.className = `source-card source-${String(source.status).toLowerCase()}`;
+  card.dataset.sourceId = source.sourceItemId;
+
+  const header = document.createElement("header");
+  const headingWrap = document.createElement("div");
+  const sourceIndex = createParagraph(`Source ${String(source.index).padStart(2, "0")}`, "source-index");
+  const heading = document.createElement("h4");
+  heading.textContent = source.metadata?.fileName ?? file?.name ?? source.sourceItemId;
+  headingWrap.append(sourceIndex, heading);
+  const sourceStatus = document.createElement("span");
+  sourceStatus.className = `source-status ${captureStatusClass(source.status)}`;
+  sourceStatus.textContent = pending ? "Processing" : sentenceCase(source.status);
+  header.append(headingWrap, sourceStatus);
+
+  const frame = document.createElement("div");
+  frame.className = "source-preview-frame";
+  if (file) {
+    const image = document.createElement("img");
+    image.src = getPreviewUrl(file);
+    image.alt = `Uploaded source ${source.index}: ${source.metadata?.fileName ?? file.name}`;
+    image.addEventListener("load", () => {
+      if (!pending && !CaptureUi.hasMatchingOrientation(image.naturalWidth, image.naturalHeight, source.metadata)) {
+        card.classList.add("orientation-warning");
+        appendFinding(card, "Preview orientation differs from the normalized API dimensions; inspect overlay alignment.", "warning");
+      }
+    });
+    frame.appendChild(image);
+  } else {
+    frame.appendChild(createParagraph("Local source preview is unavailable.", "preview-unavailable"));
+  }
+
+  if (pending) {
+    const scan = document.createElement("span");
+    scan.className = "scan-line";
+    scan.setAttribute("aria-hidden", "true");
+    frame.appendChild(scan);
+  } else if (members.length > 0) {
+    frame.appendChild(createOverlay(members));
+  }
+
+  const findings = [
+    ...(source.errors ?? []).map((text) => ({ text, type: "error" })),
+    ...(source.warnings ?? []).map((text) => ({ text, type: "warning" }))
+  ];
+  if (findings.length > 0) {
+    const list = document.createElement("ul");
+    list.className = "source-findings";
+    findings.forEach((finding) => {
+      const item = document.createElement("li");
+      item.className = finding.type;
+      item.textContent = finding.text;
+      list.appendChild(item);
+    });
+    card.append(header, frame, list);
+  } else {
+    card.append(header, frame);
+  }
+
+  if (!pending) {
+    const memberList = document.createElement("div");
+    memberList.className = "member-list";
+    memberList.setAttribute("aria-label", `Documents in source ${source.index}`);
+    if (members.length === 0) {
+      memberList.appendChild(createParagraph("No document regions returned.", "empty-state compact"));
+    } else {
+      members.forEach((member) => memberList.appendChild(createMemberButton(member)));
+    }
+    card.appendChild(memberList);
+  }
+
+  return card;
+}
+
+function createOverlay(members) {
+  const svg = document.createElementNS(svgNamespace, "svg");
+  svg.setAttribute("class", "region-overlay");
+  svg.setAttribute("viewBox", "0 0 100 100");
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.setAttribute("aria-label", "Detected document regions");
+
+  members.forEach((member) => {
+    const presentation = CaptureUi.getDispositionPresentation(member.disposition);
+    const shape = CaptureUi.getRegionShape(member.region);
+    const group = document.createElementNS(svgNamespace, "g");
+    group.setAttribute("class", `region ${presentation.className}`);
+    group.setAttribute("role", "button");
+    group.setAttribute("tabindex", "0");
+    group.setAttribute("aria-label", CaptureUi.getMemberAccessibleLabel(member));
+    group.setAttribute("aria-pressed", String(member.memberId === selectedMemberId));
+    group.dataset.memberId = member.memberId;
+    group.addEventListener("click", () => updateMemberSelection(member.memberId, true));
+    group.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        updateMemberSelection(member.memberId, true);
+      }
+    });
+
+    const boundary = document.createElementNS(svgNamespace, shape.type === "polygon" ? "polygon" : "rect");
+    boundary.setAttribute("class", "region-boundary");
+    boundary.setAttribute("vector-effect", "non-scaling-stroke");
+    if (shape.type === "polygon") {
+      boundary.setAttribute("points", shape.points);
+    } else {
+      Object.entries(shape.bounds).forEach(([name, value]) => boundary.setAttribute(name, value));
+    }
+
+    const markerX = clamp(shape.marker.x * 100 + 3.5, 4.5, 95.5);
+    const markerY = clamp(shape.marker.y * 100 + 3.5, 4.5, 95.5);
+    const marker = document.createElementNS(svgNamespace, "circle");
+    marker.setAttribute("class", "region-marker");
+    marker.setAttribute("cx", markerX);
+    marker.setAttribute("cy", markerY);
+    marker.setAttribute("r", "3.1");
+    marker.setAttribute("vector-effect", "non-scaling-stroke");
+    const symbol = document.createElementNS(svgNamespace, "text");
+    symbol.setAttribute("class", "region-symbol");
+    symbol.setAttribute("x", markerX);
+    symbol.setAttribute("y", markerY + 1.15);
+    symbol.setAttribute("text-anchor", "middle");
+    symbol.textContent = presentation.symbol;
+    group.append(boundary, marker, symbol);
+    svg.appendChild(group);
+  });
+
+  return svg;
+}
+
+function createMemberButton(member) {
+  const presentation = CaptureUi.getDispositionPresentation(member.disposition);
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `member-row ${presentation.className}`;
+  button.dataset.memberId = member.memberId;
+  button.setAttribute("aria-pressed", String(member.memberId === selectedMemberId));
+  button.setAttribute("aria-label", CaptureUi.getMemberAccessibleLabel(member));
+
+  const symbol = document.createElement("span");
+  symbol.className = "member-symbol";
+  symbol.setAttribute("aria-hidden", "true");
+  symbol.textContent = presentation.symbol;
+  const copy = document.createElement("span");
+  const title = document.createElement("b");
+  title.textContent = member.result?.category ?? `Document ${member.index}`;
+  const subtitle = document.createElement("small");
+  subtitle.textContent = `${presentation.label} · ${member.memberId}`;
+  copy.append(title, subtitle);
+  button.append(symbol, copy);
+  button.addEventListener("click", () => updateMemberSelection(member.memberId, true));
+  return button;
+}
+
+function updateMemberSelection(memberId, moveFocus) {
+  selectedMemberId = CaptureUi.chooseMemberId(capturePayload, memberId);
+  sourceGrid.querySelectorAll("[data-member-id]").forEach((element) => {
+    const isSelected = element.dataset.memberId === selectedMemberId;
+    element.classList.toggle("selected", isSelected);
+    element.setAttribute("aria-pressed", String(isSelected));
+  });
+
+  const member = capturePayload?.members?.find((candidate) => candidate.memberId === selectedMemberId);
+  renderMemberDetail(member);
+  if (moveFocus) {
+    document.querySelector("#memberInspector")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+function renderMemberDetail(member) {
+  memberDetail.replaceChildren();
+  if (!member) {
+    memberTitle.textContent = "No document selected";
+    memberDetail.appendChild(createParagraph("This capture did not return a selectable region.", "empty-state"));
+    return;
+  }
+
+  const presentation = CaptureUi.getDispositionPresentation(member.disposition);
+  memberTitle.textContent = member.result?.category ?? `Document ${member.index}`;
+  const identity = createParagraph(member.memberId, "member-identity");
+  const disposition = document.createElement("p");
+  disposition.className = `inspector-disposition ${presentation.className}`;
+  disposition.textContent = `${presentation.symbol} ${presentation.label}`;
+
+  const metadata = document.createElement("dl");
+  metadata.className = "data-list compact-data";
+  const confidence = Number(member.region?.confidence);
+  metadata.append(
+    createDataRow("Workflow status", sentenceCase(member.status ?? "-")),
+    createDataRow("Detection confidence", Number.isFinite(confidence) ? `${Math.round(confidence * 100)}%` : "Not reported"),
+    createDataRow("Classification", member.result?.classification?.confidence === null || member.result?.classification?.confidence === undefined
+      ? "Not available"
+      : `${Math.round(Number(member.result.classification.confidence) * 100)}%`)
+  );
+  memberDetail.append(identity, disposition, metadata);
+
+  const documentData = member.result?.document?.data;
+  if (documentData && Object.keys(documentData).length > 0) {
+    memberDetail.appendChild(createSectionHeading("Extracted data"));
+    const dataList = document.createElement("dl");
+    dataList.className = "data-list compact-data";
+    renderData(dataList, documentData);
+    memberDetail.appendChild(dataList);
+  }
+
+  const reasons = [
+    ...(member.dispositionReasons ?? []),
+    ...(member.region?.warnings ?? []),
+    ...(member.result?.humanReview?.reasons ?? []),
+    ...(member.result?.warnings ?? []),
+    ...(member.result?.errors ?? []),
+    member.error?.message
+  ].filter(Boolean);
+  memberDetail.appendChild(createSectionHeading("Reasons and findings"));
+  const list = document.createElement("ul");
+  list.className = "reason-list compact-reasons";
+  renderReasons(list, reasons);
+  memberDetail.appendChild(list);
+}
+
+function renderRequestError(error) {
+  singleResult.hidden = false;
+  captureResult.hidden = true;
+  metricOneLabel.textContent = "Category";
+  metricTwoLabel.textContent = "Decision";
+  resultEyebrow.textContent = "Request boundary";
   resultTitle.textContent = "Request failed";
   categoryMetric.textContent = "-";
   decisionMetric.textContent = error.code ?? "Error";
@@ -231,15 +662,37 @@ function renderError(error) {
   costMetric.textContent = "-";
   statusPill.textContent = "Error";
   statusPill.className = "status-pill error";
-
-  renderData({
+  renderData(extractedData, {
     code: error.code ?? "request_failed",
     target: error.target ?? "-",
     traceId: error.traceId ?? "-"
   });
-  renderReasons([error.message ?? "The request failed."]);
-  rawJson.textContent = JSON.stringify(error, null, 2);
-  jsonPanel.open = true;
+  renderReasons(policyReasons, [error.message ?? "The request failed."]);
+  showRawJson(error);
+}
+
+function renderModelUsage(modelUsage = {}) {
+  tokensMetric.textContent = formatInteger(modelUsage.totalTokens);
+  latencyMetric.textContent = formatDuration(getModelDuration(modelUsage));
+  costMetric.textContent = formatUsdCost(modelUsage.estimatedTotalCostUsd);
+}
+
+function showRawJson(payload, shouldOpen = true) {
+  rawJson.textContent = JSON.stringify(payload, null, 2);
+  jsonPanel.open = shouldOpen;
+}
+
+function appendFinding(card, text, type) {
+  let list = card.querySelector(".source-findings");
+  if (!list) {
+    list = document.createElement("ul");
+    list.className = "source-findings";
+    card.appendChild(list);
+  }
+  const item = document.createElement("li");
+  item.className = type;
+  item.textContent = text;
+  list.appendChild(item);
 }
 
 function parseJsonPayload(responseText) {
@@ -274,29 +727,27 @@ function summarizeResponseText(value) {
   return preview.length > 240 ? `${preview.slice(0, 240)}...` : preview;
 }
 
-function renderData(data) {
+function renderData(target, data) {
   const entries = Object.entries(data);
-  extractedData.replaceChildren();
-
+  target.replaceChildren();
   if (entries.length === 0) {
-    extractedData.appendChild(createDataRow("Document", "No extracted fields returned"));
+    target.appendChild(createDataRow("Document", "No extracted fields returned"));
     return;
   }
 
-  for (const [key, value] of entries) {
-    extractedData.appendChild(createDataRow(fieldLabels[key] ?? sentenceCase(key), formatValue(key, value)));
-  }
+  entries.forEach(([key, value]) => {
+    target.appendChild(createDataRow(fieldLabels[key] ?? sentenceCase(key), formatValue(key, value)));
+  });
 }
 
-function renderReasons(reasons) {
-  policyReasons.replaceChildren();
+function renderReasons(target, reasons) {
+  target.replaceChildren();
   const items = reasons.filter(Boolean);
-
-  for (const reason of items.length > 0 ? items : ["No review reasons returned."]) {
+  (items.length > 0 ? items : ["No review reasons returned."]).forEach((reason) => {
     const item = document.createElement("li");
     item.textContent = reason;
-    policyReasons.appendChild(item);
-  }
+    target.appendChild(item);
+  });
 }
 
 function createDataRow(label, value) {
@@ -309,31 +760,38 @@ function createDataRow(label, value) {
   return wrapper;
 }
 
+function createSectionHeading(text) {
+  const heading = document.createElement("h4");
+  heading.className = "detail-heading";
+  heading.textContent = text;
+  return heading;
+}
+
+function createParagraph(text, className) {
+  const paragraph = document.createElement("p");
+  paragraph.className = className;
+  paragraph.textContent = text;
+  return paragraph;
+}
+
 function formatValue(key, value) {
   if (value === null || value === undefined || value === "") {
     return "-";
   }
-
   if (key === "totalAmount" && typeof value === "number") {
     return value.toFixed(2);
   }
-
   if (typeof value === "number") {
     return Number.isInteger(value) ? value.toString() : value.toFixed(2);
   }
-
   if (Array.isArray(value)) {
-    return value.length === 0
-      ? "-"
-      : value.map(formatArrayItem).join(", ");
+    return value.length === 0 ? "-" : value.map(formatArrayItem).join(", ");
   }
-
   if (typeof value === "object") {
     return Object.entries(value)
       .map(([entryKey, entryValue]) => `${fieldLabels[entryKey] ?? sentenceCase(entryKey)}: ${formatValue(entryKey, entryValue)}`)
       .join(", ");
   }
-
   return String(value);
 }
 
@@ -342,22 +800,15 @@ function formatArrayItem(value) {
     if ("row" in value && "column" in value && "value" in value) {
       return `r${value.row}c${value.column}=${value.value}`;
     }
-
     const name = value.name ?? value.item ?? "Item";
-    const quantity = value.quantity === null || value.quantity === undefined
-      ? null
-      : Number(value.quantity);
+    const quantity = value.quantity === null || value.quantity === undefined ? null : Number(value.quantity);
     const quantityText = quantity === null || Number.isNaN(quantity)
       ? null
       : Number.isInteger(quantity) ? quantity.toString() : quantity.toFixed(2);
     const unit = value.unit ? ` ${value.unit}` : "";
     const checked = value.isChecked === true ? " (checked)" : "";
-
-    return quantityText
-      ? `${quantityText}${unit} ${name}${checked}`
-      : `${name}${checked}`;
+    return quantityText ? `${quantityText}${unit} ${name}${checked}` : `${name}${checked}`;
   }
-
   return String(value);
 }
 
@@ -365,7 +816,6 @@ function formatInteger(value) {
   if (value === null || value === undefined || value === "") {
     return "-";
   }
-
   const number = Number(value);
   return Number.isFinite(number) ? number.toLocaleString("en-US") : "-";
 }
@@ -374,56 +824,40 @@ function formatDuration(value) {
   if (value === null || value === undefined || value === "") {
     return "-";
   }
-
   const milliseconds = Number(value);
   if (!Number.isFinite(milliseconds)) {
     return "-";
   }
-
   if (milliseconds < 1000) {
     return `${Math.round(milliseconds)} ms`;
   }
-
   const seconds = milliseconds / 1000;
-  return seconds < 10
-    ? `${seconds.toFixed(1)} s`
-    : `${Math.round(seconds)} s`;
+  return seconds < 10 ? `${seconds.toFixed(1)} s` : `${Math.round(seconds)} s`;
 }
 
 function getModelDuration(modelUsage) {
-  if (modelUsage.totalDurationMilliseconds !== null
-    && modelUsage.totalDurationMilliseconds !== undefined) {
+  if (modelUsage.totalDurationMilliseconds !== null && modelUsage.totalDurationMilliseconds !== undefined) {
     return modelUsage.totalDurationMilliseconds;
   }
-
   const calls = Array.isArray(modelUsage.calls) ? modelUsage.calls : [];
-  const durations = calls
-    .map((call) => Number(call.durationMilliseconds))
-    .filter(Number.isFinite);
-
-  return durations.length === 0
-    ? null
-    : durations.reduce((total, duration) => total + duration, 0);
+  const durations = calls.map((call) => Number(call.durationMilliseconds)).filter(Number.isFinite);
+  return durations.length === 0 ? null : durations.reduce((total, duration) => total + duration, 0);
 }
 
 function formatUsdCost(value) {
   if (value === null || value === undefined || value === "") {
     return "-";
   }
-
   const amount = Number(value);
   if (!Number.isFinite(amount)) {
     return "-";
   }
-
   if (amount === 0) {
     return "$0.00";
   }
-
   if (Math.abs(amount) < 0.01) {
     return formatSubCentUsd(amount);
   }
-
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -439,7 +873,6 @@ function formatSubCentUsd(amount) {
     const rendered = rounded.toFixed(decimalPlaces);
     return `$${rendered.replace(/0+$/, "").replace(/\.$/, "")}`;
   }
-
   return "<$0.00000001";
 }
 
@@ -454,8 +887,21 @@ function significantDecimalPlaces(value, significantFigures) {
   return Math.max(2, significantFigures - magnitude - 1);
 }
 
+function captureStatusClass(status) {
+  if (status === "Succeeded") {
+    return "approved";
+  }
+  if (status === "PartiallySucceeded") {
+    return "review";
+  }
+  if (status === "Running") {
+    return "running";
+  }
+  return "error";
+}
+
 function sentenceCase(value) {
-  return value
+  return String(value)
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (letter) => letter.toUpperCase())
     .trim();
@@ -465,11 +911,13 @@ function formatBytes(bytes) {
   if (bytes < 1024) {
     return `${bytes} B`;
   }
-
   const kilobytes = bytes / 1024;
   if (kilobytes < 1024) {
     return `${kilobytes.toFixed(1)} KB`;
   }
-
   return `${(kilobytes / 1024).toFixed(2)} MB`;
+}
+
+function clamp(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), maximum);
 }

@@ -135,7 +135,7 @@ The original upload remains intact at intake. The model-facing image can be resi
 
 ## Composite Capture Source Detection (E3)
 
-The composite-capture endpoint and UI are not connected yet, but the first source-processing boundary is implemented for the E3 workflow:
+The composite-capture endpoint and UI use the source-processing boundary implemented for the E3 workflow:
 
 ```text
 CompositeCaptureSource
@@ -204,7 +204,9 @@ CompositeCaptureRequest
 
 The graph never grows a node per upload. Empty lanes still report so the fan-in barrier has a known contributor set. Ordinary source and member failures become result data; request cancellation still aborts the capture. `CaptureResultComposer` restores source order, assigns capture-wide member indexes, sums model usage once, and calculates `Succeeded` / `PartiallySucceeded` / `Failed` plus member dispositions.
 
-`POST /api/document-captures/process` accepts repeated `images` parts and returns `CompositeCaptureProcessingResponse`. Request-level intake failures use the existing API error contract. Partial success is HTTP 200. Annotated capture previews in the UI remain a later E3 task.
+`POST /api/document-captures/process` accepts repeated `images` parts and returns `CompositeCaptureProcessingResponse`. Request-level intake failures use the existing API error contract. Partial success is HTTP 200.
+
+The static UI keeps the original single-document mode and adds an explicit capture-set mode. It retains object URLs for the selected local images only for the lifetime of the current page selection, matches them to response sources by multipart index, and draws each normalized outline or bounds value in an SVG coordinate space over the corresponding preview. The API-provided disposition selects the accepted, review, or rejected treatment; the browser does not recalculate policy. Tick, question-mark, and cross symbols, textual rows, `aria-label` values, and keyboard-selectable overlays provide equivalent non-colour cues. Selecting either an overlay or row updates a member inspector with classification, extracted data, warnings, errors, and disposition reasons, while source failures remain visible alongside successful siblings.
 
 OpenAPI is generated at `GET /openapi/v1.json`.
 
