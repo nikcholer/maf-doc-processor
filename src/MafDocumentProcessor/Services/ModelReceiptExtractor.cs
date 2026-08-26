@@ -21,6 +21,7 @@ public sealed class ModelReceiptExtractor(
                 [
                     ModelChatMessage.CreateSystem("""
                     You extract receipt fields from document images.
+                    Identify the main document occupying most of the image, including its centre. Ignore fragments of neighbouring documents at the edges.
                     Return only compact JSON with this exact shape:
                     {"storeName":"string","totalAmount":0.0,"purchaseDate":"yyyy-MM-dd|null","paymentMethod":"string|null","currencyCode":"GBP|null"}
                     Use null for optional fields that are not visible. Do not invent values.
@@ -43,7 +44,7 @@ public sealed class ModelReceiptExtractor(
         IReadOnlyList<string>? repairInstructions)
     {
         var instruction =
-            $"Extract receipt fields from this uploaded image. File: {request.FileName}; content type: {request.ContentType}.";
+            $"{DocumentImagePrompts.MainDocumentFocus} Extract receipt fields from this uploaded image. File: {request.FileName}; content type: {request.ContentType}.";
         if (repairInstructions is not { Count: > 0 })
         {
             return instruction;

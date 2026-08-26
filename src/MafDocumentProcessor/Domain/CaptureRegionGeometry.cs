@@ -88,6 +88,29 @@ public static class CaptureRegionGeometry
         return confidence is >= 0 and <= 1 ? confidence : null;
     }
 
+    public static NormalizedBounds Expand(NormalizedBounds bounds, double edgePadding)
+    {
+        ArgumentNullException.ThrowIfNull(bounds);
+        if (!double.IsFinite(edgePadding) || edgePadding < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(edgePadding),
+                edgePadding,
+                "Edge padding must be finite and not negative.");
+        }
+
+        if (edgePadding == 0)
+        {
+            return bounds;
+        }
+
+        var x = Math.Max(0, bounds.X - edgePadding);
+        var y = Math.Max(0, bounds.Y - edgePadding);
+        var right = Math.Min(1, bounds.X + bounds.Width + edgePadding);
+        var bottom = Math.Min(1, bounds.Y + bounds.Height + edgePadding);
+        return new NormalizedBounds(x, y, right - x, bottom - y);
+    }
+
     public static PixelRectangle MapToPixels(NormalizedBounds bounds, int imageWidth, int imageHeight)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(imageWidth);
