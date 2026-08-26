@@ -8,3 +8,7 @@ TestResults/
 *.sln.docstates
 .vs/
 .run/
+
+# Personal or confidential local-only test images. Never commit these.
+tests/MafDocumentProcessor.Tests/assets/local/*
+!tests/MafDocumentProcessor.Tests/assets/local/.gitkeep
