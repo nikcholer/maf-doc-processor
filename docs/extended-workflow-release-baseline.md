@@ -42,7 +42,9 @@ The three versioned provider-backed fixture checks were deliberately enabled onc
 
 - the natural desk fixture produced all three expected document-region proposals;
 - the synthetic expense report classified and extracted successfully with two lines, a GBP 48.50 total, and required ownership attestation; its workflow used 3,463 tokens, took 10,334 ms, and estimated $0.00036270; and
-- the rotated Sujiko fixture matched every known total and given cell after one bounded repair extraction.
+- the then-current Sujiko fixture matched every known total and given cell after one bounded repair extraction.
+
+That E7 observation used the retired predecessor photograph. Before public visibility, the repository replaced it with an AI-generated fixture containing the same puzzle facts and no EXIF metadata. The figures below remain historical predecessor measurements; the replacement requires a new deliberately enabled live run before it can be compared.
 
 The Sujiko observation is comparable with the earlier smoke result in [current workflow baseline measurements](baseline-measurements.md), but it is not evidence of a statistically reliable model-quality improvement:
 

@@ -331,9 +331,9 @@ Behavior:
 - retries extraction once with validation reasons when validation fails;
 - returns `IsSuccess=false` if the puzzle is still structurally invalid after repair.
 
-The Sujiko extractor prompt includes explicit deskewing guidance because rotated newspaper photos can cause row/column mistakes. The rotated sample regression fixture lives under:
+The Sujiko extractor prompt includes explicit deskewing guidance because skewed or rotated newspaper images can cause row/column mistakes. The public-safe synthetic regression fixture lives under:
 
-- `tests/MafDocumentProcessor.Tests/assets/IMG20260513194450.jpg`
+- `tests/MafDocumentProcessor.Tests/assets/synthetic-sujiko-newspaper.jpg`
 
 ### Expense Report
 
@@ -487,5 +487,5 @@ The live asset regression is opt-in:
 
 ```powershell
 $env:MAF_RUN_LIVE_ASSET_TESTS = "1"
-dotnet test .\MafDocumentProcessor.sln --no-restore -p:UseAppHost=false -p:OutDir=.build\test\ --filter "FullyQualifiedName~RunAsync_CanBeLiveCheckedAndMeasuredAgainstRotatedSujikoAsset"
+dotnet test .\MafDocumentProcessor.sln --no-restore -p:UseAppHost=false -p:OutDir=.build\test\ --filter "FullyQualifiedName~RunAsync_CanBeLiveCheckedAndMeasuredAgainstSyntheticSujikoAsset"
 ```
