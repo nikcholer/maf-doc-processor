@@ -62,6 +62,47 @@ public sealed class ApiIntegrationTests
         Assert.Equal(
             ["200", "400", "500", "502", "504"],
             responses.EnumerateObject().Select(property => property.Name).Order().ToArray());
+
+        AssertResponseSchema(responses, "200", "DocumentProcessingResponse");
+        foreach (var statusCode in new[] { "400", "500", "502", "504" })
+        {
+            AssertResponseSchema(responses, statusCode, "ApiErrorResponse");
+        }
+
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        var processedDocument = schemas.GetProperty("ProcessedDocumentResponse");
+        var dataSchema = processedDocument.GetProperty("properties").GetProperty("data");
+        var dataVariants = dataSchema.GetProperty("oneOf").EnumerateArray().ToArray();
+
+        Assert.Equal(4, dataVariants.Length);
+        foreach (var schemaName in new[]
+                 {
+                     "ReceiptData",
+                     "ShoppingListData",
+                     "SujikoPuzzleData",
+                     "ExpenseReportData"
+                 })
+        {
+            var componentSchema = schemas.GetProperty(schemaName);
+            Assert.Contains(dataVariants, variant => JsonElement.DeepEquals(variant, componentSchema));
+        }
+
+        Assert.Contains("enclosing category", dataSchema.GetProperty("description").GetString());
+
+        var nullableDocumentVariants = schemas
+            .GetProperty("DocumentProcessingResponse")
+            .GetProperty("properties")
+            .GetProperty("document")
+            .GetProperty("oneOf")
+            .EnumerateArray()
+            .ToArray();
+        Assert.Contains(
+            nullableDocumentVariants,
+            variant => variant.TryGetProperty("type", out var type) && type.GetString() == "null");
+        Assert.Contains(
+            nullableDocumentVariants,
+            variant => variant.TryGetProperty("$ref", out var reference)
+                && reference.GetString() == "#/components/schemas/ProcessedDocumentResponse");
     }
 
     [Fact]
@@ -97,6 +138,22 @@ public sealed class ApiIntegrationTests
         Assert.Equal(15, body.ModelUsage.TotalTokens);
         Assert.Empty(body.Errors);
         Assert.Empty(body.Warnings);
+    }
+
+    private static void AssertResponseSchema(
+        JsonElement responses,
+        string statusCode,
+        string expectedSchemaName)
+    {
+        var reference = responses
+            .GetProperty(statusCode)
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema")
+            .GetProperty("$ref")
+            .GetString();
+
+        Assert.Equal($"#/components/schemas/{expectedSchemaName}", reference);
     }
 
     [Fact]
