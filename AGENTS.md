@@ -18,7 +18,7 @@ User instructions and the accepted issue define the requested outcome. The GitHu
 - When choosing work, select an unblocked item with `Status = Ready`; do not infer priority from Markdown ordering.
 - When authenticated and authorized, assign the issue and move it to **In Progress** before implementation.
 - Do not begin E5 checkpointing or pause/resume work. It is out of scope for the current image-to-structured-data effort; see `docs/durability-decision.md` and `docs/forward-planning-workflow-system.md`.
-- Do not begin E6 agent-collaboration work until issue #7 records that its quality-evaluation gate passed.
+- Do not begin E6 agent-collaboration work before November 2026, and then only if issue #7 records that its quality-evaluation gate passed. The revisit is to catch a model step change in quality, speed, or price, not to fill a current product gap.
 - If GitHub Project access is unavailable, do not guess the next task or silently alter tracking. Continue only with work the user explicitly assigned and report the tracking limitation.
 - Do not broaden scope without updating the issue. Capture independently deliverable discoveries as separate proposed work.
 

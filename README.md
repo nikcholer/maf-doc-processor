@@ -187,7 +187,7 @@ The core local demo has no incomplete required milestone. The remaining work is 
 Forward architectural work is organized in the [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md) and tracked in the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1).
 
 - Composite capture is implemented through the API and Capture set UI, including region correction. Expense reports are implemented as the next distinct document type for both individual and capture-member processing.
-- Measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
+- The opt-in Analyst/Critic prototype stays off the default path. Revisit from November 2026 only to catch a step change in model quality, speed, or price; see [E6](docs/maf-workflow-evolution-backlog.md) and the [quality prototype](docs/multi-agent-quality-prototype.md).
 - Durable pause/resume, case storage, and claim submission are out of scope here. They are sketched only as [forward planning](docs/forward-planning-workflow-system.md) for a later workflow-management system that might call this converter.
 - Maintain the current .NET 10, MAF 1.19, OpenAI 2.13, and test-tooling baseline. ImageSharp 4 and xUnit v3 are explicitly deferred as separate migrations.
 - Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, a rate-limited hosted demo, and later comparison of other vision models for document region detection.

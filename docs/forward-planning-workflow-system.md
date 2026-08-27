@@ -66,6 +66,6 @@ A future hosted operator might still add queues, timeouts, and retries **around*
 
 [E5](https://github.com/nikcholer/maf-doc-processor/issues/6) described pause/resume inside this application. That is **out of scope** for the current effort. Do not move it to Ready as a way to implement case management here.
 
-[E6](https://github.com/nikcholer/maf-doc-processor/issues/7) (extra model review of an already-extracted result) is a separate quality question about the conversion itself. It does not require a workflow engine.
+[E6](https://github.com/nikcholer/maf-doc-processor/issues/7) (extra model review of an already-extracted result) is a separate conversion-quality question. It does not require a workflow engine. Do not evaluate it before November 2026; the later look is only to catch a step change in model quality, speed, or price.
 
 Icebox items such as alternative detectors remain optional conversion-quality work, not workflow-system work.
