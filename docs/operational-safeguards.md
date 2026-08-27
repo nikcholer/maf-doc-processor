@@ -81,3 +81,5 @@ node --test .\tests\ui\capture-ui.test.cjs
 dotnet list .\MafDocumentProcessor.sln package --vulnerable --include-transitive
 git diff --check
 ```
+
+The provider-free [Release baseline workflow](../.github/workflows/release-baseline.yml) runs the Release build, full .NET and UI suites, and vulnerability audit on pull requests and `main`. The complete E7 evidence, selected live observations, deferrals, and milestone-tag gate are recorded in the [extended workflow release baseline](extended-workflow-release-baseline.md).
