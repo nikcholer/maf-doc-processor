@@ -116,7 +116,7 @@ $env:MAF_RUN_LOCAL_CAPTURE_SAMPLES = "1"
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~CaptureLocalSampleTests
 ```
 
-The normal suite includes a small, non-confidential [golden set](docs/golden-set.md) for the receipt, shopping-list, Sujiko, and unsupported routes, plus the [composite capture and expense-report corpus](docs/next-scenario-sample-set.md). Run them with:
+The normal suite includes a small, non-confidential [golden set](docs/golden-set.md) for the receipt, shopping-list, Sujiko, and unsupported routes, plus the [composite capture and expense-report corpus](docs/next-scenario-sample-set.md). The provider-free [Release baseline workflow](.github/workflows/release-baseline.yml) repeats the Release build, .NET and UI suites, and dependency vulnerability audit for pull requests and `main`. Run the sample-focused tests locally with:
 
 ```powershell
 dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~GoldenSetTests
@@ -155,7 +155,7 @@ See [TogetherAI local setup](docs/together-ai-local-setup.md) for the current mo
 
 ## Processing Design
 
-Each request runs through one top-level MAF graph. Its classification executor prepares the classification image and calls the classification model once. Labelled conditional edges then send the typed result to exactly one destination: a bound receipt, shopping-list, or Sujiko child workflow, or the unsupported-document executor. Supported documents are prepared separately for extraction before entering their child workflow.
+Each request runs through one top-level MAF graph. Its classification executor prepares the classification image and calls the classification model once. Labelled conditional edges then send the typed result to exactly one destination: a bound receipt, shopping-list, Sujiko, or expense-report child workflow, or the unsupported-document executor. Supported documents are prepared separately for extraction before entering their child workflow.
 
 The child workflows use deterministic executors around model extraction, validation, one repair pass, optional policy, and result construction. Classification, route selection, and the selected child completion are visible in the same workflow event stream. The graph is built per request and runs locally in-process; it does not add persistence or background processing.
 
@@ -204,6 +204,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - [Dependency baseline decision](docs/dependency-baseline-decision.md)
 - [Current workflow baseline measurements](docs/baseline-measurements.md)
 - [Composite capture measurements](docs/composite-capture-measurements.md)
+- [Extended workflow release baseline](docs/extended-workflow-release-baseline.md)
 - [Observability and operational safeguards](docs/operational-safeguards.md)
 - [Current document golden set](docs/golden-set.md)
 - [Composite capture and expense report sample set](docs/next-scenario-sample-set.md)

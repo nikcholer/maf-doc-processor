@@ -36,3 +36,7 @@ The 12 calls are four detections, four classifications, and four extractions. Bo
 - Real provider calls are slower and more variable than these sleeps. The harness only proves that the fixed-lane graph can overlap independent work without extra model calls.
 - Production defaults remain `MaxConcurrentSources = 2` and `MaxConcurrentMembers = 4`.
 - Do not treat this as a hosted capacity number. Re-run the harness on the target machine before changing lane counts.
+
+## E7 Release Verification
+
+The same harness was repeated on 27 August 2026 during the clean release audit. The sequential 1/1 layout took 2,429 ms and the bounded 2/2 layout took 1,055 ms. Both produced four members and 12 model calls. The approximately 2.3-times observation is consistent with the original result; timing variation between runs reinforces that this is topology evidence rather than a capacity target.

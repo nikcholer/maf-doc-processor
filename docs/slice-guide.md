@@ -376,9 +376,9 @@ Use this rule of thumb:
 
 ## 12. Compare the Other Completed Slices
 
-Once the receipt path is clear, compare its files with the shopping-list and Sujiko equivalents in `src/MafDocumentProcessor/Workflow`.
+Once the receipt path is clear, compare its files with the shopping-list, Sujiko, and expense-report equivalents in `src/MafDocumentProcessor/Workflow`.
 
-All three share the same broad pattern:
+All four share the same broad pattern:
 
 ```text
 extract -> validate -> optionally repair -> construct shared result
@@ -388,6 +388,7 @@ The differences are instructive:
 
 - Shopping lists have their own data model and validation rules, but no receipt policy stage.
 - Sujiko extracts quadrant totals and given cells, validates the starting state, and currently stops before solving the puzzle.
+- Expense reports add deterministic line-total arithmetic, separate high-value and missing-receipt-reference policy, and required ownership attestation without persistent receipt linking or submission.
 - Each result executor applies the success/error semantics appropriate to that document type.
 
 This repetition is intentional. It gives each document type a readable vertical slice while preserving shared classification, model transport, preprocessing, telemetry, and API infrastructure.
