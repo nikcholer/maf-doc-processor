@@ -2,7 +2,7 @@
 
 ## The Problem This Change Solves
 
-The application already used Microsoft Agent Framework (MAF) workflows to process receipts, shopping lists, and Sujiko puzzles. Before E2, however, the decision about which workflow to use happened outside MAF.
+The application already used Microsoft Agent Framework (MAF) workflows to process receipts, shopping lists, and Sujiko puzzles. Before E2, however, the decision about which workflow to use happened outside MAF. E4 later added expense reports through the same routing pattern.
 
 Before E2, the application followed these steps:
 
@@ -31,6 +31,8 @@ Classify document once
       |
       +-- Sujiko puzzle ----> Sujiko workflow
       |
+      +-- Expense report --> Expense-report workflow
+      |
       +-- Invoice/Unknown --> Unsupported-document result
 ```
 
@@ -46,7 +48,7 @@ Three MAF terms are needed to describe the implementation:
 | Edge | A connection that carries a message from one executor to another | `Microsoft.Agents.AI.Workflows` |
 | Child workflow | A complete workflow placed behind one node in a larger workflow | MAF calls `BindAsExecutor` on a `Workflow` |
 
-`WorkflowBuilder`, `AddEdge<T>`, `BindAsExecutor`, `InProcessExecution`, and workflow events are MAF APIs. `DocumentProcessingWorkflow`, `ClassifiedDocument`, the document categories, and all receipt, shopping-list, Sujiko, and unsupported behaviour belong to this project.
+`WorkflowBuilder`, `AddEdge<T>`, `BindAsExecutor`, `InProcessExecution`, and workflow events are MAF APIs. `DocumentProcessingWorkflow`, `ClassifiedDocument`, the document categories, and all receipt, shopping-list, Sujiko, expense-report, and unsupported behaviour belong to this project.
 
 ## Selected MAF Pattern
 
@@ -60,9 +62,9 @@ The production implementation:
 
 1. Starts with the project-owned `DocumentClassificationExecutor`. It prepares the classification image, calls `IDocumentClassifier` once, records classification usage and metadata, prepares the extraction image when needed, and produces a `ClassifiedDocument`.
 2. Uses `DocumentWorkflowFactory` to build each existing document graph through a reusable project-owned method. These methods connect the existing extraction, validation, repair, policy, and result executors.
-3. Binds the receipt, shopping-list, and Sujiko workflows as child workflow executors in the top-level graph.
+3. Binds the receipt, shopping-list, Sujiko, and expense-report workflows as child workflow executors in the top-level graph.
 4. Uses the project-owned `UnsupportedDocumentResultExecutor` for `Invoice` and `Unknown` classifications.
-5. Connects classification to those four destinations using labelled, typed conditional edges.
+5. Connects classification to those five destinations using labelled, typed conditional edges.
 6. Runs the top-level workflow once and obtains the final `DocumentProcessingResult` from its output event.
 
 The compatibility test `DocumentCategoryRoute_UsesExactlyOneWorkflowDestination` proves the underlying composition pattern against MAF 1.19.0. The production test `BuildDocumentRoutingWorkflow_UsesExactlyOneDestinationAndPreservesContext` then runs the real graph for every current category. Together they confirm that exactly one outer destination completes, child workflow events reach the parent run, route metadata and model calls remain correct, and all destinations appear in Mermaid and DOT visualizations.
@@ -92,7 +94,7 @@ The production topology tests therefore prove both rules:
 1. Every defined document category reaches a destination.
 2. Every defined document category reaches exactly one destination.
 
-The outer workflow visualization will show each child workflow as one named node. The internal receipt, shopping-list, and Sujiko graphs remain separately inspectable; binding them does not flatten every internal step into the parent diagram.
+The outer workflow visualization will show each child workflow as one named node. The internal receipt, shopping-list, Sujiko, and expense-report graphs remain separately inspectable; binding them does not flatten every internal step into the parent diagram.
 
 The top-level workflow is built for each processing run. The extraction and repair executors link the request cancellation token supplied at construction time with the token supplied by MAF during execution. Keeping the same lifetime avoids an unrelated cancellation refactor during routing migration. A later cleanup may remove the captured token if tests prove that the execution token alone covers every path.
 

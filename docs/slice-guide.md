@@ -139,6 +139,7 @@ Its typed answer decides which destination should run:
 DocumentCategory.Receipt      -> receipt workflow
 DocumentCategory.ShoppingList -> shopping-list workflow
 DocumentCategory.SujikoPuzzle -> Sujiko workflow
+DocumentCategory.ExpenseReport -> expense-report workflow
 anything else                 -> unsupported result
 ```
 
@@ -150,15 +151,15 @@ It then creates `ClassifiedDocument`, found in `src/MafDocumentProcessor/Workflo
 
 The executor also emits project-owned `DocumentClassifiedEvent` and `DocumentRouteSelectedEvent` records. They make the category, destination, filename, and source ID visible in the same MAF event stream as the selected child workflow.
 
-`UnsupportedDocumentResultExecutor` is the fourth destination. It is a **project-owned MAF executor** that produces the normal unsupported response for `Invoice` and `Unknown` without calling an extraction model.
+`UnsupportedDocumentResultExecutor` is the fifth destination. It is a **project-owned MAF executor** that produces the normal unsupported response for `Invoice` and `Unknown` without calling an extraction model.
 
 ## 4. See How the Receipt Graph Is Built
 
 Follow `DocumentProcessingWorkflow.RunAsync` to `DocumentWorkflowFactory.BuildDocumentRoutingWorkflow`, then open `src/MafDocumentProcessor/Workflow/DocumentWorkflowFactory.cs`.
 
-`DocumentWorkflowFactory` is a **project-owned** class. Its top-level builder creates the classification and unsupported executors, builds the three document-specific workflows, and uses MAF's `BindAsExecutor` to place each complete child workflow behind one parent-graph node.
+`DocumentWorkflowFactory` is a **project-owned** class. Its top-level builder creates the classification and unsupported executors, builds the four document-specific workflows, and uses MAF's `BindAsExecutor` to place each complete child workflow behind one parent-graph node.
 
-The top-level graph connects classification to its four destinations with labelled conditional edges. `WithOutputFrom` declares that any one of those destinations can produce the final result. Production topology tests prove that every defined category matches exactly one edge.
+The top-level graph connects classification to its five destinations with labelled conditional edges. `WithOutputFrom` declares that any one of those destinations can produce the final result. Production topology tests prove that every defined category matches exactly one edge.
 
 The same factory provides one reusable builder method for each supported document type. The receipt method constructs five project-owned executors and connects them with MAF's `Microsoft.Agents.AI.Workflows.WorkflowBuilder`. `WorkflowBuilder`, `AddEdge`, `WithOutputFrom`, `BindAsExecutor`, and `Build` all come from the **MAF Workflows NuGet package**. The inner receipt graph remains:
 

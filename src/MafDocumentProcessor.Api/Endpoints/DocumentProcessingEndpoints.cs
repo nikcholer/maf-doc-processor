@@ -18,7 +18,10 @@ public static class DocumentProcessingEndpoints
             .WithTags("Documents")
             .WithSummary("Process one document image.")
             .Produces<DocumentProcessingResponse>(StatusCodes.Status200OK)
-            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest);
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status500InternalServerError)
+            .Produces<ApiErrorResponse>(StatusCodes.Status502BadGateway)
+            .Produces<ApiErrorResponse>(StatusCodes.Status504GatewayTimeout);
         return endpoints;
     }
 

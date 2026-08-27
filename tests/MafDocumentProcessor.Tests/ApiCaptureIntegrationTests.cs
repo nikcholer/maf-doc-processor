@@ -331,10 +331,19 @@ public sealed class ApiCaptureIntegrationTests
         using var response = await client.GetAsync("/openapi/v1.json");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var document = await response.Content.ReadAsStringAsync();
-        Assert.Contains("/api/document-captures/process", document, StringComparison.Ordinal);
-        Assert.Contains("/api/documents/process", document, StringComparison.Ordinal);
-        Assert.Contains("ProcessDocumentCapture", document, StringComparison.Ordinal);
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Contains("/api/document-captures/process", json, StringComparison.Ordinal);
+        Assert.Contains("/api/documents/process", json, StringComparison.Ordinal);
+        Assert.Contains("ProcessDocumentCapture", json, StringComparison.Ordinal);
+        using var document = JsonDocument.Parse(json);
+        var responses = document.RootElement
+            .GetProperty("paths")
+            .GetProperty("/api/document-captures/process")
+            .GetProperty("post")
+            .GetProperty("responses");
+        Assert.Equal(
+            ["200", "400", "500", "502", "504"],
+            responses.EnumerateObject().Select(property => property.Name).Order().ToArray());
     }
 
     private static MultipartFormDataContent CreateCaptureContent(

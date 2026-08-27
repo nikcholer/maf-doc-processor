@@ -17,7 +17,7 @@ public sealed class CaptureSourcePartitionerExecutor(CancellationToken workflowC
             cancellationToken,
             workflowCancellationToken);
         var captureContext = new CaptureWorkflowContext(
-            ActivityId(context),
+            message.TraceId ?? ActivityId(context),
             message.CaptureId,
             message.SourceId);
         await context.AddEventAsync(
