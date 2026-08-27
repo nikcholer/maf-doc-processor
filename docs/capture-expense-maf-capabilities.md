@@ -115,7 +115,7 @@ The first implementation does not select:
 - unbounded parallel tasks or model calls; or
 - streaming progress over a public API.
 
-E5 and E6 retain their existing evidence gates. Persistence, receipt matching, and external claim submission remain separate future decisions.
+E5 pause/resume is out of scope for this converter and is recorded only as [forward planning](forward-planning-workflow-system.md). E6 retains its quality-evaluation gate. Persistence, receipt matching, and external claim submission remain separate future decisions for a surrounding system.
 
 ## Consequences
 

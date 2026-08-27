@@ -45,7 +45,9 @@ Receipts, shopping lists, and Sujiko puzzles in the local demo do not require fo
 
 ## Deferred Workflow Capabilities
 
-Durable pause/resume and reviewer queues are deferred until the app has a real human-review surface or background job model.
+Durable pause/resume and reviewer queues are **out of scope** for this processor. They belong to a surrounding workflow-management system if this conversion API is ever embedded in one. See [forward planning](forward-planning-workflow-system.md) and the [durability decision](durability-decision.md).
+
+`HumanReviewResult` on the conversion result is still in scope: it is structured data about the parse, not a blocked job.
 
 The codebase now has lightweight domain records for the future review surface:
 
