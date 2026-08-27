@@ -12,6 +12,12 @@ The workflow returns `DocumentProcessingResult` for every successfully handled d
 - `Errors` are blocking issues for the returned document type.
 - `Warnings` are review or policy reasons that do not prevent returning parsed data.
 
+## API Response Shape
+
+The individual API response preserves one stable JSON envelope. For a supported category, `document.data` contains exactly one of `ReceiptData`, `ShoppingListData`, `SujikoPuzzleData`, or `ExpenseReportData`; the enclosing `document.category` selects the shape. Generated OpenAPI describes those four alternatives with `oneOf` and names the category-to-shape mapping in the property description.
+
+The schema intentionally does not put an OpenAPI discriminator on `data`: the discriminator value is the sibling `document.category`, not a property inside the data object. Moving or duplicating that value would change the established JSON contract. Unsupported categories therefore continue to return `document: null`, while request and provider failures use the separate API error response.
+
 ## Receipt
 
 Receipts are successful when the workflow can return parsed receipt data, even if policy review is required.

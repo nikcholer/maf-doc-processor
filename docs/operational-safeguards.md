@@ -54,7 +54,9 @@ A document result contains one classification usage record, one extraction usage
 
 Both processing endpoints declare their 200, 400, 500, 502, and 504 response schemas in generated OpenAPI. Capture source/member failures that occur after request acceptance remain inside an HTTP 200 aggregate as documented in the [API error contract](api-error-contract.md).
 
-Runtime response mapping covers receipt, shopping-list, Sujiko, and expense-report data. The stable response currently exposes that value through category-discriminated `document.data`; because its C# declaration is `object`, generated OpenAPI does not yet express the four data shapes as a discriminator or `oneOf`. That independently deliverable schema improvement is tracked in [#64](https://github.com/nikcholer/maf-doc-processor/issues/64) rather than changing the public JSON contract during the operational audit.
+Runtime response mapping covers receipt, shopping-list, Sujiko, and expense-report data. The stable response exposes that value through category-discriminated `document.data`. A .NET OpenAPI schema transformer now generates and registers all four data schemas and applies them to `data` with `oneOf`; the property description records the mapping from the enclosing `document.category` value to each shape.
+
+This transformer was chosen over a typed response-envelope hierarchy. A hierarchy would require new public response types and polymorphic serialization rules, risking changes to the existing category and JSON envelope. An OpenAPI discriminator was also rejected at the `data` level because its discriminator property would have to live inside the data object, while the established discriminator is the sibling `document.category`. The transformer documents the runtime contract without changing it, and the nullable `document` schema preserves the normal `document: null` response for unsupported categories.
 
 ## Verification
 

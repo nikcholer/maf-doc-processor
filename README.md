@@ -52,7 +52,7 @@ If the API is already running, stop it before rebuilding so Windows does not kee
 ## API
 
 - `GET /health` reports API-key readiness and configured model information.
-- `GET /openapi/v1.json` is the generated OpenAPI document.
+- `GET /openapi/v1.json` is the generated OpenAPI document. Its individual-document response schema describes the receipt, shopping-list, Sujiko, and expense-report variants of `document.data` with `oneOf`.
 - `POST /api/documents/process` accepts `multipart/form-data` with an image in the `image` field and an optional `sourceId` value.
 - `POST /api/document-captures/process` accepts one or more PNG or JPEG files in a repeated `images` field, an optional request-level `sourceId`, and optional per-source normalized rectangle corrections in the `regionOverrides` JSON field. It returns a capture aggregate with source and member outcomes. Corrected sources skip region detection; uncorrected siblings still use the detector.
 
