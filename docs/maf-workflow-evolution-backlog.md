@@ -25,7 +25,7 @@ The next stage should strengthen the application architecture, not simply add an
 | E3 | Add multi-source composite capture and independent member processing | Required |
 | E4 | Deliver the expense-report vertical slice | Required |
 | E5 | External input and checkpointing | Out of scope for this effort; belongs to a surrounding workflow system |
-| E6 | Integrate quality-review agents | Only if evaluation demonstrates sufficient benefit |
+| E6 | Integrate quality-review agents | Deferred until November 2026; then only if evaluation shows a step change |
 | E7 | Harden, document, measure, and release the new baseline | Required |
 
 ## Phase E0: Select the Next Document Scenario
@@ -144,11 +144,13 @@ The former E5 checklist (external request contract, checkpoint store, MAF reques
 
 **Exit criteria:** Not applicable to the current effort. The conversion path stays request-scoped.
 
-## Phase E6: Quality Review and Agent Collaboration — Gated
+## Phase E6: Quality Review and Agent Collaboration — Deferred
 
-**Objective:** Enable additional model review only when evaluation shows a useful quality improvement.
+**Objective:** Leave the Analyst/Critic prototype off the default conversion path. Revisit it after a few months only to see whether model quality, speed, or price has stepped enough that two extra calls might be worth measuring.
 
-**Decision gate:** The existing Analyst/Critic prototype must outperform the single-extraction baseline on the golden set without an unacceptable false-positive, latency, or cost increase.
+**When to look:** Not before **November 2026**. The point is a market/model step change, not a missing feature in the current extractor. Do not move [#7](https://github.com/nikcholer/maf-doc-processor/issues/7) to Ready before then.
+
+**Decision gate (when that revisit happens):** The existing Analyst/Critic prototype must outperform the single-extraction baseline on a defined evaluation set without an unacceptable false-positive, latency, or cost increase. Rejecting the prototype with recorded evidence is a valid outcome.
 
 - [ ] Define evaluation cases and expected findings before running comparisons.
 - [ ] Measure baseline extraction quality on the golden set.

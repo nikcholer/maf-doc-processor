@@ -82,4 +82,8 @@ Track:
 
 ## Revisit Criteria
 
-Revisit default or optional UI integration when the prototype shows a clear quality gain, or when the app gains a human-review surface where critic findings can be acted on directly.
+Do not evaluate or integrate this prototype before **November 2026**. The current conversion path is fast and cheap enough that two extra calls are not justified as a product gap.
+
+From November 2026, look again **only** if there is reason to believe models have made a step change in quality, speed, or price. Then run the measurement plan above on a defined set (including expense reports) and record the result even if the prototype stays rejected.
+
+A later human-review surface in a surrounding workflow system is not, by itself, a reason to enable critic calls on this converter.

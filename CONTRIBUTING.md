@@ -11,7 +11,7 @@ All proposed changes start with a GitHub issue and a Project item. Use the [deli
 - Backlog documents describe strategic scope and sequencing; they are not the live task list.
 - Select the next task from `Status = Ready`, considering priority and dependencies.
 - Do not start E5 checkpointing or pause/resume work; it is out of scope for the current image-to-structured-data effort.
-- Do not start gated E6 work until issue #7 records that the documented quality-evaluation gate has been satisfied.
+- Do not start E6 work before November 2026. After that, do not start it until issue #7 records that the documented quality-evaluation gate has been satisfied. The revisit is for a model step change in quality, speed, or price.
 - Move an item to **In Progress** and assign it when taking ownership.
 - If progress stops, move it to **Blocked** and record the specific dependency, decision, or external change required.
 - Update the issue before materially expanding its scope. Create a separate issue when the additional work can be delivered independently.
@@ -69,7 +69,7 @@ Preserve the current contracts unless the work item explicitly changes them:
 - Propagate cancellation and preserve correlation, latency, token, and estimated-cost reporting for every model call.
 - Treat structural validity, policy decisions, and human-review recommendations as separate concerns.
 - Do not introduce durable pause/resume merely because the framework supports it; that belongs to a surrounding workflow system, not this converter.
-- Do not introduce agent collaboration merely because the framework supports it; E6 requires its documented quality-evaluation gate.
+- Do not introduce agent collaboration merely because the framework supports it. E6 is deferred until November 2026 and then still requires its quality-evaluation gate.
 - Preserve the API error contract and document-result semantics unless the issue explicitly approves a contract change.
 
 For an existing vertical slice, begin with the [slice guide](docs/slice-guide.md). For a new document type, use [adding a document type](docs/adding-document-types.md).
