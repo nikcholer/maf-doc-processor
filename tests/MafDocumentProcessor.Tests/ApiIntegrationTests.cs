@@ -45,6 +45,26 @@ public sealed class ApiIntegrationTests
     }
 
     [Fact]
+    public async Task OpenApi_DocumentsEveryIndividualEndpointResponseContract()
+    {
+        using var factory = new ApiIntegrationTestFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync("/openapi/v1.json");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var responses = document.RootElement
+            .GetProperty("paths")
+            .GetProperty("/api/documents/process")
+            .GetProperty("post")
+            .GetProperty("responses");
+        Assert.Equal(
+            ["200", "400", "500", "502", "504"],
+            responses.EnumerateObject().Select(property => property.Name).Order().ToArray());
+    }
+
+    [Fact]
     public async Task ProcessDocument_WithReceiptImage_ReturnsMappedResponse()
     {
         using var factory = new ApiIntegrationTestFactory();

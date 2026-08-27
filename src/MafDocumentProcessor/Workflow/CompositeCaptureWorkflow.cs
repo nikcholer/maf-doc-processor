@@ -80,6 +80,28 @@ public sealed class CompositeCaptureWorkflow(
             "MAF workflow {WorkflowName} emitted {EventCount} events.",
             workflowName,
             events.Length);
+        foreach (var evt in events)
+        {
+            var correlation = CaptureEventCorrelation.From(evt.Data);
+            if (correlation is null)
+            {
+                _logger.LogDebug(
+                    "MAF workflow event {WorkflowName}: {EventType}.",
+                    workflowName,
+                    evt.GetType().Name);
+                continue;
+            }
+
+            _logger.LogDebug(
+                "MAF workflow event {WorkflowName}: {EventType}. TraceId={TraceId}, CaptureId={CaptureId}, SourceId={SourceId}, SourceItemId={SourceItemId}, MemberId={MemberId}.",
+                workflowName,
+                evt.Data?.GetType().Name ?? evt.GetType().Name,
+                correlation.TraceId,
+                correlation.CaptureId,
+                correlation.SourceId,
+                correlation.SourceItemId,
+                correlation.MemberId);
+        }
 
         var error = events.OfType<WorkflowErrorEvent>().LastOrDefault();
         if (error is not null)
@@ -111,5 +133,75 @@ public sealed class CompositeCaptureWorkflow(
         }
 
         return exception;
+    }
+
+    private sealed record CaptureEventCorrelation(
+        string TraceId,
+        string CaptureId,
+        string? SourceId,
+        string? SourceItemId,
+        string? MemberId)
+    {
+        public static CaptureEventCorrelation? From(object? data)
+        {
+            return data switch
+            {
+                CaptureStartedEvent value => new(
+                    value.TraceId,
+                    value.CaptureId,
+                    value.SourceId,
+                    SourceItemId: null,
+                    MemberId: null),
+                CaptureSourceCompletedEvent value => new(
+                    value.TraceId,
+                    value.CaptureId,
+                    value.SourceId,
+                    value.SourceItemId,
+                    MemberId: null),
+                CaptureSourcesAggregatedEvent value => new(
+                    value.TraceId,
+                    value.CaptureId,
+                    value.SourceId,
+                    SourceItemId: null,
+                    MemberId: null),
+                CaptureMemberStartedEvent value => new(
+                    value.TraceId,
+                    value.CaptureId,
+                    value.SourceId,
+                    value.SourceItemId,
+                    value.MemberId),
+                CaptureMemberCompletedEvent value => new(
+                    value.TraceId,
+                    value.CaptureId,
+                    value.SourceId,
+                    value.SourceItemId,
+                    value.MemberId),
+                CaptureCompletedEvent value => new(
+                    value.TraceId,
+                    value.CaptureId,
+                    value.SourceId,
+                    SourceItemId: null,
+                    MemberId: null),
+                CaptureSourceDecodedEvent value => new(
+                    value.TraceId,
+                    value.CaptureId,
+                    value.SourceId,
+                    value.SourceItemId,
+                    MemberId: null),
+                CaptureSourceDetectionCompletedEvent value => new(
+                    value.TraceId,
+                    value.CaptureId,
+                    value.SourceId,
+                    value.SourceItemId,
+                    MemberId: null),
+                CaptureRegionValidationCompletedEvent value => new(
+                    value.TraceId,
+                    value.CaptureId,
+                    value.SourceId,
+                    value.SourceItemId,
+                    MemberId: null),
+                _ => null
+            };
+        }
     }
 }
