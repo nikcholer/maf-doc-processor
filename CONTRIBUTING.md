@@ -102,6 +102,7 @@ dotnet test .\MafDocumentProcessor.sln --no-restore -p:UseAppHost=false -p:OutDi
 Additional expectations:
 
 - Dependency changes require a clean build, the full offline suite, and `dotnet list .\MafDocumentProcessor.sln package --vulnerable --include-transitive`.
+- Pull requests and `main` run the provider-free [Release baseline workflow](.github/workflows/release-baseline.yml). It must stay green before the `extended-workflow-baseline` tag is created.
 - Workflow changes require coverage for every added route, failure path, cancellation path, and bounded repair behaviour.
 - API changes require integration coverage and corresponding contract documentation.
 - Model prompt, parser, or preprocessing changes require representative fixtures; run live-provider checks only when explicitly required and credentials are available.

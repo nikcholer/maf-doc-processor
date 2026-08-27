@@ -34,7 +34,7 @@ Local verification was captured on 27 August 2026 from a clean build on Windows 
 | Dependency update review | ImageSharp 4.1.1 is the only newer direct package and remains an accepted separate licensing/migration decision |
 | OpenAPI integration | All four typed payload alternatives, nullable unsupported result, and declared response status schemas pass offline integration coverage |
 
-The GitHub Actions workflow repeats restore, a warning-free Release build, the full provider-free .NET and UI suites, and the vulnerability audit on pull requests and `main`. NuGet vulnerability warnings `NU1901` through `NU1904` fail its restore step. It uses .NET SDK 10.0.400 and Node.js 24. Live tests are deliberately excluded from CI because they consume provider credits and are non-deterministic.
+The GitHub Actions workflow repeats restore, a warning-free Release build, the full provider-free .NET and UI suites, and the vulnerability audit on pull requests and `main`. NuGet vulnerability warnings `NU1901` through `NU1904` fail its restore step. The later audit step parses JSON from `dotnet list package --vulnerable` and fails the job if any project reports a vulnerability, because the console command exits 0 in the clean case. It uses .NET SDK 10.0.400 and Node.js 24. Live tests are deliberately excluded from CI because they consume provider credits and are non-deterministic.
 
 ## Selected Live Observations
 
