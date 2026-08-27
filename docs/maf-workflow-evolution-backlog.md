@@ -175,16 +175,16 @@ Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc
 
 **Objective:** Make the extended workflow observable, maintainable, and ready to become the next stable application baseline.
 
-Delivery begins with the [observability and operational safeguards audit](https://github.com/nikcholer/maf-doc-processor/issues/63). The independently deliverable typed OpenAPI schema improvement is tracked in [#64](https://github.com/nikcholer/maf-doc-processor/issues/64).
+Delivery began with the completed [observability and operational safeguards audit](https://github.com/nikcholer/maf-doc-processor/issues/63) and typed OpenAPI schema improvement in [#64](https://github.com/nikcholer/maf-doc-processor/issues/64). Final evidence and the release gate are recorded in the [extended workflow release baseline](extended-workflow-release-baseline.md) through #8.
 
-- [ ] Run the full offline, integration, golden-set, cancellation, and selected live-provider checks.
+- [x] Run the full offline, integration, golden-set, cancellation, and selected live-provider checks.
 - [x] Verify correlation IDs and structured telemetry across the top-level graph and every sub-workflow.
 - [x] Confirm model usage and estimated cost include parallel and repair calls exactly once; the optional review prototype remains outside the default API path and retains its separate accounting tests.
 - [x] Review upload limits, memory use, concurrency, timeouts, retries, and provider failure handling.
-- [ ] Review the API schema for typed document payloads and update the error contract where necessary.
-- [ ] Update the README, technical process flow, slice guide, and architecture decisions.
-- [ ] Remove superseded experimental paths and close or move remaining items to the icebox.
-- [ ] Record before/after architecture, quality, latency, and cost results.
+- [x] Review the API schema for typed document payloads and update the error contract where necessary.
+- [x] Update the README, technical process flow, slice guide, and architecture decisions.
+- [x] Remove superseded experimental paths and close or move remaining items to the icebox. The audit found no superseded default route; the gated quality prototype remains isolated, and #53/#58 remain iceboxed.
+- [x] Record before/after architecture, quality, latency, and cost results.
 - [ ] Tag the resulting stable milestone after remote verification and a clean build/test run.
 
 **Exit criteria:** Documentation matches the implementation, required checks pass, operational trade-offs are recorded, and the new milestone is reproducible from a clean checkout.
