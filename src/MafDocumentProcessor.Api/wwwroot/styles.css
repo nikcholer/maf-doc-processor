@@ -722,6 +722,24 @@ h4 {
   background: var(--panel);
 }
 
+body.region-edit-active .mode-switch,
+body.region-edit-active .upload-surface,
+body.region-edit-active .result-header,
+body.region-edit-active .metrics-grid,
+body.region-edit-active .json-panel {
+  opacity: 0.34;
+  filter: grayscale(0.45);
+}
+
+.region-edit-dialog {
+  border: 2px solid var(--accent);
+  box-shadow: 0 18px 42px rgba(31, 43, 38, 0.18);
+}
+
+.region-edit-dialog > header {
+  background: rgba(8, 117, 93, 0.08);
+}
+
 .source-card > header {
   align-items: center;
   padding: 12px;
@@ -934,6 +952,46 @@ h4 {
   padding: 10px 12px;
   border-bottom: 1px solid var(--line);
   background: var(--field);
+}
+
+.region-editor-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 12px;
+  border-top: 2px solid var(--line-dark);
+  background: var(--paper);
+}
+
+.region-editor-feedback {
+  display: grid;
+  gap: 4px;
+}
+
+.region-editor-actions > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 8px;
+}
+
+.region-edit-status,
+.region-edit-error {
+  margin: 0;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.region-edit-status {
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+.region-edit-error {
+  color: var(--danger);
+  line-height: 1.4;
 }
 
 .editor-guidance,
@@ -1347,5 +1405,17 @@ pre {
 
   .progress-strip {
     grid-template-columns: 1fr;
+  }
+
+  .region-editor-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .region-editor-actions > div:last-child {
+    justify-content: stretch;
+  }
+
+  .region-editor-actions button {
+    flex: 1;
   }
 }

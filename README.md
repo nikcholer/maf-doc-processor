@@ -77,7 +77,7 @@ Example, composite capture:
 curl.exe -F "images=@C:\path\to\desk.jpg" -F "images=@C:\path\to\receipt.jpg" -F "sourceId=expense-claim" http://127.0.0.1:5095/api/document-captures/process
 ```
 
-The local capture UI can correct a source after its first result. Choose **Edit regions** to add, delete, reorder, move, or resize normalized rectangles, then choose **Reprocess corrected regions**. Corrections are kept only in the current page and are sent with the same source files; the API does not persist images, regions, or results.
+The local capture UI can correct a source after its first result. Choose **Edit regions** to enter a focused, in-page editor where normalized rectangles can be added, deleted, reordered, moved, or resized. **Cancel** restores the returned regions without a request; **Save and reprocess** submits the working copy and closes the editor only after a successful response. A failed request leaves the edits available to retry or cancel. Corrections are kept only in the current page and are sent with the same source files; the API does not persist images, regions, or results.
 
 Unsupported document types return a normal workflow response with `isSuccess: false` and a human-readable explanation. Capture requests that mix valid and invalid sources return HTTP 200 with `status: PartiallySucceeded`. Intake, configuration, provider, timeout, and model-response failures that prevent the request from starting use the documented API error contract.
 
@@ -168,7 +168,7 @@ See [TogetherAI local setup](docs/together-ai-local-setup.md) for the current mo
 
 Child workflows use deterministic executors around model extraction, validation, one repair pass, optional policy, and result construction. Graphs are built per request and run locally in-process.
 
-The demo UI matches those two HTTP envelopes: **Single document** and **Capture set**. Capture set keeps the selected local files in the page, overlays normalized bounds or outlines on the source previews, and shows accepted, review, rejected, and failed members with symbols and text. **Edit regions** then **Reprocess corrected regions** sends the same files plus `regionOverrides`; nothing is stored on the server.
+The demo UI matches those two HTTP envelopes: **Single document** and **Capture set**. Capture set keeps the selected local files in the page, overlays normalized bounds or outlines on the source previews, and shows accepted, review, rejected, and failed members with symbols and text. Its transactional **Edit regions** surface keeps an original snapshot and a working copy: **Cancel** discards the copy, while **Save and reprocess** sends the same files plus `regionOverrides`; nothing is stored on the server.
 
 The provider boundary is a local `IModelChatClient`. It is retained because TogetherAI-specific protocol options are required to disable Qwen thinking mode. OpenAI-compatible clients are cached by model settings, and transient provider failures use bounded retries.
 
