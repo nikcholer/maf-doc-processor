@@ -48,7 +48,7 @@ The project uses:
 
 Phase parent issues summarize the objective and exit criteria from the active backlog. Detailed child issues are created when work is near enough to be estimated and delivered.
 
-E5 checkpointing and in-app pause/resume are **out of scope** for the current image-to-structured-data effort; see the [durability decision](durability-decision.md) and [forward planning](forward-planning-workflow-system.md). Do not move E5 child issues to **Ready**. E6 agent collaboration remains gated until its documented quality-evaluation gate is satisfied.
+E5 checkpointing and in-app pause/resume are **out of scope** for the current image-to-structured-data effort; see the [durability decision](durability-decision.md) and [forward planning](forward-planning-workflow-system.md). Do not move E5 child issues to **Ready**. E6 agent collaboration is deferred until November 2026 and then remains gated until its quality-evaluation gate is satisfied; do not move it to **Ready** to chase a current product gap.
 
 Architecture decisions should use `Work item type = Decision` and record:
 
