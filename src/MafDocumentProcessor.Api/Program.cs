@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using MafDocumentProcessor.Api.Configuration;
 using MafDocumentProcessor.Api.Endpoints;
+using MafDocumentProcessor.Api.OpenApi;
 using MafDocumentProcessor.Api.Services;
 using MafDocumentProcessor.Configuration;
 using MafDocumentProcessor.Services;
@@ -20,7 +21,10 @@ builder.Services.Configure<FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = maxRequestBodyBytes;
 });
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddSchemaTransformer<ProcessedDocumentDataSchemaTransformer>();
+});
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
