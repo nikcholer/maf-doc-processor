@@ -15,7 +15,7 @@ The local demo API returns a consistent JSON error body for validation, configur
 
 | Code | HTTP status | Target | Meaning |
 | --- | ---: | --- | --- |
-| `invalid_document_upload` | `400` | Upload field, usually `image`, `images`, `regionOverrides`, or `form` | The request was not multipart, did not include the required image field, exceeded per-file or capture aggregate size limits, included too many capture files, used an unsupported content type or extension, or supplied a structurally invalid region-override payload. |
+| `invalid_document_upload` | `400` | Upload field, usually `image`, `images`, `regionOverrides`, or `form` | The request was not multipart, did not include the required image field, exceeded the individual-document or capture aggregate size limit, included too many capture files, used an unsupported individual-document content type or extension, or supplied a structurally invalid region-override payload. |
 | `model_configuration_invalid` | `500` | `null` | Required model configuration is missing or invalid, most commonly the configured API key environment variable. |
 | `model_response_invalid` | `502` | `null` | The model returned an empty response, invalid JSON, or JSON that could not be parsed into the expected schema. |
 | `model_timeout` | `504` | `null` | The provider did not return within the configured model timeout. |
@@ -31,4 +31,4 @@ Client/request cancellation is not converted to this error contract. The API let
 - `target` is populated only when a specific request field caused the failure.
 - Error `message` values are intended to be readable in the local demo UI, but clients should branch on `code`.
 
-The offline `ApiIntegrationTests` suite exercises every error code in this table, the validation-specific `target` values, populated trace identifiers, and request-cancellation propagation. Capture request-level intake failures use the same body with `target` of `form`, `images`, or `regionOverrides`. Once a capture request is accepted, source and member failures stay in the HTTP 200 capture aggregate; member `error` values reuse these codes plus `invalid_detected_region`.
+The offline `ApiIntegrationTests` suite exercises every error code in this table, the validation-specific `target` values, populated trace identifiers, and request-cancellation propagation. Capture request-level intake failures use the same body with `target` of `form`, `images`, or `regionOverrides`. Once a capture request is accepted, per-source byte/type/extension/decoded-format/dimension failures and member failures stay in the HTTP 200 capture aggregate; member `error` values reuse these codes plus `invalid_detected_region`. The generated OpenAPI document declares the 200, 400, 500, 502, and 504 response shapes for both processing endpoints.

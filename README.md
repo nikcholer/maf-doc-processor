@@ -186,7 +186,7 @@ The core local demo has no incomplete required milestone. The remaining work is 
 
 Forward architectural work is organized in the [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md) and tracked in the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1).
 
-- Composite capture is implemented through the API and Capture set UI, including region correction. Expense report is the next distinct document type.
+- Composite capture is implemented through the API and Capture set UI, including region correction. Expense reports are implemented as the next distinct document type for both individual and capture-member processing.
 - Measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
 - Maintain the current .NET 10, MAF 1.19, OpenAI 2.13, and test-tooling baseline. ImageSharp 4 and xUnit v3 are explicitly deferred as separate migrations.
 - Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, a rate-limited hosted demo, and later comparison of other vision models for document region detection.
@@ -204,6 +204,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - [Dependency baseline decision](docs/dependency-baseline-decision.md)
 - [Current workflow baseline measurements](docs/baseline-measurements.md)
 - [Composite capture measurements](docs/composite-capture-measurements.md)
+- [Observability and operational safeguards](docs/operational-safeguards.md)
 - [Current document golden set](docs/golden-set.md)
 - [Composite capture and expense report sample set](docs/next-scenario-sample-set.md)
 - [Top-level document routing design](docs/top-level-routing-design.md)

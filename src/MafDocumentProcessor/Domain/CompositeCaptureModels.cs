@@ -55,11 +55,13 @@ public sealed record CompositeCaptureRequest
         string captureId,
         DateTimeOffset receivedAt,
         string? sourceId,
+        string? traceId,
         IReadOnlyList<CompositeCaptureSource> sources)
     {
         CaptureId = captureId;
         ReceivedAt = receivedAt;
         SourceId = sourceId;
+        TraceId = string.IsNullOrWhiteSpace(traceId) ? null : traceId;
         Sources = Array.AsReadOnly(sources.ToArray());
     }
 
@@ -69,6 +71,8 @@ public sealed record CompositeCaptureRequest
 
     public string? SourceId { get; }
 
+    public string? TraceId { get; }
+
     public IReadOnlyList<CompositeCaptureSource> Sources { get; }
 
     public static CompositeCaptureRequest Create(
@@ -76,7 +80,8 @@ public sealed record CompositeCaptureRequest
         DateTimeOffset receivedAt,
         string? sourceId = null,
         string? captureId = null,
-        IReadOnlyDictionary<int, IReadOnlyList<CaptureRegionOverride>>? regionOverridesBySourceIndex = null)
+        IReadOnlyDictionary<int, IReadOnlyList<CaptureRegionOverride>>? regionOverridesBySourceIndex = null,
+        string? traceId = null)
     {
         ArgumentNullException.ThrowIfNull(sourceRequests);
         if (sourceRequests.Count == 0)
@@ -96,7 +101,7 @@ public sealed record CompositeCaptureRequest
                 regionOverridesBySourceIndex))
             .ToArray();
 
-        return new CompositeCaptureRequest(assignedCaptureId, receivedAt, sourceId, sources);
+        return new CompositeCaptureRequest(assignedCaptureId, receivedAt, sourceId, traceId, sources);
     }
 
     private static CompositeCaptureSource CreateSource(

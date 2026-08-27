@@ -106,6 +106,7 @@ Current categories:
 - `Receipt`
 - `ShoppingList`
 - `SujikoPuzzle`
+- `ExpenseReport`
 - `Invoice` as recognized but unsupported
 - `Unknown`
 
@@ -158,7 +159,7 @@ CompositeCaptureSource
 
 The names above are project code except for ImageSharp's decoding and orientation operations. `DocumentRegionDetection` is a project configuration role; it is not a MAF or .NET feature.
 
-`CaptureSourceDetectionExecutor` is the MAF adapter around this boundary. It is a project-owned class derived from MAF's `Executor<CaptureSourceDetectionInput, CaptureSourceDetectionOutput>`. It emits project-owned `CaptureSourceDecodedEvent` and `CaptureSourceDetectionCompletedEvent` records with trace, capture, caller-source, and source-item identifiers. The bounded parent graph that will run several of these executors is deferred to the orchestration task.
+`CaptureSourceDetectionExecutor` is a separately testable MAF adapter around this boundary. It is a project-owned class derived from MAF's `Executor<CaptureSourceDetectionInput, CaptureSourceDetectionOutput>` and emits `CaptureSourceDecodedEvent` and `CaptureSourceDetectionCompletedEvent`. The bounded production source lanes call the same detection service directly, then emit `CaptureSourceCompletedEvent` with trace, capture, caller-source, and source-item identifiers.
 
 Neither the detector nor a caller correction decides whether a rectangle is usable. Both use `ProposedNormalizedBounds`, which can represent an out-of-range answer. Deterministic validation then rejects bad coordinates, duplicates, empty pixel crops, or negligible regions and converts accepted proposals into the stricter `NormalizedBounds` type. This is why detection or override JSON can be parsed successfully without being trusted.
 
@@ -186,7 +187,7 @@ CaptureSourceDetectionOutput
   -> CaptureRegionValidationOutput
 ```
 
-`CaptureRegionValidationExecutor` is the MAF adapter around this boundary. It emits a project-owned `CaptureRegionValidationCompletedEvent` with proposal, accepted, and rejected counts, then disposes the oriented source once the crops exist. Overlapping but distinct documents continue with the `detected regions overlap` warning; a successful detection that yields no accepted crop becomes `no_usable_document_region`. Crops may include a little neighbouring paper. Classification and extraction prompts tell the model to use the main document occupying most of the image, including its centre.
+`CaptureRegionValidationExecutor` is the separately testable MAF adapter around this boundary and emits `CaptureRegionValidationCompletedEvent`. The bounded production source lanes call the same validation service and include its outcome in `CaptureSourceCompletedEvent`. Both paths dispose the oriented source once the crops exist. Overlapping but distinct documents continue with the `detected regions overlap` warning; a successful detection that yields no accepted crop becomes `no_usable_document_region`. Crops may include a little neighbouring paper. Classification and extraction prompts tell the model to use the main document occupying most of the image, including its centre.
 
 ## Composite Capture Orchestration (E3)
 
@@ -207,7 +208,7 @@ CompositeCaptureRequest
 
 The graph never grows a node per upload. Empty lanes still report so the fan-in barrier has a known contributor set. Ordinary source and member failures become result data; request cancellation still aborts the capture. `CaptureResultComposer` restores source order, assigns capture-wide member indexes, sums model usage once, and calculates `Succeeded` / `PartiallySucceeded` / `Failed` plus member dispositions.
 
-`POST /api/document-captures/process` accepts repeated `images` parts, optional `sourceId`, and optional per-source normalized rectangles in the `regionOverrides` JSON form field, then returns `CompositeCaptureProcessingResponse`. Listed sources skip detection; omitted sources still receive one detector call. Request-level intake failures use the existing API error contract. Partial success is HTTP 200.
+`POST /api/document-captures/process` accepts repeated `images` parts, optional `sourceId`, and optional per-source normalized rectangles in the `regionOverrides` JSON form field, then returns `CompositeCaptureProcessingResponse`. Listed sources skip detection; omitted sources still receive one detector call. Request-level intake failures use the existing API error contract. Partial success is HTTP 200. The API trace identifier is carried into capture start, source, member, aggregation, and completion events alongside the request-scoped capture/member identifiers; the workflow writes those fields as structured debug logs.
 
 The static UI keeps the original single-document mode and adds an explicit capture-set mode. It retains object URLs for the selected local images only for the lifetime of the current page selection, matches them to response sources by multipart index, and draws each normalized outline or bounds value in an SVG coordinate space over the corresponding preview. The API-provided disposition selects the accepted, review, or rejected treatment; the browser does not recalculate policy. Tick, question-mark, and cross symbols, textual rows, `aria-label` values, and keyboard-selectable overlays provide equivalent non-colour cues. Selecting either an overlay or row updates a member inspector with classification, extracted data, warnings, errors, and disposition reasons, while source failures remain visible alongside successful siblings.
 
@@ -238,13 +239,14 @@ Shared orchestration code:
 - `src/MafDocumentProcessor/Workflow/DocumentClassificationExecutor.cs`
 - `src/MafDocumentProcessor/Workflow/UnsupportedDocumentResultExecutor.cs`
 
-`DocumentProcessingWorkflow` builds the request-scoped graph, executes it once, logs its events, unwraps workflow errors, and returns its `DocumentProcessingResult`. `DocumentWorkflowFactory.BuildDocumentRoutingWorkflow` owns the graph shape. It connects `DocumentClassificationExecutor` to four destinations with typed conditional edges:
+`DocumentProcessingWorkflow` builds the request-scoped graph, executes it once, logs its events, unwraps workflow errors, and returns its `DocumentProcessingResult`. `DocumentWorkflowFactory.BuildDocumentRoutingWorkflow` owns the graph shape. It connects `DocumentClassificationExecutor` to five destinations with typed conditional edges:
 
 ```text
 DocumentClassificationExecutor
   -> receipt-workflow       -> bound receipt child workflow
   -> shopping-list-workflow -> bound shopping-list child workflow
   -> sujiko-workflow        -> bound Sujiko child workflow
+  -> expense-report-workflow -> bound expense-report child workflow
   -> UnsupportedDocumentResult -> Invoice or Unknown result
 ```
 
@@ -267,7 +269,7 @@ ClassifiedDocument
   -> result executor
 ```
 
-The three graphs are built by the project-owned `DocumentWorkflowFactory` using MAF's `WorkflowBuilder`. They can be executed on their own and are also bound as child nodes in the top-level routing graph.
+The four graphs are built by the project-owned `DocumentWorkflowFactory` using MAF's `WorkflowBuilder`. They can be executed on their own and are also bound as child nodes in the top-level routing graph.
 
 ### Receipt
 
@@ -330,6 +332,24 @@ Behavior:
 The Sujiko extractor prompt includes explicit deskewing guidance because rotated newspaper photos can cause row/column mistakes. The rotated sample regression fixture lives under:
 
 - `tests/MafDocumentProcessor.Tests/assets/IMG20260513194450.jpg`
+
+### Expense Report
+
+Files:
+
+- `ExpenseReportExtractionExecutor`
+- `ExpenseReportValidationExecutor`
+- `ExpenseReportValidationRepairExecutor`
+- `ExpenseReportPolicyExecutor`
+- `ExpenseReportResultExecutor`
+
+Behavior:
+
+- extracts report identity, claimant, date range, currency, claimed total, lines, receipt references, notes, and visible approval text;
+- validates structural fields, date ordering, currency, non-negative amounts, and claimed-total arithmetic deterministically;
+- retries extraction once with validation reasons when validation fails;
+- evaluates high-value and missing-receipt-reference policy separately from structural validation; and
+- requires ownership attestation without implying that a claim was approved, linked to stored receipts, or submitted.
 
 ## Validation Repair
 
@@ -450,6 +470,7 @@ Parser/model service tests:
 API and UI mapping tests:
 
 - `tests/MafDocumentProcessor.Tests/ApiIntegrationTests.cs`
+- `tests/MafDocumentProcessor.Tests/ApiCaptureIntegrationTests.cs`
 - `tests/MafDocumentProcessor.Tests/ApiDemoTests.cs`
 
 P5 quality prototype tests:

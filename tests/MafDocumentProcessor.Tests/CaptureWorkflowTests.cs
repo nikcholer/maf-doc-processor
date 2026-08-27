@@ -76,6 +76,48 @@ public sealed class CaptureWorkflowTests
     }
 
     [Fact]
+    public async Task RunAsync_CountsDetectionClassificationExtractionAndRepairExactlyOnce()
+    {
+        var detector = new StubRegionDetector();
+        var classifier = new StubClassifier();
+        var extractor = new SequenceReceiptExtractor(
+            new ReceiptData("", 4.50m, null, "Card", "GBP"),
+            new ReceiptData("First Shop", 4.50m, null, "Card", "GBP"),
+            new ReceiptData("Second Shop", 7.25m, null, "Card", "GBP"));
+        var workflow = CreateCaptureWorkflow(
+            detector,
+            classifier,
+            extractor,
+            options: new CompositeCaptureOptions(
+                MaxConcurrentSources: 1,
+                MaxConcurrentMembers: 1,
+                RegionEdgePadding: 0));
+        var request = CreateRequest(
+            CreateSource("first.png", CreatePng(80, 80)),
+            CreateSource("second.png", CreatePng(80, 80)));
+
+        var result = await workflow.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(2, detector.CallCount);
+        Assert.Equal(2, classifier.Files.Count);
+        Assert.Equal(3, extractor.CallCount);
+        Assert.Equal(2, result.ModelUsage.Calls.Count(call =>
+            call.Operation == ModelDocumentRegionDetector.Operation));
+        Assert.Equal(2, result.ModelUsage.Calls.Count(call => call.Operation == "classification"));
+        Assert.Equal(3, result.ModelUsage.Calls.Count(call => call.Operation == "receipt_extraction"));
+        Assert.Equal(7, result.ModelUsage.Calls.Count);
+        Assert.Equal(41, result.ModelUsage.TotalTokens);
+        Assert.Equal(0.000041m, result.ModelUsage.EstimatedTotalCostUsd);
+        Assert.Equal(41, result.ModelUsage.TotalDurationMilliseconds);
+        Assert.Equal(
+            [3, 2],
+            result.Members
+                .Where(member => member.Result is not null)
+                .Select(member => member.Result!.ModelUsage.Calls.Count)
+                .ToArray());
+    }
+
+    [Fact]
     public async Task RunAsync_IsolatesAFailedSourceAndKeepsAValidSibling()
     {
         var detector = new StubRegionDetector();
@@ -292,19 +334,44 @@ public sealed class CaptureWorkflowTests
     [Fact]
     public async Task RunAsync_EmitsSourceAndMemberBoundaryEvents()
     {
+        var options = new CompositeCaptureOptions(
+            MaxConcurrentSources: 2,
+            MaxConcurrentMembers: 2,
+            RegionEdgePadding: 0);
         var workflow = CaptureWorkflowFactory.BuildSourceWorkflow(
             new CaptureSourceDetectionService(
                 new CaptureSourceImageDecoder(new CompositeCaptureOptions()),
                 new StubRegionDetector()),
             new CaptureRegionValidationService(new CompositeCaptureOptions(RegionEdgePadding: 0)),
-            new CompositeCaptureOptions(MaxConcurrentSources: 2, MaxConcurrentMembers: 2, RegionEdgePadding: 0));
+            options);
         var request = CreateRequest(CreateSource("receipt.png", CreatePng(80, 80)));
         var run = await InProcessExecution.RunAsync(workflow, request);
         var events = run.NewEvents.Select(evt => evt.Data).ToArray();
 
-        Assert.Contains(events, data => data is CaptureStartedEvent);
-        Assert.Contains(events, data => data is CaptureSourceCompletedEvent);
-        Assert.Contains(events, data => data is CaptureSourcesAggregatedEvent);
+        var started = Assert.Single(events.OfType<CaptureStartedEvent>());
+        var sourceCompleted = Assert.Single(events.OfType<CaptureSourceCompletedEvent>());
+        var sourcesAggregated = Assert.Single(events.OfType<CaptureSourcesAggregatedEvent>());
+        Assert.Equal(request.TraceId, started.TraceId);
+        Assert.Equal(request.CaptureId, sourceCompleted.CaptureId);
+        Assert.Equal(request.SourceId, sourcesAggregated.SourceId);
+        Assert.Equal("source-001", sourceCompleted.SourceItemId);
+
+        var sourceStage = Assert.Single(events.OfType<CaptureSourceStageResult>());
+        var memberWorkflow = CaptureWorkflowFactory.BuildMemberWorkflow(
+            CreateDocumentWorkflow(new StubClassifier(), new StubReceiptExtractor()),
+            options);
+        var memberRun = await InProcessExecution.RunAsync(memberWorkflow, sourceStage);
+        var memberEvents = memberRun.NewEvents.Select(evt => evt.Data).ToArray();
+
+        var memberStarted = Assert.Single(memberEvents.OfType<CaptureMemberStartedEvent>());
+        var memberCompleted = Assert.Single(memberEvents.OfType<CaptureMemberCompletedEvent>());
+        var captureCompleted = Assert.Single(memberEvents.OfType<CaptureCompletedEvent>());
+        Assert.Equal(request.TraceId, memberStarted.TraceId);
+        Assert.Equal(request.CaptureId, memberCompleted.CaptureId);
+        Assert.Equal(request.SourceId, captureCompleted.SourceId);
+        Assert.Equal("source-001", memberStarted.SourceItemId);
+        Assert.Equal("source-001-document-001", memberStarted.MemberId);
+        Assert.Equal(memberStarted.MemberId, memberCompleted.MemberId);
     }
 
     [Fact]
@@ -360,7 +427,7 @@ public sealed class CaptureWorkflowTests
     private static CompositeCaptureWorkflow CreateCaptureWorkflow(
         IDocumentRegionDetector detector,
         StubClassifier classifier,
-        StubReceiptExtractor extractor,
+        IReceiptExtractor extractor,
         StubShoppingListExtractor? shoppingListExtractor = null,
         StubSujikoExtractor? sujikoExtractor = null,
         StubExpenseReportExtractor? expenseReportExtractor = null,
@@ -400,7 +467,8 @@ public sealed class CaptureWorkflowTests
         return CompositeCaptureRequest.Create(
             sources.Select(source => source.Request).ToArray(),
             DateTimeOffset.Parse("2026-08-26T12:00:00Z"),
-            "capture-test");
+            "capture-test",
+            traceId: "api-trace-capture-test");
     }
 
     private static CompositeCaptureSource CreateSource(string fileName, byte[] content)
@@ -462,7 +530,14 @@ public sealed class CaptureWorkflowTests
                 .ToArray();
             return ValueTask.FromResult(new ModelResult<IReadOnlyList<DocumentRegionProposal>>(
                 proposals,
-                new ModelTokenUsage(ModelDocumentRegionDetector.Operation, "capture-detector", 4, 2, 6)));
+                new ModelTokenUsage(
+                    ModelDocumentRegionDetector.Operation,
+                    "capture-detector",
+                    4,
+                    2,
+                    6,
+                    EstimatedTotalCostUsd: 0.000006m,
+                    DurationMilliseconds: 6)));
         }
     }
 
@@ -496,7 +571,14 @@ public sealed class CaptureWorkflowTests
             Files.Add(request.FileName);
             return ValueTask.FromResult(new ModelResult<DocumentClassification>(
                 new DocumentClassification(Category, Confidence, "stub"),
-                new ModelTokenUsage("classification", "stub-classifier", 3, 1, 4)));
+                new ModelTokenUsage(
+                    "classification",
+                    "stub-classifier",
+                    3,
+                    1,
+                    4,
+                    EstimatedTotalCostUsd: 0.000004m,
+                    DurationMilliseconds: 4)));
         }
     }
 
@@ -521,6 +603,37 @@ public sealed class CaptureWorkflowTests
             return ValueTask.FromResult(new ModelResult<ReceiptData>(
                 new ReceiptData("Stub Shop", 4.50m, new DateOnly(2026, 8, 26), "Card", "GBP"),
                 new ModelTokenUsage("receipt_extraction", "stub-extractor", 5, 2, 7)));
+        }
+    }
+
+    private sealed class SequenceReceiptExtractor(params ReceiptData[] receipts) : IReceiptExtractor
+    {
+        private int _callCount;
+
+        public int CallCount => _callCount;
+
+        public ValueTask<ModelResult<ReceiptData>> ExtractReceiptAsync(
+            FileRequest request,
+            CancellationToken cancellationToken,
+            IReadOnlyList<string>? repairInstructions = null)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var index = Interlocked.Increment(ref _callCount) - 1;
+            if (index >= receipts.Length)
+            {
+                throw new InvalidOperationException("No receipt response remains for the test.");
+            }
+
+            return ValueTask.FromResult(new ModelResult<ReceiptData>(
+                receipts[index],
+                new ModelTokenUsage(
+                    "receipt_extraction",
+                    "stub-sequence",
+                    5,
+                    2,
+                    7,
+                    EstimatedTotalCostUsd: 0.000007m,
+                    DurationMilliseconds: 7)));
         }
     }
 

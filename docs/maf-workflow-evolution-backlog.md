@@ -175,10 +175,12 @@ Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc
 
 **Objective:** Make the extended workflow observable, maintainable, and ready to become the next stable application baseline.
 
+Delivery begins with the [observability and operational safeguards audit](https://github.com/nikcholer/maf-doc-processor/issues/63). The independently deliverable typed OpenAPI schema improvement is tracked in [#64](https://github.com/nikcholer/maf-doc-processor/issues/64).
+
 - [ ] Run the full offline, integration, golden-set, cancellation, and selected live-provider checks.
-- [ ] Verify correlation IDs and structured telemetry across the top-level graph and every sub-workflow.
-- [ ] Confirm model usage and estimated cost include parallel, repair, and optional review calls exactly once.
-- [ ] Review upload limits, memory use, concurrency, timeouts, retries, and provider failure handling.
+- [x] Verify correlation IDs and structured telemetry across the top-level graph and every sub-workflow.
+- [x] Confirm model usage and estimated cost include parallel and repair calls exactly once; the optional review prototype remains outside the default API path and retains its separate accounting tests.
+- [x] Review upload limits, memory use, concurrency, timeouts, retries, and provider failure handling.
 - [ ] Review the API schema for typed document payloads and update the error contract where necessary.
 - [ ] Update the README, technical process flow, slice guide, and architecture decisions.
 - [ ] Remove superseded experimental paths and close or move remaining items to the icebox.

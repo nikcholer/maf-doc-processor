@@ -23,11 +23,13 @@ public sealed class CompositeCaptureFoundationTests
             sourceRequests,
             receivedAt,
             sourceId: "expense-claim-17",
-            captureId: "capture-test-001");
+            captureId: "capture-test-001",
+            traceId: "api-trace-001");
         sourceRequests.Add(CreateFileRequest("added-too-late.png", receivedAt));
 
         Assert.Equal("capture-test-001", request.CaptureId);
         Assert.Equal("expense-claim-17", request.SourceId);
+        Assert.Equal("api-trace-001", request.TraceId);
         Assert.Equal(receivedAt, request.ReceivedAt);
         Assert.Collection(
             request.Sources,

@@ -224,7 +224,7 @@ The implementation must bound upload dimensions, decoded memory, region count, a
 
 ## Initial Configuration
 
-The `CompositeCapture` section in `appsettings.json` holds the limits used by the forthcoming capture endpoint and workflow. The application validates these values at startup, so an impossible or unbounded value fails clearly instead of being discovered after an upload begins.
+The `CompositeCapture` section in `appsettings.json` holds the limits used by the capture endpoint and workflow. The application validates these values at startup, so an impossible or unbounded value fails clearly instead of being discovered after an upload begins.
 
 | Setting | Initial value | What it limits |
 | --- | ---: | --- |
@@ -241,7 +241,7 @@ The `CompositeCapture` section in `appsettings.json` holds the limits used by th
 | `RegionEdgePadding` | 0.03 | Extra normalized margin added on every side of an accepted crop |
 | `MaxConcurrentSources`, `MaxConcurrentMembers` | 2, 4 | Fixed source and document processing lanes |
 
-These are safe starting values, not business constants. Source decoding and region validation now enforce the image, geometry, duplicate, overlap, and per-source member limits. Later E3 tasks will enforce request-level intake limits and the capture-wide workflow concurrency values, and will measure those concurrency values before the phase is complete.
+These are safe local starting values, not business constants. Request intake, source decoding, region validation, and the fixed capture workflow lanes enforce the byte, image, geometry, duplicate, overlap, member, and concurrency limits. The measured concurrency trade-off is recorded in [composite capture measurements](composite-capture-measurements.md); decoded-memory implications and failure boundaries are recorded in [observability and operational safeguards](operational-safeguards.md).
 
 ## Model Usage and Correlation
 
@@ -249,7 +249,7 @@ These are safe starting values, not business constants. Source decoding and regi
 - A member's result contains only that member's classification, extraction, and bounded repair calls.
 - Capture-level model usage includes every known source-detection call and each member call once; it must not add a member's already-aggregated total as another call.
 - Summed model-call duration retains the existing usage meaning and is not presented as wall-clock capture latency when member calls run concurrently.
-- HTTP `traceId`, generated `captureId`, caller `sourceId`, `sourceItemId`, and `memberId` are included in log scopes where available.
+- The capture endpoint passes its HTTP `traceId` into the workflow; capture events and structured debug logs retain it with the generated `captureId`, caller `sourceId`, `sourceItemId`, and `memberId` where applicable.
 - Member failures retain any model usage known before the failure when the provider boundary can report it safely.
 
 ## Representative Cases

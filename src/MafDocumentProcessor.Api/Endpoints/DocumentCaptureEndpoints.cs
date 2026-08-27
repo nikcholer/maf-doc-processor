@@ -152,7 +152,8 @@ public static class DocumentCaptureEndpoints
                     sourceRequests,
                     receivedAt,
                     sourceId,
-                    regionOverridesBySourceIndex: overrideParseResult.Overrides),
+                    regionOverridesBySourceIndex: overrideParseResult.Overrides,
+                    traceId: request.HttpContext.TraceIdentifier),
                 cancellationToken);
             logger.LogInformation(
                 "Completed capture workflow {CaptureId} after {ElapsedMilliseconds} ms. Status={Status}, MemberCount={MemberCount}.",
