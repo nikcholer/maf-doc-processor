@@ -4,7 +4,7 @@
 
 This baseline provides a reproducible comparison point for later workflow changes. It records the offline regression suite and one representative provider-backed run through the complete existing document path. It is not a service-level objective or a statistically meaningful performance benchmark.
 
-The comparison base is commit `a1563c8`, after the API contracts were protected in issue #20. Measurements were captured on 25 August 2026 from a Windows development workstation using .NET SDK 10.0.400 and the `net10.0` target.
+The comparison base is rewritten commit `7d08b1b`, after the API contracts were protected in issue #20. The commit identifier changed during the pre-publication [repository history rewrite](history-rewrite.md); the recorded measurements did not. Measurements were captured on 25 August 2026 from a Windows development workstation using .NET SDK 10.0.400 and the `net10.0` target.
 
 ## Protocol
 

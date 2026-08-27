@@ -212,6 +212,7 @@ There is no incomplete required milestone for this converter.
 - [Current workflow baseline measurements](docs/baseline-measurements.md)
 - [Composite capture measurements](docs/composite-capture-measurements.md)
 - [Extended workflow release baseline](docs/extended-workflow-release-baseline.md)
+- [Repository history rewrite](docs/history-rewrite.md)
 - [Observability and operational safeguards](docs/operational-safeguards.md)
 - [Current document golden set](docs/golden-set.md)
 - [Composite capture and expense report sample set](docs/next-scenario-sample-set.md)

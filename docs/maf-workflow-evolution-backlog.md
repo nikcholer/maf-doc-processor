@@ -179,7 +179,7 @@ Delivery began with the completed [observability and operational safeguards audi
 - [x] Update the README, technical process flow, slice guide, and architecture decisions.
 - [x] Remove superseded experimental paths and close or move remaining items to the icebox. The audit found no superseded default route; the gated quality prototype remains isolated, and #53/#58 remain iceboxed.
 - [x] Record before/after architecture, quality, latency, and cost results.
-- [x] Tag the resulting stable milestone after remote verification and a clean build/test run. The annotated tag is `extended-workflow-baseline` on `f1b198c`.
+- [x] Tag the resulting stable milestone after remote verification and a clean build/test run. After the pre-publication [history rewrite](history-rewrite.md), the annotated tag is `extended-workflow-baseline` on rewritten commit `5dd8d2`.
 
 **Exit criteria:** Documentation matches the implementation, required checks pass, operational trade-offs are recorded, and the new milestone is reproducible from a clean checkout.
 

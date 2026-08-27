@@ -2,9 +2,9 @@
 
 ## Status and Release Gate
 
-This note records the E7 baseline tagged after issue #8. The annotated tag `extended-workflow-baseline` points at `f1b198c` on `main`, after [Release baseline run 33053217495](https://github.com/nikcholer/maf-doc-processor/actions/runs/33053217495) succeeded and the same commit passed the clean local commands below.
+This note records the E7 baseline tagged after issue #8. Following the pre-publication [repository history rewrite](history-rewrite.md), the annotated tag `extended-workflow-baseline` points at rewritten commit `5dd8d2` on `main`. The baseline passed the clean local commands below before tagging; current rewritten `main` is independently covered by [Release baseline run 33086197762](https://github.com/nikcholer/maf-doc-processor/actions/runs/33086197762).
 
-The repository has no deployment or package-publishing step. The tag identifies a reproducible local application baseline and follows the descriptive annotated-tag convention established by `initial-demo`.
+The repository has no deployment or package-publishing step. The tag follows the descriptive annotated-tag convention established by `initial-demo` and identifies the historical architecture. Because the rewrite removed a legacy fixture path from historical snapshots, use current `main`, rather than the tag alone, for a fully reproducible checkout.
 
 ## Architecture Change Since `initial-demo`
 
@@ -89,8 +89,10 @@ git tag -a extended-workflow-baseline -m "Extended workflow baseline"
 git push origin extended-workflow-baseline
 ```
 
-To check out this baseline later:
+To inspect the historical architecture later:
 
 ```powershell
 git checkout extended-workflow-baseline
 ```
+
+The rewritten tag does not contain the removed legacy fixture. An asset regression test in that historical snapshot may therefore require a local replacement fixture; current `main` is the supported reproducible baseline.
