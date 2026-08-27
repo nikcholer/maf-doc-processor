@@ -168,6 +168,45 @@ public sealed class CaptureRegionValidationTests
     }
 
     [Fact]
+    public async Task CallerOverrides_PreserveSubmittedBoundsAndOrderWithoutDetectorPolicy()
+    {
+        var proposals = new[]
+        {
+            CreateProposal(1, 0.55, 0.55, 0.4, 0.4, confidence: null),
+            CreateProposal(2, 0.1, 0.1, 0.4, 0.4, confidence: null),
+            CreateProposal(3, 0.102, 0.102, 0.398, 0.398, confidence: null)
+        };
+        var source = CreateSource(
+            CreatePng(100, 100),
+            "corrected.png",
+            "image/png",
+            regionOverrides: proposals);
+        using var detection = CreateSuccessfulDetection(source, proposals);
+
+        var output = await ValidateAsync(
+            detection,
+            new CompositeCaptureOptions(RegionEdgePadding: 0.05));
+
+        Assert.Empty(output.RejectedRegions);
+        Assert.Empty(output.Warnings);
+        Assert.Equal([1, 2, 3], output.AcceptedMembers.Select(member => member.Member.Region.DetectionIndex));
+        Assert.All(output.AcceptedMembers, member => Assert.Empty(member.Member.Region.Warnings));
+        Assert.Collection(
+            output.AcceptedMembers,
+            first =>
+            {
+                Assert.Equal(new NormalizedBounds(0.55, 0.55, 0.4, 0.4), first.Member.Region.Bounds);
+                Assert.Equal(new PixelRectangle(55, 55, 40, 40), first.CropPixels);
+            },
+            second => Assert.Equal(
+                new NormalizedBounds(0.1, 0.1, 0.4, 0.4),
+                second.Member.Region.Bounds),
+            third => Assert.Equal(
+                new NormalizedBounds(0.102, 0.102, 0.398, 0.398),
+                third.Member.Region.Bounds));
+    }
+
+    [Fact]
     public async Task SampleCorpus_CropsTheSingleReceiptFromItsKnownBounds()
     {
         using var detection = CreateSuccessfulDetection(
@@ -481,7 +520,8 @@ public sealed class CaptureRegionValidationTests
         byte[] content,
         string fileName,
         string contentType,
-        string sourceItemId = "source-001")
+        string sourceItemId = "source-001",
+        IReadOnlyList<DocumentRegionProposal>? regionOverrides = null)
     {
         return new CompositeCaptureSource(
             sourceItemId,
@@ -492,7 +532,8 @@ public sealed class CaptureRegionValidationTests
                 contentType,
                 content.LongLength,
                 DateTimeOffset.Parse("2026-08-26T12:00:00Z"),
-                "claim-45"));
+                "claim-45"),
+            regionOverrides);
     }
 
     private static DocumentRegionProposal CreateProposal(

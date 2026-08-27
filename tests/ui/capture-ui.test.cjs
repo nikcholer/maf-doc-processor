@@ -118,6 +118,19 @@ test("region labels expose disposition, category, and confidence without relying
     "source-001-document-002: Needs review, Receipt, detection confidence 83 percent");
 });
 
+test("manual regions do not present a missing confidence as zero percent", () => {
+  const label = CaptureUi.getMemberAccessibleLabel({
+    memberId: "source-001-document-001",
+    disposition: "Accepted",
+    result: { category: "Receipt" },
+    region: { confidence: null }
+  });
+
+  assert.equal(
+    label,
+    "source-001-document-001: Accepted, Receipt, detection confidence not reported");
+});
+
 test("drag and keyboard movement clamp rectangles to normalized image bounds", () => {
   const original = { x: 0.1, y: 0.2, width: 0.4, height: 0.5 };
 

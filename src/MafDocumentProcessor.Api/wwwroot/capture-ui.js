@@ -199,10 +199,12 @@
   function getMemberAccessibleLabel(member) {
     const presentation = getDispositionPresentation(member?.disposition);
     const category = member?.result?.category ? `, ${member.result.category}` : "";
-    const confidenceValue = Number(member?.region?.confidence);
+    const confidenceValue = member?.region?.confidence === null || member?.region?.confidence === undefined
+      ? Number.NaN
+      : Number(member.region.confidence);
     const confidence = Number.isFinite(confidenceValue)
       ? `, detection confidence ${Math.round(confidenceValue * 100)} percent`
-      : "";
+      : ", detection confidence not reported";
     return `${member?.memberId ?? "Document region"}: ${presentation.label}${category}${confidence}`;
   }
 

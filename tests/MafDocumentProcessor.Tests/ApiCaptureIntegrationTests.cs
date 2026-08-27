@@ -155,10 +155,12 @@ public sealed class ApiCaptureIntegrationTests
     }
 
     [Fact]
-    public async Task ProcessCapture_WithRegionOverrides_SkipsDetectionAndUsesTheNormalResultContract()
+    public async Task ProcessCapture_WithRegionOverrides_PreservesAuthoritativeCoordinatesAndOrder()
     {
         var detector = new CountingRegionDetector();
-        using var factory = new CaptureApiFactory(regionDetector: detector);
+        using var factory = new CaptureApiFactory(
+            regionDetector: detector,
+            captureOptions: new CompositeCaptureOptions(RegionEdgePadding: 0.03));
         using var client = factory.CreateClient();
         using var content = CreateCaptureContent(("receipt.png", CreatePng(80, 80)));
         AddRegionOverrides(content,
@@ -168,7 +170,8 @@ public sealed class ApiCaptureIntegrationTests
                 {
                   "sourceIndex": 1,
                   "regions": [
-                    { "bounds": { "x": 0.1, "y": 0.2, "width": 0.6, "height": 0.5 } }
+                    { "bounds": { "x": 0.55, "y": 0.55, "width": 0.4, "height": 0.4 } },
+                    { "bounds": { "x": 0.45, "y": 0.45, "width": 0.4, "height": 0.4 } }
                   ]
                 }
               ]
@@ -185,9 +188,27 @@ public sealed class ApiCaptureIntegrationTests
         Assert.True(source.Detection.UsedRegionOverrides);
         Assert.Null(source.Detection.ModelId);
         Assert.DoesNotContain(body.ModelUsage.Calls, call => call.Operation == ModelDocumentRegionDetector.Operation);
-        var member = Assert.Single(body.Members);
-        Assert.Equal(0.1, member.Region.Bounds.X, 6);
-        Assert.Null(member.Region.Confidence);
+        Assert.Empty(source.Warnings);
+        Assert.Collection(
+            body.Members,
+            first =>
+            {
+                Assert.Equal(0.55, first.Region.Bounds.X, 6);
+                Assert.Equal(0.55, first.Region.Bounds.Y, 6);
+                Assert.Equal(0.4, first.Region.Bounds.Width, 6);
+                Assert.Equal(0.4, first.Region.Bounds.Height, 6);
+                Assert.Null(first.Region.Confidence);
+                Assert.Empty(first.Region.Warnings);
+            },
+            second =>
+            {
+                Assert.Equal(0.45, second.Region.Bounds.X, 6);
+                Assert.Equal(0.45, second.Region.Bounds.Y, 6);
+                Assert.Equal(0.4, second.Region.Bounds.Width, 6);
+                Assert.Equal(0.4, second.Region.Bounds.Height, 6);
+                Assert.Null(second.Region.Confidence);
+                Assert.Empty(second.Region.Warnings);
+            });
     }
 
     [Fact]

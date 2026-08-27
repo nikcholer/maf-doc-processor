@@ -182,9 +182,10 @@ CaptureSourceDetectionOutput
   -> CaptureRegionValidationService
      -> trust finite in-range bounds above the useful-region thresholds
      -> map opposite edges independently onto the oriented source
-     -> reject empty pixel crops, near-duplicates, and member-limit overflow
-     -> order remaining regions top-to-bottom, then left-to-right
-     -> expand accepted boxes by RegionEdgePadding so headers and edges are less likely to clip
+     -> reject empty pixel crops and member-limit overflow
+     -> for detector proposals only: reject near-duplicates and order top-to-bottom, then left-to-right
+     -> for detector proposals only: expand accepted boxes by RegionEdgePadding
+     -> for caller overrides: preserve valid bounds and submitted order exactly
      -> crop accepted regions from OrientedCaptureSourceImage as PNG FileRequest values
   -> CaptureRegionValidationOutput
 ```
