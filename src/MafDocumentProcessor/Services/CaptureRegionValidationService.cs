@@ -57,9 +57,15 @@ public sealed class CaptureRegionValidationService(
             }
         }
 
-        var acceptedCandidates = ApplyDuplicateAndLimitPolicy(candidates, rejected);
-        ApplyEdgePadding(acceptedCandidates, orientedSource);
-        ApplyOverlapWarnings(acceptedCandidates);
+        var usesRegionOverrides = input.Source.RegionOverrides is not null;
+        var acceptedCandidates = usesRegionOverrides
+            ? ApplyOverrideLimitPolicy(candidates, rejected)
+            : ApplyDuplicateAndLimitPolicy(candidates, rejected);
+        if (!usesRegionOverrides)
+        {
+            ApplyEdgePadding(acceptedCandidates, orientedSource);
+            ApplyOverlapWarnings(acceptedCandidates);
+        }
 
         var acceptedMembers = new List<CaptureMemberProcessingInput>(acceptedCandidates.Count);
         for (var index = 0; index < acceptedCandidates.Count; index++)
@@ -203,6 +209,22 @@ public sealed class CaptureRegionValidationService(
         }
 
         return kept.Take(maxAccepted).ToArray();
+    }
+
+    private IReadOnlyList<RegionCandidate> ApplyOverrideLimitPolicy(
+        List<RegionCandidate> candidates,
+        List<CaptureRejectedRegion> rejected)
+    {
+        var maxAccepted = Math.Min(options.MaxDetectedRegionsPerSource, options.MaxMembersPerCapture);
+        foreach (var extra in candidates.Skip(maxAccepted))
+        {
+            rejected.Add(Reject(
+                extra.Proposal,
+                extra.Bounds,
+                "exceeds the configured member limit."));
+        }
+
+        return candidates.Take(maxAccepted).ToArray();
     }
 
     private void ApplyEdgePadding(

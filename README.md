@@ -61,7 +61,7 @@ If the API is already running, stop it before rebuilding so Windows does not kee
 - `GET /health` reports API-key readiness and configured model information.
 - `GET /openapi/v1.json` is the generated OpenAPI document. Its individual-document response schema describes the receipt, shopping-list, Sujiko, and expense-report variants of `document.data` with `oneOf`.
 - `POST /api/documents/process` accepts `multipart/form-data` with an image in the `image` field and an optional `sourceId` value.
-- `POST /api/document-captures/process` accepts one or more PNG or JPEG files in a repeated `images` field, an optional request-level `sourceId`, and optional per-source normalized rectangle corrections in the `regionOverrides` JSON field. It returns a capture aggregate with source and member outcomes. Corrected sources skip region detection; uncorrected siblings still use the detector.
+- `POST /api/document-captures/process` accepts one or more PNG or JPEG files in a repeated `images` field, an optional request-level `sourceId`, and optional per-source normalized rectangle corrections in the `regionOverrides` JSON field. It returns a capture aggregate with source and member outcomes. Corrected sources skip region detection and retain valid submitted bounds and order exactly; uncorrected siblings still use the detector.
 
 The individual-document upload limit is 5 MiB. A capture request may include up to five images, each up to 10 MiB, totalling 25 MiB. Accepted types are PNG and JPEG with `.png`, `.jpg`, or `.jpeg` extensions.
 
@@ -152,7 +152,7 @@ Runtime settings live in [appsettings.json](src/MafDocumentProcessor.Api/appsett
 - `AiModels:TextTesting`: reserved model role used only when explicitly constructing experimental text/quality workflows.
 - `ModelImagePreprocessing`: region-detection, classification, and extraction resize limits plus JPEG quality.
 - `DocumentIntake`: upload field name, size limit, content types, and extensions.
-- `CompositeCapture`: source count, byte and pixel limits, useful-region thresholds, duplicate/overlap policy, crop padding, and source/member lane counts.
+- `CompositeCapture`: source count, byte and pixel limits, useful-region thresholds, detector duplicate/overlap policy and crop padding, and source/member lane counts.
 - `ReceiptPolicy`: review threshold and default currency.
 - `ExpensePolicy`: high-value review threshold for expense reports.
 

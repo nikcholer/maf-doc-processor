@@ -520,7 +520,9 @@ function createSourceCard(source, file, members, pending) {
   sourceStatus.className = `source-status ${captureStatusClass(source.status)}`;
   sourceStatus.textContent = pending
     ? "Processing"
-    : activeRegionEdit?.sourceItemId === source.sourceItemId ? "Editing regions" : sentenceCase(source.status);
+    : activeRegionEdit?.sourceItemId === source.sourceItemId ? "Editing regions"
+      : source.detection?.usedRegionOverrides ? "Manual regions"
+        : sentenceCase(source.status);
   const headerActions = document.createElement("div");
   headerActions.className = "source-header-actions";
   headerActions.appendChild(sourceStatus);
@@ -1016,7 +1018,7 @@ function createOverlay(members) {
   svg.setAttribute("class", "region-overlay");
   svg.setAttribute("viewBox", "0 0 100 100");
   svg.setAttribute("preserveAspectRatio", "none");
-  svg.setAttribute("aria-label", "Detected document regions");
+  svg.setAttribute("aria-label", "Document regions");
 
   members.forEach((member) => {
     const presentation = CaptureUi.getDispositionPresentation(member.disposition);
@@ -1122,7 +1124,9 @@ function renderMemberDetail(member) {
 
   const metadata = document.createElement("dl");
   metadata.className = "data-list compact-data";
-  const confidence = Number(member.region?.confidence);
+  const confidence = member.region?.confidence === null || member.region?.confidence === undefined
+    ? Number.NaN
+    : Number(member.region.confidence);
   metadata.append(
     createDataRow("Workflow status", sentenceCase(member.status ?? "-")),
     createDataRow("Detection confidence", Number.isFinite(confidence) ? `${Math.round(confidence * 100)}%` : "Not reported"),
