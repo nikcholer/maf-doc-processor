@@ -22,7 +22,7 @@ The initial feature is additive:
 - `POST /api/document-captures/process` accepts one or more PNG or JPEG files in a repeated `images` multipart field, an optional request-level `sourceId`, and an optional `regionOverrides` JSON field.
 - The capture endpoint always returns the capture response shape, whether the request contains one or several source images and whether detection finds zero, one, or several regions in each source.
 
-Using a separate endpoint prevents region detection from adding latency and cost to existing individual uploads. A future UI may choose the endpoint explicitly or offer automatic mode selection, but that is not part of this contract.
+Using a separate endpoint prevents region detection from adding latency and cost to existing individual uploads. The demo UI chooses the endpoint through **Single document** versus **Capture set**; that choice is UI behaviour, not part of this HTTP contract.
 
 Request-level intake failures continue to use the existing API error contract. No files, too many files, or an excessive aggregate request size fail the request before processing. Once the multipart request is accepted, a source-specific validation or detection failure is isolated to that source so valid sibling images can still be processed.
 
@@ -274,7 +274,7 @@ These are safe local starting values, not business constants. Request intake, so
 
 - Persisting source images, crops, document results, capture IDs, or member IDs.
 - Retrieving or linking previously processed receipts.
-- Implementing the expense-report document type or claim submission.
+- Claim submission or persistent receipt-to-expense-report linking. Expense reports are a supported document type on both individual and capture-member routes.
 - Changing the existing individual document endpoint or result semantics.
 - Returning a base64 or server-rasterized annotated image inside the JSON response.
 - PDF/page ingestion, perspective correction, OCR-specific processing, or arbitrary image stitching.

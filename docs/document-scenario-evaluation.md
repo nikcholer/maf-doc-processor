@@ -2,11 +2,11 @@
 
 ## Status
 
-This spike recommends a scenario for decision; it does not approve an implementation. The output contract, model boundaries, MAF capability set, and final decision remain separate E0 work items.
+Historical E0 spike, written before composite capture and expense reports existed. It recommended expense report after multi-source capture; that sequence was later accepted and implemented. The baseline section below is the application as it was then, not as it is now.
 
-## Current Baseline
+## Baseline At The Time Of The Spike
 
-The application currently assumes that one uploaded image contains one document. It demonstrates three vertical slices:
+The application then assumed that one uploaded image contained one document. It demonstrated three vertical slices:
 
 | Slice | Model-backed work | Deterministic work | Workflow shape |
 | --- | --- | --- | --- |
