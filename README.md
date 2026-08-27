@@ -1,22 +1,27 @@
 # MAF Document Processor
 
-Local Microsoft Agent Framework (MAF) demo that turns document images into structured data. It processes receipt, shopping-list, Sujiko puzzle, and expense-report images. It is not a case-management or durable workflow engine.
+Local Microsoft Agent Framework (MAF) demo that turns document images into structured data. It processes receipts, shopping lists, Sujiko puzzles, and expense reports. It is not a case-management or durable workflow engine.
 
-Upload one PNG or JPEG through the web UI or HTTP API. One top-level MAF workflow classifies the image and routes it to a document-specific child workflow, which extracts structured data, validates it, makes one bounded repair attempt when needed, and returns model usage, latency, estimated cost, human-review state, and raw JSON.
+Two intake shapes share the same document workflows:
+
+- **Single document:** one PNG or JPEG that is already one physical document.
+- **Capture set:** one to five PNG or JPEG files. Each file may contain zero, one, or several documents on a desk. The capture path detects and crops regions (or uses caller-supplied rectangles), then classifies and extracts each crop independently.
+
+Either way, a top-level MAF graph classifies each document, routes it to a child workflow, extracts typed fields, validates them, makes one bounded repair attempt when needed, and returns structured data plus model usage, latency, estimated cost, human-review flags, and raw JSON.
 
 ## Project Status
 
-The local vertical slice is complete and covered by unit and API integration tests. It supports:
+The local converter is complete through the [extended workflow baseline](docs/extended-workflow-release-baseline.md). Offline tests and a provider-free GitHub Actions workflow cover it. It supports:
 
+- Single-document upload and composite capture (multi-file, multi-region), including annotated previews and request-scoped region correction in the UI.
 - Receipts, including policy checks for payment method and review threshold.
 - Shopping lists, including item validation.
 - Sujiko puzzles, including quadrant-total and given-cell validation. The current scope extracts the starting state; it does not solve the puzzle.
-- Expense reports, including line-total arithmetic, currency and date checks, high-value and missing-receipt-reference policy, and ownership attestation. Persistent receipt linking and claim submission are out of scope.
-- Human-review recommendations returned with the response. There is no reviewer queue or pause/resume flow yet.
-- A two-mode local UI: direct single-document processing and composite capture with multi-source previews, annotated document regions, and accessible member inspection.
-- An opt-in Analyst/Critic quality-review prototype. It is not part of the default API path because its quality benefit has not yet been measured against a representative sample set.
+- Expense reports, including line-total arithmetic, currency and date checks, high-value and missing-receipt-reference policy, and an ownership-attestation *flag* on the result. Persistent receipt linking and claim submission are out of scope.
+- Human-review reasons on the response. There is no reviewer queue, pause/resume, or saved case file; those belong to a surrounding workflow system if this converter is ever embedded in one.
+- An opt-in Analyst/Critic quality-review prototype that is not on the default API path. It is deferred until November 2026, then only if a model step change in quality, speed, or price is worth measuring.
 
-The [initial migration backlog](docs/maf-migration-backlog.md) records the completed milestones. Forward architectural work is tracked in the [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md).
+The [initial migration backlog](docs/maf-migration-backlog.md) is historical. The [evolution backlog](docs/maf-workflow-evolution-backlog.md) records completed phases, explicit non-goals, and the deferred E6 look.
 
 ## Prerequisites
 
@@ -45,7 +50,7 @@ dotnet restore .\MafDocumentProcessor.sln
 dotnet run --project .\src\MafDocumentProcessor.Api\MafDocumentProcessor.Api.csproj
 ```
 
-Then open <http://127.0.0.1:5095/>. The launch profile binds to that address by default. Choose **Single document** for the original direct route or **Capture set** to submit up to five source images and inspect every detected document on its source preview.
+Then open <http://127.0.0.1:5095/>. The launch profile binds to that address by default. Choose **Single document** for one already-isolated image, or **Capture set** for up to five source images (a desk photo, separate files, or a mix). Capture set shows every detected document on its source preview.
 
 If the API is already running, stop it before rebuilding so Windows does not keep the output executable locked.
 
@@ -56,7 +61,7 @@ If the API is already running, stop it before rebuilding so Windows does not kee
 - `POST /api/documents/process` accepts `multipart/form-data` with an image in the `image` field and an optional `sourceId` value.
 - `POST /api/document-captures/process` accepts one or more PNG or JPEG files in a repeated `images` field, an optional request-level `sourceId`, and optional per-source normalized rectangle corrections in the `regionOverrides` JSON field. It returns a capture aggregate with source and member outcomes. Corrected sources skip region detection; uncorrected siblings still use the detector.
 
-The individual-document upload limit is 5 MiB. A capture request may include up to five images totalling 25 MiB. Accepted types are PNG and JPEG with `.png`, `.jpg`, or `.jpeg` extensions.
+The individual-document upload limit is 5 MiB. A capture request may include up to five images, each up to 10 MiB, totalling 25 MiB. Accepted types are PNG and JPEG with `.png`, `.jpg`, or `.jpeg` extensions.
 
 Example, one document:
 
@@ -155,15 +160,17 @@ See [TogetherAI local setup](docs/together-ai-local-setup.md) for the current mo
 
 ## Processing Design
 
-Each request runs through one top-level MAF graph. Its classification executor prepares the classification image and calls the classification model once. Labelled conditional edges then send the typed result to exactly one destination: a bound receipt, shopping-list, Sujiko, or expense-report child workflow, or the unsupported-document executor. Supported documents are prepared separately for extraction before entering their child workflow.
+**Single-document** requests (`POST /api/documents/process`) run one top-level MAF graph: classify once, then a labelled edge to exactly one destination (receipt, shopping-list, Sujiko, expense-report, or unsupported). Supported documents are prepared separately for extraction before the child workflow.
 
-The child workflows use deterministic executors around model extraction, validation, one repair pass, optional policy, and result construction. Classification, route selection, and the selected child completion are visible in the same workflow event stream. The graph is built per request and runs locally in-process; it does not add persistence or background processing.
+**Capture** requests (`POST /api/document-captures/process`) first detect and crop physical documents on each source, or skip detection where the caller sent `regionOverrides`. Each accepted crop then uses the same reusable document workflow as an individual upload. Source and member work runs on a fixed number of lanes, then a deterministic fan-in rebuilds source order, member order, status, and usage. See the [technical process flow](docs/technical-process-flow.md#composite-capture-orchestration-e3) and [composite capture contract](docs/composite-capture-contract.md).
 
-The provider boundary is a local `IModelChatClient` abstraction. It is retained because TogetherAI-specific protocol options are required to disable Qwen thinking mode. OpenAI-compatible clients are cached by model settings, and transient provider failures use bounded retries.
+Child workflows use deterministic executors around model extraction, validation, one repair pass, optional policy, and result construction. Graphs are built per request and run locally in-process.
 
-The E3 composite-capture workflow is exposed as `POST /api/document-captures/process`. It detects and crops regions from each source, or accepts caller-corrected rectangles for selected sources, then processes accepted members through the same reusable document workflow used by individual uploads, using a fixed number of source and member lanes. The demo UI offers this as an additive **Capture set** mode. It retains the selected local images, draws the response's normalized bounds or outlines over the correctly ordered source previews, exposes accepted, review, rejected, and failed outcomes through both symbols and text, and supports ephemeral rectangle correction and reprocessing. Selecting an overlay or member row reveals that document's extracted data and findings. See the [technical process flow](docs/technical-process-flow.md#composite-capture-orchestration-e3) and [composite capture contract](docs/composite-capture-contract.md).
+The demo UI matches those two HTTP envelopes: **Single document** and **Capture set**. Capture set keeps the selected local files in the page, overlays normalized bounds or outlines on the source previews, and shows accepted, review, rejected, and failed members with symbols and text. **Edit regions** then **Reprocess corrected regions** sends the same files plus `regionOverrides`; nothing is stored on the server.
 
-The demo is local-only. It has no authentication, persistence, workflow history, reviewer UI, or external hosting. Durable pause/resume is deliberately deferred while processing remains bounded foreground HTTP work; failed or canceled requests are safe to resubmit.
+The provider boundary is a local `IModelChatClient`. It is retained because TogetherAI-specific protocol options are required to disable Qwen thinking mode. OpenAI-compatible clients are cached by model settings, and transient provider failures use bounded retries.
+
+The demo is local-only. It has no authentication, persistence, workflow history, reviewer UI, or external hosting. Failed or canceled requests are safe to resubmit.
 
 ## Repository Layout
 
@@ -176,21 +183,18 @@ docs/                           Architecture, contracts, policy, and backlog
 
 ## Contributing
 
-Proposed changes enter through GitHub Issues and the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1). The Project is the live backlog and the source of truth for task readiness, priority, status, and dependencies.
+Proposed changes enter through GitHub Issues and pull requests. The public trail is the issue, the branch, and the PR (`Closes #N`).
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before selecting or delivering work. Development agents must also follow [AGENTS.md](AGENTS.md). The detailed tracking lifecycle and Jira compatibility guidance are in the [delivery workflow](docs/delivery-workflow.md).
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before selecting or delivering work. Development agents must also follow [AGENTS.md](AGENTS.md). Sequencing and gates are recorded in the [evolution backlog](docs/maf-workflow-evolution-backlog.md) and the [delivery workflow](docs/delivery-workflow.md).
 
 ## Outstanding Work
 
-The core local demo has no incomplete required milestone. The remaining work is maintenance, evaluation, or optional product scope:
+There is no incomplete required milestone for this converter.
 
-Forward architectural work is organized in the [MAF workflow evolution backlog](docs/maf-workflow-evolution-backlog.md) and tracked in the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1).
-
-- Composite capture is implemented through the API and Capture set UI, including region correction. Expense reports are implemented as the next distinct document type for both individual and capture-member processing.
-- The opt-in Analyst/Critic prototype stays off the default path. Revisit from November 2026 only to catch a step change in model quality, speed, or price; see [E6](docs/maf-workflow-evolution-backlog.md) and the [quality prototype](docs/multi-agent-quality-prototype.md).
-- Durable pause/resume, case storage, and claim submission are out of scope here. They are sketched only as [forward planning](docs/forward-planning-workflow-system.md) for a later workflow-management system that might call this converter.
-- Maintain the current .NET 10, MAF 1.19, OpenAI 2.13, and test-tooling baseline. ImageSharp 4 and xUnit v3 are explicitly deferred as separate migrations.
-- Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, a rate-limited hosted demo, and later comparison of other vision models for document region detection.
+- The Analyst/Critic prototype stays off the default path. Revisit from November 2026 only to catch a step change in model quality, speed, or price; see [E6](docs/maf-workflow-evolution-backlog.md) and the [quality prototype](docs/multi-agent-quality-prototype.md).
+- Durable pause/resume, case storage, and claim submission are out of scope. They are sketched only as [forward planning](docs/forward-planning-workflow-system.md) for a later workflow-management system that might call this converter.
+- ImageSharp 4 and xUnit v3 are deferred package migrations.
+- Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, and comparison of other vision models for document region detection. There is no plan to host this demo.
 
 ## Further Documentation
 
