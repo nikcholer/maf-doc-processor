@@ -1,6 +1,6 @@
 # Technical Process Flow
 
-This document traces what happens when an image is submitted to the local demo API, where Microsoft Agent Framework is used, and where the main objects live in the codebase.
+This document traces what happens when images are submitted to the local demo API, where Microsoft Agent Framework is used, and where the main objects live in the codebase. There are two HTTP envelopes: one isolated document, or a capture set of one or more images that may each contain several physical documents.
 
 ## High-Level Flow
 
@@ -26,13 +26,15 @@ browser upload
 
 ## API Entry Point
 
-The browser posts multipart form data to:
+The browser posts multipart form data to one of:
 
-- `POST /api/documents/process`
-- Endpoint code: `src/MafDocumentProcessor.Api/Endpoints/DocumentProcessingEndpoints.cs`
-- Static UI: `src/MafDocumentProcessor.Api/wwwroot/`
+- `POST /api/documents/process` for a single already-isolated document.
+  Endpoint code: `src/MafDocumentProcessor.Api/Endpoints/DocumentProcessingEndpoints.cs`
+- `POST /api/document-captures/process` for a capture set (covered later in this document).
+  Endpoint code: `src/MafDocumentProcessor.Api/Endpoints/DocumentCaptureEndpoints.cs`
+- Static UI: `src/MafDocumentProcessor.Api/wwwroot/` (Single document or Capture set)
 
-The endpoint:
+The single-document endpoint:
 
 - checks the request is multipart;
 - validates the uploaded image field, content type, extension, and size;

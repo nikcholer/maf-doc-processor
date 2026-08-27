@@ -1,12 +1,12 @@
 # Contributing
 
-This repository uses GitHub Issues and the [MAF Document Processor project](https://github.com/users/nikcholer/projects/1) to plan and deliver changes. The Project is the live source of truth for what is proposed, ready, active, blocked, or complete.
+This repository uses GitHub Issues and pull requests as the public delivery trail. Maintainers may also use a GitHub Project for status fields; it is not required reading for the code.
 
 This document is the shared contribution contract for human developers and development agents. Automated contributors must also follow [AGENTS.md](AGENTS.md).
 
 ## Start With the Work Item
 
-All proposed changes start with a GitHub issue and a Project item. Use the [delivery work-item or bug form](https://github.com/nikcholer/maf-doc-processor/issues/new/choose) and describe the intended outcome, acceptance criteria, dependencies, and validation approach.
+All proposed changes start with a GitHub issue. Use the [delivery work-item or bug form](https://github.com/nikcholer/maf-doc-processor/issues/new/choose) and describe the intended outcome, acceptance criteria, dependencies, and validation approach.
 
 - Backlog documents describe strategic scope and sequencing; they are not the live task list.
 - Select the next task from `Status = Ready`, considering priority and dependencies.
@@ -16,7 +16,7 @@ All proposed changes start with a GitHub issue and a Project item. Use the [deli
 - If progress stops, move it to **Blocked** and record the specific dependency, decision, or external change required.
 - Update the issue before materially expanding its scope. Create a separate issue when the additional work can be delivered independently.
 
-New open issues are added to the Project automatically. The full field definitions and status lifecycle are in the [delivery workflow](docs/delivery-workflow.md).
+The full field definitions and status lifecycle are in the [delivery workflow](docs/delivery-workflow.md).
 
 ## Branches, Commits, and Pull Requests
 

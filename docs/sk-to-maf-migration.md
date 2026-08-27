@@ -1,5 +1,9 @@
 # Semantic Kernel to MAF Migration Strategy
 
+## Status
+
+Historical strategy for this repository as the Microsoft Agent Framework successor to the Semantic Kernel processor. The migration and the later routing, capture, and expense-report work it anticipated are complete. Pause/resume stayed out of scope; agent quality review is deferred. See [Current Position](#current-position).
+
 ## Objective
 
 This repository is the Microsoft Agent Framework successor to the original Semantic Kernel document processor. The migration has two objectives:
@@ -47,9 +51,9 @@ The [completed slice guide](slice-guide.md), [technical process flow](technical-
 
 ## Phase 4: Extend the Workflow Model
 
-The next document type should be chosen for both its application value and its orchestration requirements. It should extend the processor in a credible way while providing a reason to use more of MAF than the initial linear slices require.
+This phase was the plan for work after the initial MAF slices. The next document type was to be chosen for both its application value and its orchestration requirements.
 
-Potential capabilities include conditional routing, sub-workflows, parallel fan-out and aggregation, richer workflow events, external input, checkpointing, or agent collaboration. The document scenario and required capabilities will be agreed before implementation. Delivery is tracked in the [MAF workflow evolution backlog](maf-workflow-evolution-backlog.md).
+Potential capabilities included conditional routing, sub-workflows, parallel fan-out and aggregation, richer workflow events, external input, checkpointing, or agent collaboration. Delivery was later tracked in the [MAF workflow evolution backlog](maf-workflow-evolution-backlog.md).
 
 The governing question for this phase is:
 
@@ -68,4 +72,4 @@ Framework features are not goals by themselves. They should be retained where th
 
 ## Current Position
 
-The Semantic Kernel baseline, initial MAF migration, completed document slices, and supporting documentation are in place. The active [MAF workflow evolution backlog](maf-workflow-evolution-backlog.md) begins by selecting the Phase 4 document scenario and defining its architectural objectives.
+The Semantic Kernel baseline, initial MAF migration, top-level routing, composite capture, expense reports, and the extended-workflow baseline are in place. The [evolution backlog](maf-workflow-evolution-backlog.md) is now a record of that completed work plus explicit non-goals: E5 pause/resume is out of scope here, and E6 is deferred until November 2026.

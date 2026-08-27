@@ -59,7 +59,7 @@ A source with an invalid detection response or no usable regions returns a sourc
 
 Every accepted crop uses the same classifier interface, prompt contract, parser, confidence guidance, and top-level category route as an individually uploaded document.
 
-The classifier will add `ExpenseReport` to its supported output values when the E4 slice is implemented. It does not know whether the crop came from an individual request or a batch. Batch metadata such as `captureId`, `sourceItemId`, and `memberId` travels alongside the crop for correlation rather than changing classification behaviour.
+The classifier includes `ExpenseReport` among its supported output values. It does not know whether the crop came from an individual request or a batch. Batch metadata such as `captureId`, `sourceItemId`, and `memberId` travels alongside the crop for correlation rather than changing classification behaviour.
 
 Routing is deterministic. A model cannot select an executor or MAF edge directly. The parsed `DocumentCategory` is the typed value used by conditional routing, and exactly one category destination must receive each member.
 
@@ -67,7 +67,7 @@ Low or missing classification confidence follows the existing human-review guida
 
 ## Expense Report Extraction Boundary
 
-The model extracts only values visible on the expense report. The E4 implementation contract may refine field names and optionality, but the candidate data is expected to include:
+The model extracts only values visible on the expense report. Implemented fields include:
 
 - report number or title when present;
 - claimant or employee name when visible;

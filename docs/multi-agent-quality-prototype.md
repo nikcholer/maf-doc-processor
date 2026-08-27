@@ -36,16 +36,16 @@ The output is `QualityReviewResult`, including its own `DocumentModelUsage` so a
 
 ## Default Decision
 
-Do not run multi-agent quality review by default yet.
+Do not run multi-agent quality review on the default conversion path.
 
 Reasons:
 
-- The current Qwen receipt and shopping-list path is fast and cheap without the extra layer.
+- The current Qwen classification and extraction path is fast and cheap without the extra layer.
 - The prototype adds at least two extra model calls per document.
-- We do not yet have a golden evaluation set to prove quality improvement.
-- The local demo should stay reassuringly responsive.
+- There is a conversion golden set, but there is not yet an E6 quality-evaluation set with agreed live findings.
+- The local demo should stay responsive.
 
-Treat the prototype as an experiment harness. Wire it into the API only after measuring real benefit on representative documents.
+Treat the prototype as an experiment harness. Do not evaluate or wire it into the API before November 2026, and then only to catch a model step change in quality, speed, or price.
 
 ## Invocation
 

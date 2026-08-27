@@ -2,7 +2,7 @@
 
 ## System of Record
 
-GitHub Issues and the [MAF Document Processor GitHub Project](https://github.com/users/nikcholer/projects/1) are the authoritative systems for planning and delivery. The repository backlog documents describe scope and sequencing; issues hold actionable work, decisions, acceptance criteria, and implementation links. [CONTRIBUTING.md](../CONTRIBUTING.md) is the shared delivery contract for human developers and development agents.
+GitHub Issues and pull requests are the public systems for planning and delivery. Repository backlog documents describe scope and sequencing; issues hold actionable work, decisions, acceptance criteria, and implementation links. Maintainers may also use a GitHub Project for board fields; visitors should not need it. [CONTRIBUTING.md](../CONTRIBUTING.md) is the shared delivery contract for human developers and development agents.
 
 The project uses:
 

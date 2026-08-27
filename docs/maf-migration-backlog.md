@@ -1,14 +1,14 @@
 # Microsoft Agent Framework Migration Backlog
 
-> **Status:** This backlog records the completed initial migration and local-demo baseline. Forward architectural work is tracked in the [MAF workflow evolution backlog](maf-workflow-evolution-backlog.md).
+> **Status:** Historical. This backlog records the completed initial migration and local-demo baseline as it was planned and then finished. Later capture, expense-report, and baseline work is in the [MAF workflow evolution backlog](maf-workflow-evolution-backlog.md). The sections below keep their original planning voice.
 
 ## Context
 
-We are planning a V2 migration of the existing Semantic Kernel document processor to Microsoft Agent Framework.
+This was the V2 migration plan from the Semantic Kernel document processor to Microsoft Agent Framework.
 
-Microsoft announced Agent Framework 1.0 on April 3, 2026 for both .NET and Python, describing it as production-ready with stable APIs and long-term support. Current NuGet packages are now stable 1.x releases, so the core adoption risk is lower than it would have been during the preview/RC period.
+Microsoft announced Agent Framework 1.0 on April 3, 2026 for both .NET and Python, describing it as production-ready with stable APIs and long-term support. NuGet packages were stable 1.x releases by the time of the migration.
 
-The plan is still to migrate incrementally: first preserve a working document-processing path, then add graph branching, durability, human review, and multi-agent review where each capability proves useful.
+The plan was to migrate incrementally: first preserve a working document-processing path, then add graph branching and other capabilities only where each one proved useful. Durability and multi-agent review were later judged out of scope or deferred; see the evolution backlog.
 
 ## Architecture Decision
 
