@@ -138,7 +138,7 @@ Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc
 
 **Objective:** Add pause/resume only if the selected workflow requires input that cannot be completed within one foreground request.
 
-**Decision gate:** Reopen the [durability decision](durability-decision.md) only when the workflow has a real reviewer wait, user attestation, background job, or restart-survival requirement.
+**Decision gate:** Reopen the [durability decision](durability-decision.md) only when a workflow instance cannot produce its result without pausing—true extraction-time human input, a background job that starts before a result exists, or restart-survival of an unfinished run. Saving a completed extract, or attesting a stored expense report later, is not that gate.
 
 - [ ] Define the external request and typed response contract.
 - [ ] Decide whether processing remains HTTP request-scoped or moves to a job model.
