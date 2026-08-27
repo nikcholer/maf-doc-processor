@@ -18,6 +18,8 @@ The individual API response preserves one stable JSON envelope. For a supported 
 
 The schema intentionally does not put an OpenAPI discriminator on `data`: the discriminator value is the sibling `document.category`, not a property inside the data object. Moving or duplicating that value would change the established JSON contract. Unsupported categories therefore continue to return `document: null`, while request and provider failures use the separate API error response.
 
+The explicit four-type schema registration is a bounded choice for the current application, not the intended discovery mechanism for a large document catalog. The [OpenAPI scalability boundary](operational-safeguards.md#openapi-scalability-boundary) records when and how this design should evolve.
+
 ## Receipt
 
 Receipts are successful when the workflow can return parsed receipt data, even if policy review is required.

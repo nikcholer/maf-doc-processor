@@ -58,6 +58,18 @@ Runtime response mapping covers receipt, shopping-list, Sujiko, and expense-repo
 
 This transformer was chosen over a typed response-envelope hierarchy. A hierarchy would require new public response types and polymorphic serialization rules, risking changes to the existing category and JSON envelope. An OpenAPI discriminator was also rejected at the `data` level because its discriminator property would have to live inside the data object, while the established discriminator is the sibling `document.category`. The transformer documents the runtime contract without changing it, and the nullable `document` schema preserves the normal `document: null` response for unsupported categories.
 
+### OpenAPI Scalability Boundary
+
+The transformer deliberately contains an explicit list of the four supported payload types. Their structures remain in their document-specific domain files; the transformer only identifies which existing types belong in the public union. This is simple and reviewable for the current bounded catalog, but it is not intended to grow into a central file containing hundreds of registrations or document definitions.
+
+Before the catalog grows enough that adding a slice requires repeated central edits, or the combined specification becomes unwieldy for client generators and documentation tools, the next design should be evaluated in this order:
+
+1. Introduce a document-type descriptor registry assembled from slice-owned service registrations. Each slice would contribute its category, payload type, and schema identity/version; the OpenAPI transformer would enumerate the registry instead of naming every type. Routing, extraction, and validation would remain document-specific, with any broader use of the registry accepted as a separate architecture change.
+2. Split generated OpenAPI documents by stable domain or API family if a single first-party catalog becomes too large, while retaining a discoverable index and consistent shared envelope.
+3. For dynamically installed or third-party document types, move to an explicitly versioned extensibility contract that returns a schema identifier and exposes schemas through a catalog. The base response could then keep `data` extensible without rebuilding one static union for every plug-in.
+
+If future clients require a generated discriminated union across a large stable catalog, a versioned contract may instead place `oneOf` and the discriminator at the whole `document` object, where `category` actually resides. That would be a public contract design rather than a transparent schema fix and must not be introduced by extending the current transformer silently.
+
 ## Verification
 
 Offline coverage verifies route topology, child workflow completion, capture correlation fields, exact detection/classification/extraction/repair accounting, failure isolation, cancellation, configured bounds, API error responses, and OpenAPI status schemas. The release workflow remains:
