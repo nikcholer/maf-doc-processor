@@ -1,1 +1,2 @@
 tests/MafDocumentProcessor.Tests/next-scenario-samples/sources/* binary
+plan.md whitespace=cr-at-eol
