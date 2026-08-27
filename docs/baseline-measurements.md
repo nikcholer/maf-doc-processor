@@ -14,12 +14,12 @@ The offline baseline builds and runs the entire solution without enabling any li
 dotnet test .\MafDocumentProcessor.sln --no-restore -p:UseAppHost=false -p:OutDir=.build\issue18-offline\
 ```
 
-The live observation uses the versioned rotated Sujiko asset and exercises the same application-level path as an individual upload: classification image preparation, classification, routing, extraction image preparation, the Sujiko MAF workflow, validation, an optional bounded repair, and result aggregation.
+The live observation protocol uses the versioned synthetic Sujiko asset and exercises the same application-level path as an individual upload: classification image preparation, classification, routing, extraction image preparation, the Sujiko MAF workflow, validation, an optional bounded repair, and result aggregation.
 
 ```powershell
 $env:MAF_RUN_LIVE_ASSET_TESTS = "1"
 dotnet test .\MafDocumentProcessor.sln `
-  --filter FullyQualifiedName~RunAsync_CanBeLiveCheckedAndMeasuredAgainstRotatedSujikoAsset `
+  --filter FullyQualifiedName~RunAsync_CanBeLiveCheckedAndMeasuredAgainstSyntheticSujikoAsset `
   --logger "console;verbosity=detailed"
 ```
 
@@ -39,7 +39,7 @@ The complete command duration includes build and test-process startup, so the te
 
 ## Representative Live Observation
 
-The live run used `IMG20260513194450.jpg` with `Qwen/Qwen3.5-9B` for both configured model roles. It made two calls and did not invoke the repair path.
+The recorded 25 August live run used the retired predecessor photograph with `Qwen/Qwen3.5-9B` for both configured model roles. Before public visibility, that photograph was replaced by `synthetic-sujiko-newspaper.jpg`, which preserves the same visible puzzle facts without personal metadata or unclear source provenance. The measurements below remain a historical observation of the predecessor and must not be presented as measurements of the replacement until the opt-in live check is deliberately rerun. The historical run made two calls and did not invoke the repair path.
 
 | Operation | Input tokens | Output tokens | Total tokens | Model duration | Estimated cost (USD) |
 | --- | ---: | ---: | ---: | ---: | ---: |

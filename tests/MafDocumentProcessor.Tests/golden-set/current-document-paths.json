@@ -112,17 +112,17 @@
       }
     },
     {
-      "id": "sujiko-rotated-known-answer",
+      "id": "sujiko-synthetic-known-answer",
       "source": {
-        "fileName": "IMG20260513194450.jpg",
+        "fileName": "synthetic-sujiko-newspaper.jpg",
         "contentType": "image/jpeg",
-        "assetName": "IMG20260513194450.jpg"
+        "assetName": "synthetic-sujiko-newspaper.jpg"
       },
       "modelOutputs": {
         "classification": {
           "category": "SujikoPuzzle",
           "confidence": 0.97,
-          "confidenceReasoning": "A rotated 3x3 Sujiko grid with four totals",
+          "confidenceReasoning": "A slightly skewed 3x3 Sujiko grid with four totals",
           "documentTypeDescription": "Sujiko puzzle"
         },
         "sujikoPuzzle": {

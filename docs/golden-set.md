@@ -16,10 +16,10 @@ The individual-document golden set has four examples: one receipt, one shopping 
 | --- | --- | --- | --- |
 | `receipt-approved` | Fictional North Star Cafe receipt | Receipt | Correct details, approved, no review |
 | `shopping-list-valid` | Fictional weekly shopping list | Shopping list | Correct items, no review |
-| `sujiko-rotated-known-answer` | Rotated puzzle photograph | Sujiko puzzle | Correct totals and given numbers, no review |
+| `sujiko-synthetic-known-answer` | AI-generated newspaper-style puzzle image | Sujiko puzzle | Correct totals and given numbers, no review |
 | `unsupported-event-ticket` | Fictional event ticket | Unsupported | Rejected with a helpful message |
 
-The receipt, shopping list, and event ticket are made from fictional text when the tests run. The Sujiko photograph contains only a number puzzle. The set contains no real receipts, names, account details, or other personal information.
+The receipt, shopping list, and event ticket are made from fictional text when the tests run. The Sujiko fixture was provided by the repository owner as an AI-generated replacement for public regression testing. It contains only a number puzzle, has no EXIF profile or GPS metadata, and has recorded provenance and a SHA-256 hash in the [asset note](../tests/MafDocumentProcessor.Tests/assets/README.md). The set contains no real receipts, names, account details, or other personal information.
 
 ## How the Test Works
 
@@ -32,7 +32,7 @@ For each example, the test:
 
 Saved AI answers make this test fast, free, and repeatable. It does not need an API key and does not call TogetherAI. It checks what the application does with an AI answer: which workflow it chooses, how it validates the extracted information, whether policy allows it, whether a person should review it, and what it returns to the caller.
 
-This test does **not** prove that the live AI service will read every image correctly. That is a separate question because AI answers can vary. The opt-in live Sujiko test sends the real puzzle image to TogetherAI and compares its answer with the known one. The [current workflow baseline](baseline-measurements.md) records the latest result.
+This test does **not** prove that the live AI service will read every image correctly. That is a separate question because AI answers can vary. The opt-in live Sujiko test sends the synthetic puzzle image to TogetherAI and compares its answer with the known one. The [current workflow baseline](baseline-measurements.md) records the historical comparison protocol and explains the fixture replacement boundary.
 
 ## Files and Running the Test
 
@@ -54,7 +54,7 @@ dotnet test .\MafDocumentProcessor.sln --filter FullyQualifiedName~CaptureGolden
 
 When adding or changing a case:
 
-1. Use fictional content, or a real source whose origin is known and which contains nothing confidential.
+1. Use project-authored or generated fictional content. If a real source is necessary, document its origin and redistribution permission and confirm that it contains nothing confidential.
 2. Record the answer that the AI is assumed to have returned.
 3. Record what the application should return after processing that answer.
 4. Run the golden-set test and the full offline test suite.

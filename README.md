@@ -95,7 +95,7 @@ If the API executable is open, use an alternate output path to avoid a locked ap
 dotnet test .\MafDocumentProcessor.sln --no-restore -p:UseAppHost=false -p:OutDir=.build\test\
 ```
 
-The repository also includes a real rotated Sujiko image and synthetic expense-report fixtures. Their provider-backed full-workflow checks are disabled by default. To run them with TogetherAI:
+The repository also includes an AI-generated newspaper-style Sujiko image and synthetic expense-report fixtures. Their provider-backed full-workflow checks are disabled by default. To run them with TogetherAI:
 
 ```powershell
 $env:MAF_RUN_LIVE_ASSET_TESTS = "1"

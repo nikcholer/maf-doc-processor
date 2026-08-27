@@ -1,26 +1,36 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text.Json;
 using MafDocumentProcessor.Configuration;
 using MafDocumentProcessor.Domain;
 using MafDocumentProcessor.Services;
 using MafDocumentProcessor.Workflow;
+using SixLabors.ImageSharp;
 using Xunit.Abstractions;
 
 namespace MafDocumentProcessor.Tests;
 
 public sealed class SujikoAssetRegressionTests(ITestOutputHelper output)
 {
-    private const string RotatedSujikoAssetName = "IMG20260513194450.jpg";
+    private const string SyntheticSujikoAssetName = "synthetic-sujiko-newspaper.jpg";
+    private const string SyntheticSujikoAssetSha256 =
+        "4429A427DF01DE20BE381A4B58DB5307B4B8663C2951F9B68B7A1DBC3D6AB633";
     private const string RunLiveAssetTestsEnvironmentVariable = "MAF_RUN_LIVE_ASSET_TESTS";
 
     [Fact]
-    public void RotatedSujikoAsset_IsAvailableForRegressionTesting()
+    public void SyntheticSujikoAsset_IsPublicSafeAndAvailableForRegressionTesting()
     {
-        var asset = LoadRotatedSujikoAsset();
+        var asset = LoadSyntheticSujikoAsset();
 
         Assert.Equal("image/jpeg", asset.ContentType);
-        Assert.True(asset.Content.Length > 100_000);
-        var expected = ExpectedRotatedSujikoPuzzle();
+        Assert.True(asset.Content.Length > 20_000);
+        Assert.Equal(SyntheticSujikoAssetSha256, Convert.ToHexString(SHA256.HashData(asset.Content)));
+        using var image = Image.Load(asset.Content);
+        Assert.Equal(448, image.Width);
+        Assert.Equal(506, image.Height);
+        Assert.Null(image.Metadata.ExifProfile);
+
+        var expected = ExpectedSyntheticSujikoPuzzle();
         Assert.Equal(20, expected.QuadrantTotals.TopLeft);
         Assert.Equal(11, expected.QuadrantTotals.TopRight);
         Assert.Equal(24, expected.QuadrantTotals.BottomLeft);
@@ -34,7 +44,7 @@ public sealed class SujikoAssetRegressionTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task RunAsync_CanBeLiveCheckedAndMeasuredAgainstRotatedSujikoAsset()
+    public async Task RunAsync_CanBeLiveCheckedAndMeasuredAgainstSyntheticSujikoAsset()
     {
         if (Environment.GetEnvironmentVariable(RunLiveAssetTestsEnvironmentVariable) != "1")
         {
@@ -49,7 +59,7 @@ public sealed class SujikoAssetRegressionTests(ITestOutputHelper output)
                 $"Set {settings.DocumentClassification.ApiKeyEnvironmentVariable} to run live asset tests.");
         }
 
-        var asset = LoadRotatedSujikoAsset();
+        var asset = LoadSyntheticSujikoAsset();
         var chatClient = new OpenAICompatibleModelChatClient();
         var workflow = new DocumentProcessingWorkflow(
             new ModelDocumentClassifier(chatClient, settings.DocumentClassification),
@@ -64,7 +74,7 @@ public sealed class SujikoAssetRegressionTests(ITestOutputHelper output)
         var result = await workflow.RunAsync(asset, CancellationToken.None);
         stopwatch.Stop();
 
-        var expectedPuzzle = ExpectedRotatedSujikoPuzzle();
+        var expectedPuzzle = ExpectedSyntheticSujikoPuzzle();
         var matchesExpectedPuzzle = result.SujikoPuzzle is not null
             && SujikoPuzzlesMatch(expectedPuzzle, result.SujikoPuzzle);
         WriteMeasurement(result, stopwatch.ElapsedMilliseconds, matchesExpectedPuzzle);
@@ -92,7 +102,7 @@ public sealed class SujikoAssetRegressionTests(ITestOutputHelper output)
         var measurement = new
         {
             CapturedAtUtc = DateTimeOffset.UtcNow,
-            SourceAsset = RotatedSujikoAssetName,
+            SourceAsset = SyntheticSujikoAssetName,
             WorkflowElapsedMilliseconds = workflowElapsedMilliseconds,
             Category = result.Category.ToString(),
             result.IsSuccess,
@@ -107,12 +117,12 @@ public sealed class SujikoAssetRegressionTests(ITestOutputHelper output)
             new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    private static FileRequest LoadRotatedSujikoAsset()
+    private static FileRequest LoadSyntheticSujikoAsset()
     {
         var path = Path.Combine(
             AppContext.BaseDirectory,
             "assets",
-            RotatedSujikoAssetName);
+            SyntheticSujikoAssetName);
 
         if (!File.Exists(path))
         {
@@ -124,14 +134,14 @@ public sealed class SujikoAssetRegressionTests(ITestOutputHelper output)
         var bytes = File.ReadAllBytes(path);
         return new FileRequest(
             bytes,
-            RotatedSujikoAssetName,
+            SyntheticSujikoAssetName,
             "image/jpeg",
             bytes.Length,
-            DateTimeOffset.Parse("2026-05-13T19:44:50Z"),
-            SourceId: "sujiko-rotated-regression");
+            DateTimeOffset.Parse("2026-08-27T11:46:31Z"),
+            SourceId: "sujiko-synthetic-regression");
     }
 
-    private static SujikoPuzzleData ExpectedRotatedSujikoPuzzle()
+    private static SujikoPuzzleData ExpectedSyntheticSujikoPuzzle()
     {
         return new SujikoPuzzleData(
             new SujikoQuadrantTotals(
