@@ -94,7 +94,13 @@ builder.Services.AddScoped<CompositeCaptureWorkflow>();
 var app = builder.Build();
 
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        context.Context.Response.Headers.CacheControl = "no-store, max-age=0";
+    }
+});
 
 app.MapOpenApi();
 app.MapHealthEndpoints();
