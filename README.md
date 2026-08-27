@@ -222,3 +222,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - [Forward planning: structured data in a larger workflow system](docs/forward-planning-workflow-system.md)
 - [Multi-agent quality prototype](docs/multi-agent-quality-prototype.md)
 - [V1 Semantic Kernel inventory](docs/v1-semantic-kernel-inventory.md)
+
+## License
+
+This project is licensed under the [MIT License](LICENSE). Copyright (c) 2026 Nik Cholerton.
