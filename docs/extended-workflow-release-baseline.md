@@ -2,7 +2,7 @@
 
 ## Status and Release Gate
 
-This note records the E7 release candidate verified through issue #8. After the issue pull request is merged, the provider-free `Release baseline` workflow must pass on `main`, and the same commit must pass the clean local commands below before it receives the annotated `extended-workflow-baseline` tag.
+This note records the E7 baseline tagged after issue #8. The annotated tag `extended-workflow-baseline` points at `f1b198c` on `main`, after [Release baseline run 33053217495](https://github.com/nikcholer/maf-doc-processor/actions/runs/33053217495) succeeded and the same commit passed the clean local commands below.
 
 The repository has no deployment or package-publishing step. The tag identifies a reproducible local application baseline and follows the descriptive annotated-tag convention established by `initial-demo`.
 
@@ -80,9 +80,15 @@ dotnet list .\MafDocumentProcessor.sln package --vulnerable --include-transitive
 git diff --check
 ```
 
-After the `main` workflow and these commands pass on the same commit, create and push the milestone tag:
+Those commands, plus the `main` workflow, were the gate for creating the tag:
 
 ```powershell
 git tag -a extended-workflow-baseline -m "Extended workflow baseline"
 git push origin extended-workflow-baseline
+```
+
+To check out this baseline later:
+
+```powershell
+git checkout extended-workflow-baseline
 ```
