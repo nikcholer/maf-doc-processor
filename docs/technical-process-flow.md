@@ -254,7 +254,7 @@ DocumentClassificationExecutor
 
 The project emits `DocumentClassifiedEvent` and `DocumentRouteSelectedEvent` with the category, filename, and optional source ID. MAF's normal executor events show classification and the selected bound workflow completing. All of these events are observed during the same in-process run and remain inside the HTTP request's logging scope.
 
-The app currently uses local in-process workflows only. Durable pause/resume is deliberately deferred; see `docs/durability-decision.md`.
+The app currently uses local in-process workflows only. Durable pause/resume is out of scope for this image-to-structured-data converter; see `docs/durability-decision.md` and `docs/forward-planning-workflow-system.md`.
 
 ## Document-Specific Workflows
 
