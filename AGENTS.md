@@ -11,12 +11,12 @@ Before changing the repository:
 3. Inspect open issues and pull requests for status. If a GitHub Project is available to you, use it for board fields; do not treat a private board as public documentation.
 4. Read the documents relevant to the change. Start with `docs/slice-guide.md` for an existing document path or `docs/adding-document-types.md` for a new document type.
 
-User instructions and the accepted issue define the requested outcome. Repository backlog documents supply strategy and context, but are not a substitute for a Ready issue.
+User instructions and the accepted issue define the requested outcome. Repository backlog documents supply strategy and context, but are not a substitute for a public readiness statement or explicit maintainer assignment.
 
 ## Taking Work
 
-- When choosing work, select an unblocked item with `Status = Ready`; do not infer priority from Markdown ordering.
-- When authenticated and authorized, assign the issue and move it to **In Progress** before implementation.
+- When choosing work, select an issue whose public text, labels, or maintainer assignment explicitly marks it ready and unblocked; do not infer priority from Markdown ordering.
+- When authenticated and authorized, assign the issue before implementation. If a GitHub Project is available, also move it to **In Progress**.
 - Do not begin E5 checkpointing or pause/resume work. It is out of scope for the current image-to-structured-data effort; see `docs/durability-decision.md` and `docs/forward-planning-workflow-system.md`.
 - Do not begin E6 agent-collaboration work before November 2026, and then only if issue #7 records that its quality-evaluation gate passed. The revisit is to catch a model step change in quality, speed, or price, not to fill a current product gap.
 - If GitHub Project access is unavailable, do not guess the next task or silently alter tracking. Continue only with work the user explicitly assigned and report the tracking limitation.

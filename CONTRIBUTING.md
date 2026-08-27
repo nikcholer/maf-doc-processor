@@ -1,6 +1,6 @@
 # Contributing
 
-This repository uses GitHub Issues and pull requests as the public delivery trail. Maintainers may also use a GitHub Project for status fields; it is not required reading for the code.
+This repository uses GitHub Issues and pull requests as the public delivery trail. Maintainers may also use a GitHub Project for status fields, but any readiness, dependency, or decision gate that affects contributors must also be recorded in the public issue.
 
 This document is the shared contribution contract for human developers and development agents. Automated contributors must also follow [AGENTS.md](AGENTS.md).
 
@@ -9,11 +9,11 @@ This document is the shared contribution contract for human developers and devel
 All proposed changes start with a GitHub issue. Use the [delivery work-item or bug form](https://github.com/nikcholer/maf-doc-processor/issues/new/choose) and describe the intended outcome, acceptance criteria, dependencies, and validation approach.
 
 - Backlog documents describe strategic scope and sequencing; they are not the live task list.
-- Select the next task from `Status = Ready`, considering priority and dependencies.
+- Take an issue only when its public issue text, labels, or maintainer assignment explicitly says it is ready. Consider its documented priority and dependencies; do not infer readiness from backlog ordering.
 - Do not start E5 checkpointing or pause/resume work; it is out of scope for the current image-to-structured-data effort.
 - Do not start E6 work before November 2026. After that, do not start it until issue #7 records that the documented quality-evaluation gate has been satisfied. The revisit is for a model step change in quality, speed, or price.
-- Move an item to **In Progress** and assign it when taking ownership.
-- If progress stops, move it to **Blocked** and record the specific dependency, decision, or external change required.
+- Assign the issue and record that work has started. Maintainers with Project access may also move it to **In Progress**.
+- If progress stops, record the specific dependency, decision, or external change required on the issue. Maintainers may also move it to **Blocked**.
 - Update the issue before materially expanding its scope. Create a separate issue when the additional work can be delivered independently.
 
 The full field definitions and status lifecycle are in the [delivery workflow](docs/delivery-workflow.md).
@@ -26,8 +26,8 @@ Normally use one issue, one focused branch, and one pull request.
 - Keep commits cohesive and describe the change in imperative language.
 - Avoid mixing opportunistic cleanup with the issue's accepted scope.
 - Open a pull request using the repository template and include `Closes #<issue-number>`.
-- Link the pull request to its issue. Project automation moves linked work to **In Review**.
-- Merge only when acceptance criteria and required validation are satisfied. Closing the issue moves the item to **Done**; reopening it returns the item to **Ready**.
+- Link the pull request to its issue. The open pull request is the public **In Review** signal; Project automation may mirror that state for maintainers.
+- Merge only when acceptance criteria and required validation are satisfied. Closing the issue is the public **Done** signal; Project automation may mirror closure and reopening.
 
 If a Jira-managed organization adopts the repository, include the Jira key in the branch, commits, and pull request as described in the [delivery workflow](docs/delivery-workflow.md). GitHub remains authoritative unless the team explicitly changes that policy.
 
