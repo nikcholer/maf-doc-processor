@@ -1,10 +1,14 @@
 # V1 Semantic Kernel Inventory
 
+## Status
+
+Historical inventory of the Semantic Kernel predecessor, taken for the MAF migration. Paths below refer to that older local repository, not this one. They are not a description of `maf-doc-processor` today.
+
 ## Source
 
 Old repository: `C:\data\repo\csharp-semantic-document-processor`
 
-This inventory captures the current Semantic Kernel implementation that V2 should preserve for the first Microsoft Agent Framework vertical slice.
+This inventory captured the Semantic Kernel implementation that the first Microsoft Agent Framework vertical slice needed to preserve.
 
 ## Baseline
 

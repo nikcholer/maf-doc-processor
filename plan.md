@@ -1,3 +1,4 @@
+> **Status:** Historical migration sketch from before this repository existed in its current form. It is not a description of the code today. See `docs/sk-to-maf-migration.md` and `docs/maf-workflow-evolution-backlog.md`.
 
  **Architectural Decision:** To create a separate successor to csharp-semantic-document-processor powered by the **Microsoft Agent Framework (MAF)**.
  

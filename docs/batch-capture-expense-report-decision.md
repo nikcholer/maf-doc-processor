@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted on 25 August 2026.
+Accepted on 25 August 2026. Composite capture and the expense-report slice were later implemented in this order. This page is the sequencing decision, not a description of remaining delivery.
 
 ## Context
 
-The current API accepts one image and assumes it contains one document. Adding an expense report while retaining that interaction would make supporting-receipt ingestion unnecessarily repetitive. A user may instead have several separate receipt images, one desk photo containing several physical documents, or a mixture of both.
+At the time of this decision the API accepted one image and assumed it contained one document. Adding an expense report while retaining that interaction would have made supporting-receipt ingestion unnecessarily repetitive. A user may instead have several separate receipt images, one desk photo containing several physical documents, or a mixture of both.
 
 The selected direction must add meaningful MAF orchestration without making persistence, claim submission, or human approval an accidental prerequisite.
 
@@ -52,7 +52,7 @@ later, by separate decision:
 - The existing `POST /api/documents/process` contract remains unchanged.
 - A separate `POST /api/document-captures/process` endpoint accepts repeated `images` fields.
 - Capture, source, and member identifiers are request-scoped and explicitly non-persistent.
-- Expense report is added later as a normal document category, not as special batch logic.
+- Expense report is a normal document category, not special batch logic.
 - The [composite capture contract](composite-capture-contract.md) defines source isolation, region coordinates, partial success, model usage, dispositions, and annotated previews.
 
 ### Workflow architecture
@@ -84,10 +84,11 @@ later, by separate decision:
 
 ## Follow-Up Work
 
-- #11 defines model-backed versus deterministic responsibilities and result semantics.
-- #12 selects the smallest MAF capability set and records non-goals.
-- #14 supplies representative single-source, multi-source, overlap, partial-failure, and expense-report samples.
-- #16 selects a compatible MAF and dependency baseline after #12.
-- E3 implementation work delivers the capture endpoint, workflow, UI, and tests.
-- E4 implementation work delivers the expense-report vertical slice.
-- Persistent document identity and receipt linking require a separate future decision and work items.
+The E0–E4 follow-ups listed here were completed. Persistent document identity and receipt linking remain a separate future decision, outside this converter.
+
+- #11 defined model-backed versus deterministic responsibilities and result semantics.
+- #12 selected the smallest MAF capability set and recorded non-goals.
+- #14 supplied representative single-source, multi-source, overlap, partial-failure, and expense-report samples.
+- #16 selected a compatible MAF and dependency baseline after #12.
+- E3 delivered the capture endpoint, workflow, UI, and tests.
+- E4 delivered the expense-report vertical slice.

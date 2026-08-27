@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This is the active backlog for extending the document processor beyond its initial Microsoft Agent Framework migration. The completed [migration backlog](maf-migration-backlog.md) remains the historical record for the current receipt, shopping-list, and Sujiko slices.
+This is the record of extending the document processor beyond its initial Microsoft Agent Framework migration. Phases E0–E4 and E7 are complete. E5 is out of scope for this converter. E6 is deferred until November 2026. The completed [migration backlog](maf-migration-backlog.md) remains the historical record for the first receipt, shopping-list, and Sujiko slices.
 
-The next stage should strengthen the application architecture, not simply add another extraction prompt. Each MAF capability must correspond to a concrete workflow requirement and preserve the existing API behaviour unless a contract change is explicitly approved.
+Each MAF capability had to correspond to a concrete workflow requirement and preserve existing API behaviour unless a contract change was explicitly approved.
 
 ## Delivery Principles
 
@@ -97,7 +97,7 @@ Selected routing and child-workflow pattern: [Top-level document routing design]
 
 **Objective:** Accept one or more source images, detect zero or more physical documents in each, and process every valid member independently through the existing document route.
 
-Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc-processor/issues/43), [source detection](https://github.com/nikcholer/maf-doc-processor/issues/44), [region validation and cropping](https://github.com/nikcholer/maf-doc-processor/issues/45), [bounded orchestration](https://github.com/nikcholer/maf-doc-processor/issues/46), [the capture API](https://github.com/nikcholer/maf-doc-processor/issues/47), [annotated previews](https://github.com/nikcholer/maf-doc-processor/issues/48), and [final hardening and measurement](https://github.com/nikcholer/maf-doc-processor/issues/49). The GitHub Project records which of these is ready or active.
+Delivery was split into [shared foundations](https://github.com/nikcholer/maf-doc-processor/issues/43), [source detection](https://github.com/nikcholer/maf-doc-processor/issues/44), [region validation and cropping](https://github.com/nikcholer/maf-doc-processor/issues/45), [bounded orchestration](https://github.com/nikcholer/maf-doc-processor/issues/46), [the capture API](https://github.com/nikcholer/maf-doc-processor/issues/47), [annotated previews](https://github.com/nikcholer/maf-doc-processor/issues/48), and [final hardening and measurement](https://github.com/nikcholer/maf-doc-processor/issues/49). Those child issues are closed.
 
 - [x] Add the repeated-file capture endpoint without changing the individual document endpoint.
 - [x] Decode and orient each source once, then make one typed document-region detection call.

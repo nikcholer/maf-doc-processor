@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted E0 decision on 25 August 2026. This decision supplies the workflow-capability input to dependency review in issue #16; it does not implement the E2-E4 workflows.
+Accepted E0 decision on 25 August 2026. E2–E4 later implemented this selection. The document remains the capability record; it is not a description of work still to do.
 
 ## Context
 
-The accepted sequence introduces a reusable top-level document route, then multi-source composite capture, then expense-report processing. The implementation needs inspectable category routing, reuse of existing document workflows, bounded parallel capture processing, deterministic aggregation, and observable progress. It does not yet need durable state, human input, or additional collaborating agents.
+The accepted sequence introduced a reusable top-level document route, then multi-source composite capture, then expense-report processing. Those behaviours need inspectable category routing, reuse of existing document workflows, bounded parallel capture processing, deterministic aggregation, and observable progress. They do not use durable state, human input, or additional collaborating agents.
 
 The selected MAF surface is deliberately limited to capabilities required by those behaviours.
 
@@ -123,5 +123,5 @@ E5 pause/resume is out of scope for this converter and is recorded only as [forw
 - E3 exercises MAF branching, sub-workflows, bounded fan-out/fan-in, concurrent execution, events, and topology inspection for concrete application requirements.
 - E4 adds expense-report business behaviour without inventing batch-only processing.
 - Worker-lane counts become explicit configuration and test inputs.
-- Parallel speed-up is bounded by the slowest lane and the MAF superstep barrier; E3 must compare it with the sequential baseline.
+- Parallel speed-up is bounded by the slowest lane and the MAF superstep barrier; E3 compared it with a sequential baseline.
 - Deterministic aggregation remains independently unit-testable and does not depend on model judgement or implicit framework collection semantics.

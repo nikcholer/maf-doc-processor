@@ -1,5 +1,7 @@
 # MAF Document Processor — Code Review
 
+> **Status:** Historical snapshot from early in the MAF migration (about 28 tests). It is not a description of the current repository. Keep it only as a dated review artefact.
+
 **Build**: ✅ clean, 0 warnings  
 **Tests**: ✅ 28 passed, 0 failed  
 **Backlog**: P0 ✅ complete, P1 ✅ complete, P1.5 ✅ complete, P2 partially started

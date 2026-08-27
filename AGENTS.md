@@ -8,10 +8,10 @@ Before changing the repository:
 
 1. Read `README.md` and `CONTRIBUTING.md`.
 2. Read `docs/delivery-workflow.md` and the active GitHub issue.
-3. Inspect the [GitHub Project](https://github.com/users/nikcholer/projects/1) for status, priority, dependencies, and phase gates.
+3. Inspect open issues and pull requests for status. If a GitHub Project is available to you, use it for board fields; do not treat a private board as public documentation.
 4. Read the documents relevant to the change. Start with `docs/slice-guide.md` for an existing document path or `docs/adding-document-types.md` for a new document type.
 
-User instructions and the accepted issue define the requested outcome. The GitHub Project defines live delivery state. Repository backlog documents supply strategy and context, but are not a substitute for a Ready issue.
+User instructions and the accepted issue define the requested outcome. Repository backlog documents supply strategy and context, but are not a substitute for a Ready issue.
 
 ## Taking Work
 
