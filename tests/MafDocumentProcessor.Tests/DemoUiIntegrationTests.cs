@@ -17,7 +17,8 @@ public sealed class DemoUiIntegrationTests
         Assert.Contains("id=\"sourceGrid\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"memberInspector\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-live=\"polite\"", html, StringComparison.Ordinal);
-        Assert.Contains("/capture-ui.js", html, StringComparison.Ordinal);
+        Assert.Contains("/capture-ui.js?v=20260827.1", html, StringComparison.Ordinal);
+        Assert.Contains("/app.js?v=20260827.1", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -56,6 +57,7 @@ public sealed class DemoUiIntegrationTests
 
         response.EnsureSuccessStatusCode();
         Assert.Equal(expectedMediaType, response.Content.Headers.ContentType?.MediaType);
+        Assert.True(response.Headers.CacheControl?.NoStore);
         Assert.NotEmpty(await response.Content.ReadAsStringAsync());
     }
 }
