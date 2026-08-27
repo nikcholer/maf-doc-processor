@@ -16,7 +16,6 @@ public sealed class DemoUiIntegrationTests
         Assert.Contains("value=\"capture\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"sourceGrid\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"memberInspector\"", html, StringComparison.Ordinal);
-        Assert.Contains("id=\"reprocessButton\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-live=\"polite\"", html, StringComparison.Ordinal);
         Assert.Contains("/capture-ui.js", html, StringComparison.Ordinal);
     }
@@ -32,9 +31,15 @@ public sealed class DemoUiIntegrationTests
 
         Assert.Contains("regionOverrides", app, StringComparison.Ordinal);
         Assert.Contains("pointerdown", app, StringComparison.Ordinal);
-        Assert.Contains("Reprocess corrected regions", await client.GetStringAsync("/"), StringComparison.Ordinal);
+        Assert.Contains("Save and reprocess", app, StringComparison.Ordinal);
+        Assert.Contains("cancelRegionEdit", app, StringComparison.Ordinal);
+        Assert.Contains("aria-modal", app, StringComparison.Ordinal);
+        Assert.DoesNotContain("Finish editing", app, StringComparison.Ordinal);
+        Assert.DoesNotContain("Reprocess corrected regions", await client.GetStringAsync("/"), StringComparison.Ordinal);
         Assert.Contains("resizeBounds", captureUi, StringComparison.Ordinal);
         Assert.Contains("reorderRegions", captureUi, StringComparison.Ordinal);
+        Assert.Contains("createRegionEditSession", captureUi, StringComparison.Ordinal);
+        Assert.Contains("hasRegionChanges", captureUi, StringComparison.Ordinal);
         Assert.Contains("serializeRegionOverrides", captureUi, StringComparison.Ordinal);
     }
 

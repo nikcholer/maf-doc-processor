@@ -86,6 +86,36 @@
     }));
   }
 
+  function createRegionEditSession(source, members) {
+    const originalRegions = cloneRegions(createEditableRegions(members));
+    return {
+      sourceItemId: source?.sourceItemId ?? "",
+      sourceIndex: Number(source?.index),
+      originalRegions,
+      regions: cloneRegions(originalRegions)
+    };
+  }
+
+  function hasRegionChanges(session) {
+    const originalRegions = Array.isArray(session?.originalRegions) ? session.originalRegions : [];
+    const regions = Array.isArray(session?.regions) ? session.regions : [];
+    if (originalRegions.length !== regions.length) {
+      return true;
+    }
+
+    return regions.some((region, index) => {
+      const original = originalRegions[index];
+      if (!original || region?.id !== original.id) {
+        return true;
+      }
+
+      const bounds = normalizeBounds(region?.bounds);
+      const originalBounds = normalizeBounds(original.bounds);
+      return ["x", "y", "width", "height"]
+        .some((fieldName) => bounds[fieldName] !== originalBounds[fieldName]);
+    });
+  }
+
   function clampBounds(bounds, minimumSize = 0.02) {
     requirePositiveFinite(minimumSize, "minimumSize");
     if (minimumSize > 1) {
@@ -221,6 +251,13 @@
     return normalized;
   }
 
+  function cloneRegions(regions) {
+    return (Array.isArray(regions) ? regions : []).map((region) => ({
+      ...region,
+      bounds: { ...normalizeBounds(region?.bounds) }
+    }));
+  }
+
   function toPercentageNumber(value) {
     return Number((value * 100).toFixed(4));
   }
@@ -239,10 +276,12 @@
     clampBounds,
     chooseMemberId,
     createEditableRegions,
+    createRegionEditSession,
     getDispositionPresentation,
     getMemberAccessibleLabel,
     getMembersForSource,
     getRegionShape,
+    hasRegionChanges,
     hasMatchingOrientation,
     moveBounds,
     projectBounds,

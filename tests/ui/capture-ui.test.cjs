@@ -169,3 +169,58 @@ test("editor regions support add, delete, reorder, and partial-source serializat
     ]
   });
 });
+
+test("region edit sessions isolate the working copy and begin unchanged", () => {
+  const members = [
+    { memberId: "one", region: { bounds: { x: 0.1, y: 0.1, width: 0.3, height: 0.4 } } },
+    { memberId: "two", region: { bounds: { x: 0.5, y: 0.2, width: 0.3, height: 0.4 } } }
+  ];
+  const session = CaptureUi.createRegionEditSession(
+    { sourceItemId: "source-001", index: 1 },
+    members);
+
+  assert.equal(CaptureUi.hasRegionChanges(session), false);
+  assert.notEqual(session.regions, session.originalRegions);
+  assert.notEqual(session.regions[0].bounds, session.originalRegions[0].bounds);
+
+  session.regions[0].bounds.x = 0.2;
+
+  assert.equal(CaptureUi.hasRegionChanges(session), true);
+  assert.equal(session.originalRegions[0].bounds.x, 0.1);
+  assert.equal(members[0].region.bounds.x, 0.1);
+});
+
+test("region edit sessions detect add, delete, and reorder without marking entry dirty", () => {
+  const createSession = () => CaptureUi.createRegionEditSession(
+    { sourceItemId: "source-001", index: 1 },
+    [
+      { memberId: "one", region: { bounds: { x: 0.1, y: 0.1, width: 0.3, height: 0.4 } } },
+      { memberId: "two", region: { bounds: { x: 0.5, y: 0.2, width: 0.3, height: 0.4 } } }
+    ]);
+
+  const added = createSession();
+  added.regions.push({ id: "three", bounds: { x: 0.3, y: 0.3, width: 0.2, height: 0.2 } });
+  assert.equal(CaptureUi.hasRegionChanges(added), true);
+
+  const deleted = createSession();
+  deleted.regions.pop();
+  assert.equal(CaptureUi.hasRegionChanges(deleted), true);
+
+  const reordered = createSession();
+  reordered.regions = CaptureUi.reorderRegions(reordered.regions, 1, 0);
+  assert.equal(CaptureUi.hasRegionChanges(reordered), true);
+});
+
+test("a saved region edit serializes only its active source working copy", () => {
+  const session = CaptureUi.createRegionEditSession(
+    { sourceItemId: "source-002", index: 2 },
+    [{ memberId: "one", region: { bounds: { x: 0.1, y: 0.1, width: 0.3, height: 0.4 } } }]);
+  session.regions[0].bounds = CaptureUi.moveBounds(session.regions[0].bounds, 0.1, 0.05);
+
+  assert.deepEqual(CaptureUi.serializeRegionOverrides([session]), {
+    sources: [{
+      sourceIndex: 2,
+      regions: [{ bounds: { x: 0.2, y: 0.15, width: 0.3, height: 0.4 } }]
+    }]
+  });
+});
