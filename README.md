@@ -1,6 +1,6 @@
 # MAF Document Processor
 
-Local Microsoft Agent Framework (MAF) document-processing demo for receipt, shopping-list, Sujiko puzzle, and expense-report images.
+Local Microsoft Agent Framework (MAF) demo that turns document images into structured data. It processes receipt, shopping-list, Sujiko puzzle, and expense-report images. It is not a case-management or durable workflow engine.
 
 Upload one PNG or JPEG through the web UI or HTTP API. One top-level MAF workflow classifies the image and routes it to a document-specific child workflow, which extracts structured data, validates it, makes one bounded repair attempt when needed, and returns model usage, latency, estimated cost, human-review state, and raw JSON.
 
@@ -188,6 +188,7 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 
 - Composite capture is implemented through the API and Capture set UI, including region correction. Expense reports are implemented as the next distinct document type for both individual and capture-member processing.
 - Measure whether the opt-in Analyst/Critic workflow improves output enough to justify two additional model calls.
+- Durable pause/resume, case storage, and claim submission are out of scope here. They are sketched only as [forward planning](docs/forward-planning-workflow-system.md) for a later workflow-management system that might call this converter.
 - Maintain the current .NET 10, MAF 1.19, OpenAI 2.13, and test-tooling baseline. ImageSharp 4 and xUnit v3 are explicitly deferred as separate migrations.
 - Optional icebox work includes a deterministic Sujiko solver, export/copy affordances, a rate-limited hosted demo, and later comparison of other vision models for document region detection.
 
@@ -218,5 +219,6 @@ Forward architectural work is organized in the [MAF workflow evolution backlog](
 - [Document result semantics](docs/document-result-semantics.md)
 - [Human review policy](docs/human-review-policy.md)
 - [Durability decision](docs/durability-decision.md)
+- [Forward planning: structured data in a larger workflow system](docs/forward-planning-workflow-system.md)
 - [Multi-agent quality prototype](docs/multi-agent-quality-prototype.md)
 - [V1 Semantic Kernel inventory](docs/v1-semantic-kernel-inventory.md)

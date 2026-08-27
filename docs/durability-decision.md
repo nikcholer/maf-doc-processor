@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted. Still in force after composite capture, expense reports, and the extended-workflow baseline. Phase E5 stays gated until this decision is reopened.
+Accepted. **Out of scope for the current effort.** This repository turns images into structured data in one foreground request. Durable pause/resume and checkpointing belong in a surrounding workflow-management system, not in this conversion path. See [forward planning](forward-planning-workflow-system.md). Phase E5 must not move to Ready on the back of storage, attestation, or claim-submission ideas.
 
 ## What This Decision Is About
 
@@ -10,7 +10,7 @@ This repository runs a **local, foreground** document processor. A person upload
 
 **Durable pause/resume** and **checkpointing** would change that contract. They mean: the workflow is allowed to stop *before it has a result*, write enough state to disk (or another store) that a later process can continue the *same* run, and wait—possibly for hours, a process restart, or a human answer—before finishing.
 
-That is a different product from “process this upload and tell me what you got.” The rest of this note explains the difference with a concrete situation, then records the decision not to add that machinery yet.
+That is a different product from “process this upload and tell me what you got.” The current effort is only the latter. The rest of this note explains the difference with a concrete situation, records that durability is out of scope here, and points at [where it would belong later](forward-planning-workflow-system.md).
 
 ## A Relevant User Situation
 
@@ -62,7 +62,7 @@ Alex’s capture returns exactly as it does today. A future product might **save
 
 That design needs persistence, identities, access control, and an audit log of reviewer decisions. Those are already listed as deferred storage and review-surface work. They do **not** require pause/resume of the extraction workflow. The records `ReviewerInput` and `ReviewDecisionLogEntry` sketch that later surface; they are unused by the live path.
 
-If we treated Design B as E5, we would freeze an extraction graph that has already done its job, only to wait for a click that belongs to a claim workflow the demo does not have.
+If we treated Design B as E5, we would freeze an extraction graph that has already done its job, only to wait for a click that belongs to a claim workflow. That claim workflow is not this application. It is sketched only as [forward planning](forward-planning-workflow-system.md).
 
 ## Three Different Human Roles
 
@@ -93,7 +93,7 @@ Choosing **to** add durability would be justified only if we had a user problem 
 
 ## Decision
 
-Do not add durable pause/resume or checkpointing to the current local demo.
+Do not add durable pause/resume or checkpointing. Do not reopen this as part of the current image-to-structured-data effort.
 
 The current processing model is a bounded HTTP request:
 
@@ -103,7 +103,7 @@ The current processing model is a bounded HTTP request:
 - Request cancellation propagates to model-call executors.
 - Successful runs return in seconds with the current Qwen configuration, including composite captures and expense reports.
 
-Adding MAF Durable Task or a local job store now would add operational and testing complexity without solving a current user problem. Expense-report attestation and future “save this result” behaviour are not that problem.
+Adding MAF Durable Task or a local job store would turn this processor into a job engine. That is out of scope. Expense-report attestation flags and any future “save this result” behaviour are not a reason to pause extraction.
 
 ## Options Considered
 
@@ -111,19 +111,18 @@ Adding MAF Durable Task or a local job store now would add operational and testi
 | --- | --- | --- |
 | MAF Durable Task locally | Low | Useful once a run genuinely cannot finish without pause/resume, external workers, durable timers, or an extraction-time human answer. More infrastructure than the local demo needs. |
 | Lightweight local job store or checkpoint files | Low | Simpler than Durable Task, but it still creates a second execution model, persistence rules, cleanup, and duplicated retry/resume behaviour. |
-| Defer durability until a run cannot finish in one foreground request | Best | Keeps the current product simple. Storage of completed results and later attestation remain separate decisions. |
+| Keep conversion request-scoped; leave pause/resume to a surrounding workflow system | Best | Matches the current product. See [forward planning](forward-planning-workflow-system.md). |
 
 ## Reopen Criteria
 
-Revisit this decision when at least one of these becomes true:
+Do not reopen this decision in order to store documents, collect attestation, or submit claims. Those are not conversion features.
 
-- A single workflow instance **cannot produce its result** without an answer, and we refuse to end the request and let the user start a new one (true extraction-time human input).
-- Processing moves out of a single foreground HTTP request into queued or background jobs **before** a result exists.
-- Model or document workloads **routinely** exceed interactive request timeouts, so crash-resume of an unfinished run is the user-visible need.
-- The app is hosted for external users and must survive process restarts **mid-job**, not merely save completed documents.
-- Users need history or retry **from the last incomplete step of an in-flight run** (as opposed to re-uploading, or loading a stored completed result).
+Revisit durability inside **this** repository only if the conversion request itself is redefined so that a single workflow instance **cannot produce structured data** without pausing. That would be an explicit product change, not an E4 follow-on. Until then, treat the following as belonging to a surrounding system or a new hosted product, not as E5 work here:
 
-These do **not** reopen the decision on their own:
+- Queued conversion, crash-resume of an unfinished run, or extraction-time human input that refuses to return a result.
+- Hosting that must survive process restarts **mid-conversion**.
+
+These do **not** reopen the decision:
 
 - Saving categorized, extracted documents after the graph has completed.
 - Collecting attestation, approval, or claim submission on a stored result.
@@ -136,4 +135,4 @@ These do **not** reopen the decision on their own:
 - Keep model timeout and retry settings in configuration.
 - Use API logs and `traceId` for failure diagnosis.
 - Prefer improving model latency, image preprocessing, and provider error handling before adding durable orchestration.
-- Keep completed-result persistence and human attestation of stored documents off the E5 path; design them as new commands if they are ever needed.
+- Keep completed-result persistence and human attestation off this conversion path. If they are ever needed, they belong in a surrounding workflow system or as new commands on stored results; see [forward planning](forward-planning-workflow-system.md).

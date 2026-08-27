@@ -13,7 +13,7 @@ The next stage should strengthen the application architecture, not simply add an
 - Use model-backed stages for classification, extraction, interpretation, and evidence-based review.
 - Introduce framework capabilities incrementally and measure their operational cost.
 - Keep optional or experimental paths out of the default API flow until their value is demonstrated.
-- Treat checkpoints, human input, and persisted state as trust boundaries requiring explicit design decisions.
+- Treat checkpoints, human input, and persisted state as trust boundaries. They are out of scope for the current image-to-structured-data effort; see [forward planning](forward-planning-workflow-system.md).
 
 ## Phase Summary
 
@@ -24,7 +24,7 @@ The next stage should strengthen the application architecture, not simply add an
 | E2 | Route all document types through a top-level MAF graph | Required |
 | E3 | Add multi-source composite capture and independent member processing | Required |
 | E4 | Deliver the expense-report vertical slice | Required |
-| E5 | Add external input and checkpointing | Only if the workflow crosses a process or human boundary |
+| E5 | External input and checkpointing | Out of scope for this effort; belongs to a surrounding workflow system |
 | E6 | Integrate quality-review agents | Only if evaluation demonstrates sufficient benefit |
 | E7 | Harden, document, measure, and release the new baseline | Required |
 
@@ -134,23 +134,15 @@ Delivery is split into [shared foundations](https://github.com/nikcholer/maf-doc
 
 **Exit criteria:** Expense reports process end to end individually and as batch members, have explicit success/failure/review/attestation semantics, and pass offline and representative live verification.
 
-## Phase E5: External Input and Checkpointing — Gated
+## Phase E5: External Input and Checkpointing — Out Of Scope
 
-**Objective:** Add pause/resume only if the selected workflow requires input that cannot be completed within one foreground request.
+**Objective:** Do not add pause/resume or checkpointing to this processor. The current effort is turning images into structured data in one foreground request.
 
-**Decision gate:** Reopen the [durability decision](durability-decision.md) only when a workflow instance cannot produce its result without pausing—true extraction-time human input, a background job that starts before a result exists, or restart-survival of an unfinished run. Saving a completed extract, or attesting a stored expense report later, is not that gate.
+**Decision:** Accepted in the [durability decision](durability-decision.md). Pause/resume, case storage, human task lists, and claim submission belong to a surrounding workflow-management system, recorded in [forward planning](forward-planning-workflow-system.md). Do not move [#6](https://github.com/nikcholer/maf-doc-processor/issues/6) to Ready as a way to build those features here.
 
-- [ ] Define the external request and typed response contract.
-- [ ] Decide whether processing remains HTTP request-scoped or moves to a job model.
-- [ ] Select checkpoint storage and document its trust, access-control, retention, and cleanup requirements.
-- [ ] Implement MAF request/response handling at the required workflow boundary.
-- [ ] Capture and persist checkpoints without storing provider credentials or unnecessary source data.
-- [ ] Add endpoints or UI needed to inspect and answer pending requests.
-- [ ] Define timeout, rejection, cancellation, expiry, and resubmission behaviour.
-- [ ] Test pause, process restart, resume, duplicate response, invalid response, and expired request paths.
-- [ ] Update API, operational, human-review, and durability documentation.
+The former E5 checklist (external request contract, checkpoint store, MAF request/response, pending-work UI, restart/resume tests) remains a description of **that other system**, not of this repository’s next work.
 
-**Exit criteria:** A workflow can pause and resume safely across the required boundary, with authenticated ownership deferred unless the application is made externally accessible.
+**Exit criteria:** Not applicable to the current effort. The conversion path stays request-scoped.
 
 ## Phase E6: Quality Review and Agent Collaboration — Gated
 
