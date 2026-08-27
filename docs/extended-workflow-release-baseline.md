@@ -61,7 +61,7 @@ The audit found no superseded production route to remove. The Analyst/Critic qua
 
 The remaining open work is deliberately outside this baseline:
 
-- E5 checkpointing and external input remain gated until a real cross-request boundary exists;
+- E5 checkpointing and in-app pause/resume are out of scope for this converter; they belong to a surrounding workflow system;
 - E6 agent collaboration remains gated until repeatable quality evidence justifies its extra calls;
 - alternative capture-detection models (#53) and per-region crop/rotation refinement (#58) remain in the icebox; and
 - ImageSharp 4 and xUnit v3 remain separately scoped dependency migrations.

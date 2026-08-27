@@ -67,7 +67,7 @@ later, by separate decision:
 - E2 first introduces the reusable top-level document-routing graph.
 - E3 then delivers multi-source composite capture and its bounded parallel member processing.
 - E4 adds the expense-report vertical slice to the same routing and batch infrastructure.
-- E5 checkpointing and E6 agent collaboration remain gated and are not implied by either feature.
+- E5 checkpointing is out of scope for this converter. E6 agent collaboration remains gated. Neither is implied by capture or expense-report extraction.
 
 ### Product and UI
 
