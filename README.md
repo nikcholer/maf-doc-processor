@@ -29,6 +29,8 @@ The [initial migration backlog](docs/maf-migration-backlog.md) is historical. Th
 - A TogetherAI API key in `TOGETHER_API_KEY` for live processing.
 - Node.js 18 or later only when running the dependency-free browser UI model tests.
 
+> **Data boundary:** The UI and workflow run locally, but model inference does not. Prepared source images and document crops are sent to the configured model provider over HTTPS and may be resent by bounded retries. The application does not persist them, but provider-side processing and retention remain governed by that provider's terms. Use non-confidential samples unless those terms and your own obligations permit otherwise; see [TogetherAI local setup](docs/together-ai-local-setup.md).
+
 Set the API key for your Windows user:
 
 ```powershell
