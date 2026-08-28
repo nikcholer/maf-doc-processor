@@ -35,6 +35,7 @@ Request-level intake failures continue to use the existing API error contract. N
       "sourceIndex": 1,
       "regions": [
         {
+          "sourceId": "expense-claim-17:receipt-1",
           "bounds": { "x": 0.1, "y": 0.2, "width": 0.6, "height": 0.5 }
         }
       ]
@@ -44,7 +45,7 @@ Request-level intake failures continue to use the existing API error contract. N
 }
 ```
 
-A listed source bypasses the region detector, including when its `regions` array is explicitly empty. An omitted source follows automatic detection. Optional four-point `outline` values use the same normalized oriented coordinate space as response outlines. Structural JSON errors, duplicate/out-of-range source indexes, missing bounds, a non-quadrilateral outline, or too many supplied regions fail the request with `invalid_document_upload` targeted at `regionOverrides`. Numeric geometry remains untrusted and is still checked for finite, in-range, useful bounds and a non-empty crop. Valid caller bounds and their submitted order are authoritative: detector-only padding, spatial ordering, duplicate removal, and overlap-review policy do not alter them.
+A listed source bypasses the region detector, including when its `regions` array is explicitly empty. An omitted source follows automatic detection. Each region may supply an optional `sourceId` as the caller's reference for that child document. It is trimmed; a blank value is treated as omitted; its maximum length after trimming is 128 characters; and control characters are rejected. An omitted region `sourceId` inherits the request-level `sourceId`. Optional four-point `outline` values use the same normalized oriented coordinate space as response outlines. Structural JSON errors, duplicate/out-of-range source indexes, missing bounds, an invalid region `sourceId`, a non-quadrilateral outline, or too many supplied regions fail the request with `invalid_document_upload` targeted at `regionOverrides`. Numeric geometry remains untrusted and is still checked for finite, in-range, useful bounds and a non-empty crop. Valid caller bounds and their submitted order are authoritative: detector-only padding, spatial ordering, duplicate removal, and overlap-review policy do not alter them.
 
 ## Processing Invariant
 
@@ -147,14 +148,14 @@ CompositeCaptureMemberResponse
 | `status` | `Processed` or `Failed` |
 | `disposition` | Deterministic presentation outcome: `Accepted`, `Review`, or `Rejected` |
 | `dispositionReasons` | Human-readable reasons supporting the disposition, empty for an unqualified acceptance |
-| `result` | Existing `DocumentProcessingResponse` when the child workflow produced a normal result |
+| `result` | Existing `DocumentProcessingResponse` when the child workflow produced a normal result; `result.metadata.sourceId` exposes the effective child-document caller reference |
 | `error` | Existing machine-readable error code, message, and optional target when the member could not produce a normal result |
 
 `result` and `error` are mutually exclusive. A recognized but unsupported category is a normal processed result with `result.isSuccess = false`; it is not a member infrastructure error.
 
 Member errors use the existing `ApiErrorResponse` shape and request `traceId`. They reuse `model_response_invalid`, `model_timeout`, `model_provider_failed`, `document_processing_failed`, and `document_processing_unhandled` when the equivalent failure happens inside a child workflow. Composite capture adds `invalid_detected_region` for bounds, duplication, crop, or region-limit failures; its `target` identifies the member or invalid region field.
 
-The child's `DocumentMetadata.SourceId` remains the caller-supplied request-level value. `sourceItemId` and `memberId` provide request-scoped uniqueness without changing the existing document result contract. Derived crop filenames may use the original source stem plus the member identifier for diagnostics.
+The child's `DocumentMetadata.SourceId` is the corrected region's `sourceId` when supplied, or the request-level `sourceId` otherwise. The same value is visible in both `result.metadata.sourceId` and `result.document.metadata.sourceId` when a document result exists. This caller reference is distinct from generated `sourceItemId` and `memberId` values, which provide request-scoped technical identity and are not persistent business identifiers. Derived crop filenames may use the original source stem plus the member identifier for diagnostics.
 
 ## Status Semantics
 
@@ -188,7 +189,7 @@ The canonical API response remains geometry and structured status rather than ad
 
 The browser renders overlays in a `0`–`100` vector coordinate space directly over each locally retained image, so the API's normalized coordinates scale with the preview at every responsive size. Modern browser image decoding applies EXIF orientation before display; the UI also compares the preview aspect ratio with the API's oriented source dimensions and surfaces a warning when they disagree. Pure UI-model tests cover bounds and outline mapping at desktop, mobile, and portrait/rotated dimensions, while API/image tests retain server-side EXIF coverage.
 
-After a result, the browser can put an individual source into a transactional rectangle-edit mode. The selected source and its region inspector become an in-page modal surface while unrelated intake, result, and source actions are inert. The user may add, delete, reorder, drag, resize with four corner handles, use arrow keys to move, use `Alt` plus arrow keys to resize, or enter normalized coordinates against a working copy. Entering the editor does not itself create a pending override. **Cancel** discards the working copy and restores the returned regions without a request. **Save and reprocess** is enabled only after a change, resubmits the same selected files, and serializes the active source into `regionOverrides`; unedited sources still use automatic detection. The editor closes only after a successful response. Request failure leaves the working copy available to retry or cancel. These edits live only in browser memory for the current file selection and are not a persisted reviewer state.
+After a result, the browser can put an individual source into a transactional rectangle-edit mode. The selected source and its region inspector become an in-page modal surface while unrelated intake, result, and source actions are inert. The user may add, delete, reorder, drag, resize with four corner handles, use arrow keys to move, use `Alt` plus arrow keys to resize, enter normalized coordinates, or edit an optional per-row **Document reference** against one working copy. References remain attached when regions are reordered; adding begins blank and deleting removes the reference with its region. Entering the editor does not itself create a pending override. **Cancel** discards the working copy and restores the returned geometry and references without a request. **Save and reprocess** is enabled only after either kind of change, resubmits the same selected files, and serializes the active source atomically into `regionOverrides`; unedited sources still use automatic detection. The editor closes only after a successful response. Request failure leaves the complete working copy available to retry or cancel. These edits live only in browser memory for the current file selection and are not a persisted reviewer state.
 
 ## Deterministic Region Validation
 

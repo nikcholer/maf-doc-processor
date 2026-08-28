@@ -79,15 +79,20 @@
     };
   }
 
-  function createEditableRegions(members) {
-    return (Array.isArray(members) ? members : []).map((member, index) => ({
-      id: member?.memberId ?? `region-${index + 1}`,
-      bounds: normalizeBounds(member?.region?.bounds)
-    }));
+  function createEditableRegions(members, fallbackSourceId = null) {
+    const normalizedFallback = normalizeOptionalSourceId(fallbackSourceId);
+    return (Array.isArray(members) ? members : []).map((member, index) => {
+      const effectiveSourceId = normalizeOptionalSourceId(member?.result?.metadata?.sourceId);
+      return {
+        id: member?.memberId ?? `region-${index + 1}`,
+        bounds: normalizeBounds(member?.region?.bounds),
+        sourceId: effectiveSourceId === normalizedFallback ? "" : effectiveSourceId ?? ""
+      };
+    });
   }
 
-  function createRegionEditSession(source, members) {
-    const originalRegions = cloneRegions(createEditableRegions(members));
+  function createRegionEditSession(source, members, fallbackSourceId = null) {
+    const originalRegions = cloneRegions(createEditableRegions(members, fallbackSourceId));
     return {
       sourceItemId: source?.sourceItemId ?? "",
       sourceIndex: Number(source?.index),
@@ -106,6 +111,10 @@
     return regions.some((region, index) => {
       const original = originalRegions[index];
       if (!original || region?.id !== original.id) {
+        return true;
+      }
+
+      if (normalizeOptionalSourceId(region?.sourceId) !== normalizeOptionalSourceId(original.sourceId)) {
         return true;
       }
 
@@ -189,9 +198,13 @@
         .sort((left, right) => Number(left.sourceIndex) - Number(right.sourceIndex))
         .map((source) => ({
           sourceIndex: Number(source.sourceIndex),
-          regions: (Array.isArray(source.regions) ? source.regions : []).map((region) => ({
-            bounds: normalizeBounds(region?.bounds)
-          }))
+          regions: (Array.isArray(source.regions) ? source.regions : []).map((region) => {
+            const sourceId = normalizeOptionalSourceId(region?.sourceId);
+            return {
+              bounds: normalizeBounds(region?.bounds),
+              ...(sourceId ? { sourceId } : {})
+            };
+          })
         }))
     };
   }
@@ -199,13 +212,15 @@
   function getMemberAccessibleLabel(member) {
     const presentation = getDispositionPresentation(member?.disposition);
     const category = member?.result?.category ? `, ${member.result.category}` : "";
+    const sourceId = normalizeOptionalSourceId(member?.result?.metadata?.sourceId);
+    const reference = sourceId ? `, document reference ${sourceId}` : "";
     const confidenceValue = member?.region?.confidence === null || member?.region?.confidence === undefined
       ? Number.NaN
       : Number(member.region.confidence);
     const confidence = Number.isFinite(confidenceValue)
       ? `, detection confidence ${Math.round(confidenceValue * 100)} percent`
       : ", detection confidence not reported";
-    return `${member?.memberId ?? "Document region"}: ${presentation.label}${category}${confidence}`;
+    return `${member?.memberId ?? "Document region"}: ${presentation.label}${category}${reference}${confidence}`;
   }
 
   function hasMatchingOrientation(previewWidth, previewHeight, metadata) {
@@ -256,8 +271,14 @@
   function cloneRegions(regions) {
     return (Array.isArray(regions) ? regions : []).map((region) => ({
       ...region,
-      bounds: { ...normalizeBounds(region?.bounds) }
+      bounds: { ...normalizeBounds(region?.bounds) },
+      sourceId: region?.sourceId ?? ""
     }));
+  }
+
+  function normalizeOptionalSourceId(value) {
+    const trimmed = typeof value === "string" ? value.trim() : "";
+    return trimmed.length > 0 ? trimmed : null;
   }
 
   function toPercentageNumber(value) {

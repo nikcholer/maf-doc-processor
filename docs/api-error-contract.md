@@ -15,7 +15,7 @@ The local demo API returns a consistent JSON error body for validation, configur
 
 | Code | HTTP status | Target | Meaning |
 | --- | ---: | --- | --- |
-| `invalid_document_upload` | `400` | Upload field, usually `image`, `images`, `regionOverrides`, or `form` | The request was not multipart, did not include the required image field, exceeded the individual-document or capture aggregate size limit, included too many capture files, used an unsupported individual-document content type or extension, or supplied a structurally invalid region-override payload. |
+| `invalid_document_upload` | `400` | Upload field, usually `image`, `images`, `regionOverrides`, or `form` | The request was not multipart, did not include the required image field, exceeded the individual-document or capture aggregate size limit, included too many capture files, used an unsupported individual-document content type or extension, or supplied a structurally invalid region-override payload (including an invalid per-region `sourceId`). |
 | `model_configuration_invalid` | `500` | `null` | Required model configuration is missing or invalid, most commonly the configured API key environment variable. |
 | `model_response_invalid` | `502` | `null` | The model returned an empty response, invalid JSON, or JSON that could not be parsed into the expected schema. |
 | `model_timeout` | `504` | `null` | The provider did not return within the configured model timeout. |

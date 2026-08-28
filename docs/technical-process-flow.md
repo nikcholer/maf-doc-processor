@@ -149,6 +149,7 @@ CompositeCaptureSource
      -> retain OrientedCaptureSourceImage in request-scoped memory
   -> if source has regionOverrides
      -> skip the detector and use typed, still-untrusted caller proposals
+     -> carry each proposal's optional child-document sourceId
   -> otherwise CaptureDetectionImagePreparer
      -> clone and resize a model-facing JPEG derivative
      -> ModelDocumentRegionDetector
@@ -187,6 +188,7 @@ CaptureSourceDetectionOutput
      -> for detector proposals only: expand accepted boxes by RegionEdgePadding
      -> for caller overrides: preserve valid bounds and submitted order exactly
      -> crop accepted regions from OrientedCaptureSourceImage as PNG FileRequest values
+        -> use the region sourceId when supplied, otherwise inherit the capture sourceId
   -> CaptureRegionValidationOutput
 ```
 
@@ -211,11 +213,11 @@ CompositeCaptureRequest
 
 The graph never grows a node per upload. Empty lanes still report so the fan-in barrier has a known contributor set. Ordinary source and member failures become result data; request cancellation still aborts the capture. `CaptureResultComposer` restores source order, assigns capture-wide member indexes, sums model usage once, and calculates `Succeeded` / `PartiallySucceeded` / `Failed` plus member dispositions.
 
-`POST /api/document-captures/process` accepts repeated `images` parts, optional `sourceId`, and optional per-source normalized rectangles in the `regionOverrides` JSON form field, then returns `CompositeCaptureProcessingResponse`. Listed sources skip detection; omitted sources still receive one detector call. Request-level intake failures use the existing API error contract. Partial success is HTTP 200. The API trace identifier is carried into capture start, source, member, aggregation, and completion events alongside the request-scoped capture/member identifiers; the workflow writes those fields as structured debug logs.
+`POST /api/document-captures/process` accepts repeated `images` parts, optional capture-level `sourceId`, and optional per-source normalized rectangles in the `regionOverrides` JSON form field, then returns `CompositeCaptureProcessingResponse`. Each corrected region may include its own optional `sourceId`; after boundary normalization and validation it becomes the child `DocumentMetadata.SourceId`, falling back to the capture-level value when omitted. Listed sources skip detection; omitted sources still receive one detector call. Request-level intake failures use the existing API error contract. Partial success is HTTP 200. The API trace identifier is carried into capture start, source, member, aggregation, and completion events alongside the request-scoped capture/member identifiers; the workflow writes those fields as structured debug logs.
 
 The static UI keeps the original single-document mode and adds an explicit capture-set mode. It retains object URLs for the selected local images only for the lifetime of the current page selection, matches them to response sources by multipart index, and draws each normalized outline or bounds value in an SVG coordinate space over the corresponding preview. The API-provided disposition selects the accepted, review, or rejected treatment; the browser does not recalculate policy. Tick, question-mark, and cross symbols, textual rows, `aria-label` values, and keyboard-selectable overlays provide equivalent non-colour cues. Selecting either an overlay or row updates a member inspector with classification, extracted data, warnings, errors, and disposition reasons, while source failures remain visible alongside successful siblings.
 
-An individual source can enter an ephemeral, transactional rectangle editor after the first result. The browser snapshots the returned regions, creates an isolated working copy, and makes that source plus its coordinate inspector an in-page modal surface. Pointer drag, four-corner resize, keyboard movement/resizing, normalized coordinate fields, and add/delete/reorder controls update only the working copy. **Cancel** discards it locally. **Save and reprocess** posts the same selected files and the active source as `regionOverrides`; untouched sources retain automatic detection. The editor closes only when that request succeeds, while failure preserves the working copy for retry or cancellation. The response follows the same aggregate contract and replaces the displayed result; no edit state is persisted by the API.
+An individual source can enter an ephemeral, transactional rectangle editor after the first result. The browser snapshots the returned regions and their effective document references, creates an isolated working copy, and makes that source plus its coordinate inspector an in-page modal surface. Pointer drag, four-corner resize, keyboard movement/resizing, normalized coordinate fields, per-row document-reference fields, and add/delete/reorder controls update only the working copy. A reference remains part of its region record through reordering. **Cancel** discards geometry and reference changes locally. **Save and reprocess** posts both atomically with the same selected files and the active source as `regionOverrides`; untouched sources retain automatic detection. The editor closes only when that request succeeds, while failure preserves the working copy for retry or cancellation. The effective child reference is visible in the returned member result metadata and raw response JSON; generated `memberId` values remain separate technical identifiers. No edit state is persisted by the API.
 
 OpenAPI is generated at `GET /openapi/v1.json`.
 

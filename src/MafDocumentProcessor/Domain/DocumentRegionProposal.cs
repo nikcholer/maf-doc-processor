@@ -12,16 +12,20 @@ public sealed record CaptureRegionOverride
 {
     public CaptureRegionOverride(
         ProposedNormalizedBounds bounds,
-        IReadOnlyList<ProposedNormalizedPoint>? outline = null)
+        IReadOnlyList<ProposedNormalizedPoint>? outline = null,
+        string? sourceId = null)
     {
         ArgumentNullException.ThrowIfNull(bounds);
         Bounds = bounds;
         Outline = outline is null ? null : Array.AsReadOnly(outline.ToArray());
+        SourceId = sourceId;
     }
 
     public ProposedNormalizedBounds Bounds { get; }
 
     public IReadOnlyList<ProposedNormalizedPoint>? Outline { get; }
+
+    public string? SourceId { get; }
 }
 
 public sealed record DocumentRegionProposal
@@ -31,7 +35,8 @@ public sealed record DocumentRegionProposal
         int detectionIndex,
         ProposedNormalizedBounds bounds,
         IReadOnlyList<ProposedNormalizedPoint>? outline,
-        decimal? confidence)
+        decimal? confidence,
+        string? sourceId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceItemId);
         ArgumentNullException.ThrowIfNull(bounds);
@@ -48,6 +53,7 @@ public sealed record DocumentRegionProposal
         Bounds = bounds;
         Outline = outline is null ? null : Array.AsReadOnly(outline.ToArray());
         Confidence = confidence;
+        SourceId = sourceId;
     }
 
     public string SourceItemId { get; }
@@ -59,4 +65,6 @@ public sealed record DocumentRegionProposal
     public IReadOnlyList<ProposedNormalizedPoint>? Outline { get; }
 
     public decimal? Confidence { get; }
+
+    public string? SourceId { get; }
 }

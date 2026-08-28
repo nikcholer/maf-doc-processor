@@ -11,4 +11,5 @@ public sealed record CaptureSourceRegionOverridesRequest(
 
 public sealed record CaptureRegionOverrideRequest(
     ProposedNormalizedBounds Bounds,
-    IReadOnlyList<ProposedNormalizedPoint>? Outline = null);
+    IReadOnlyList<ProposedNormalizedPoint>? Outline = null,
+    string? SourceId = null);
