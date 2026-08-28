@@ -629,7 +629,10 @@ function createSourceCard(source, file, members, pending) {
 }
 
 function beginEditingSource(source, members) {
-  activeRegionEdit = CaptureUi.createRegionEditSession(source, members);
+  activeRegionEdit = CaptureUi.createRegionEditSession(
+    source,
+    members,
+    capturePayload?.metadata?.sourceId);
   regionEditError = null;
   const regions = activeRegionEdit.regions;
   selectedEditRegionId = regions[0]?.id ?? null;
@@ -885,6 +888,28 @@ function createEditorRegionRow(sourceItemId, region, index, count) {
   row.classList.toggle("selected", region.id === selectedEditRegionId);
   const selectButton = createSmallButton(`Region ${String(index + 1).padStart(2, "0")}`);
   selectButton.addEventListener("click", () => selectEditorRegion(sourceItemId, region.id, true));
+  const referenceField = document.createElement("label");
+  referenceField.className = "region-reference-field";
+  const referenceLabel = document.createElement("span");
+  referenceLabel.textContent = "Document reference";
+  const referenceInput = document.createElement("input");
+  referenceInput.type = "text";
+  referenceInput.maxLength = 128;
+  referenceInput.value = region.sourceId ?? "";
+  referenceInput.placeholder = "optional reference";
+  referenceInput.autocomplete = "off";
+  referenceInput.setAttribute("aria-label", `Document reference for region ${index + 1}`);
+  referenceInput.addEventListener("input", () => {
+    region.sourceId = referenceInput.value;
+    regionEditError = null;
+    updateRegionEditControls();
+  });
+  referenceInput.addEventListener("change", () => {
+    region.sourceId = referenceInput.value.trim();
+    referenceInput.value = region.sourceId;
+    updateRegionEditControls();
+  });
+  referenceField.append(referenceLabel, referenceInput);
   const actions = document.createElement("span");
   const up = createSmallButton("↑", `Move region ${index + 1} earlier`);
   const down = createSmallButton("↓", `Move region ${index + 1} later`);
@@ -895,7 +920,7 @@ function createEditorRegionRow(sourceItemId, region, index, count) {
   down.addEventListener("click", () => reorderEditorRegion(sourceItemId, index, index + 1));
   remove.addEventListener("click", () => deleteEditorRegion(sourceItemId, region.id));
   actions.append(up, down, remove);
-  row.append(selectButton, actions);
+  row.append(selectButton, referenceField, actions);
   return row;
 }
 
@@ -924,7 +949,8 @@ function addEditorRegion(sourceItemId) {
   if (!editState) return;
   const region = {
     id: `edit-${nextEditRegionId++}`,
-    bounds: { x: 0.3, y: 0.3, width: 0.4, height: 0.4 }
+    bounds: { x: 0.3, y: 0.3, width: 0.4, height: 0.4 },
+    sourceId: ""
   };
   editState.regions.push(region);
   regionEditError = null;
@@ -1085,7 +1111,12 @@ function createMemberButton(member) {
   const title = document.createElement("b");
   title.textContent = member.result?.category ?? `Document ${member.index}`;
   const subtitle = document.createElement("small");
-  subtitle.textContent = `${presentation.label} · ${member.memberId}`;
+  const documentReference = member.result?.metadata?.sourceId?.trim();
+  subtitle.textContent = [
+    presentation.label,
+    documentReference ? `Ref ${documentReference}` : null,
+    member.memberId
+  ].filter(Boolean).join(" · ");
   copy.append(title, subtitle);
   button.append(symbol, copy);
   button.addEventListener("click", () => updateMemberSelection(member.memberId, true));
@@ -1128,6 +1159,7 @@ function renderMemberDetail(member) {
     ? Number.NaN
     : Number(member.region.confidence);
   metadata.append(
+    createDataRow("Document reference", member.result?.metadata?.sourceId ?? "Not supplied"),
     createDataRow("Workflow status", sentenceCase(member.status ?? "-")),
     createDataRow("Detection confidence", Number.isFinite(confidence) ? `${Math.round(confidence * 100)}%` : "Not reported"),
     createDataRow("Classification", member.result?.classification?.confidence === null || member.result?.classification?.confidence === undefined

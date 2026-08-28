@@ -75,7 +75,8 @@ public sealed class CompositeCaptureFoundationTests
                         new ProposedNormalizedPoint(0.4, 0.2),
                         new ProposedNormalizedPoint(0.4, 0.6),
                         new ProposedNormalizedPoint(0.1, 0.6)
-                    ])
+                    ],
+                    "claim:receipt-1")
             ],
             [2] = []
         };
@@ -94,6 +95,7 @@ public sealed class CompositeCaptureFoundationTests
         Assert.Equal(1, first.DetectionIndex);
         Assert.Null(first.Confidence);
         Assert.Equal(4, first.Outline?.Count);
+        Assert.Equal("claim:receipt-1", first.SourceId);
         Assert.Empty(request.Sources[1].RegionOverrides!);
         Assert.Null(request.Sources[2].RegionOverrides);
     }

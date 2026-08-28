@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using MafDocumentProcessor.Api.Configuration;
 using MafDocumentProcessor.Api.Contracts;
 using MafDocumentProcessor.Api.Endpoints;
+using MafDocumentProcessor.Api.Services;
 using MafDocumentProcessor.Configuration;
 using MafDocumentProcessor.Domain;
 using MafDocumentProcessor.Services;
@@ -163,6 +164,7 @@ public sealed class ApiCaptureIntegrationTests
             captureOptions: new CompositeCaptureOptions(RegionEdgePadding: 0.03));
         using var client = factory.CreateClient();
         using var content = CreateCaptureContent(("receipt.png", CreatePng(80, 80)));
+        content.Add(new StringContent("batch-79"), "sourceId");
         AddRegionOverrides(content,
             """
             {
@@ -170,7 +172,10 @@ public sealed class ApiCaptureIntegrationTests
                 {
                   "sourceIndex": 1,
                   "regions": [
-                    { "bounds": { "x": 0.55, "y": 0.55, "width": 0.4, "height": 0.4 } },
+                    {
+                      "sourceId": "  receipt-A  ",
+                      "bounds": { "x": 0.55, "y": 0.55, "width": 0.4, "height": 0.4 }
+                    },
                     { "bounds": { "x": 0.45, "y": 0.45, "width": 0.4, "height": 0.4 } }
                   ]
                 }
@@ -199,6 +204,8 @@ public sealed class ApiCaptureIntegrationTests
                 Assert.Equal(0.4, first.Region.Bounds.Height, 6);
                 Assert.Null(first.Region.Confidence);
                 Assert.Empty(first.Region.Warnings);
+                Assert.Equal("receipt-A", first.Result?.Metadata.SourceId);
+                Assert.Equal("receipt-A", first.Result?.Document?.Metadata.SourceId);
             },
             second =>
             {
@@ -208,6 +215,8 @@ public sealed class ApiCaptureIntegrationTests
                 Assert.Equal(0.4, second.Region.Bounds.Height, 6);
                 Assert.Null(second.Region.Confidence);
                 Assert.Empty(second.Region.Warnings);
+                Assert.Equal("batch-79", second.Result?.Metadata.SourceId);
+                Assert.Equal("batch-79", second.Result?.Document?.Metadata.SourceId);
             });
     }
 
@@ -286,6 +295,35 @@ public sealed class ApiCaptureIntegrationTests
     }
 
     [Fact]
+    public async Task ProcessCapture_WithInvalidRegionSourceId_ReturnsTheRequestErrorContract()
+    {
+        using var factory = new CaptureApiFactory();
+        using var client = factory.CreateClient();
+        using var content = CreateCaptureContent(("receipt.png", CreatePng(80, 80)));
+        var sourceId = new string('x', CompositeCaptureRegionOverrideParser.MaxRegionSourceIdLength + 1);
+        AddRegionOverrides(content,
+            $$"""
+            {
+              "sources": [
+                {
+                  "sourceIndex": 1,
+                  "regions": [
+                    {
+                      "sourceId": "{{sourceId}}",
+                      "bounds": { "x": 0.1, "y": 0.1, "width": 0.6, "height": 0.6 }
+                    }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        using var response = await client.PostAsync("/api/document-captures/process", content);
+
+        await AssertErrorAsync(response, HttpStatusCode.BadRequest, "invalid_document_upload", "regionOverrides");
+    }
+
+    [Fact]
     public async Task ProcessCapture_WithInvalidOverrideGeometry_UsesDeterministicRegionValidation()
     {
         var detector = new CountingRegionDetector();
@@ -357,11 +395,14 @@ public sealed class ApiCaptureIntegrationTests
         Assert.Contains("/api/documents/process", json, StringComparison.Ordinal);
         Assert.Contains("ProcessDocumentCapture", json, StringComparison.Ordinal);
         using var document = JsonDocument.Parse(json);
-        var responses = document.RootElement
+        var post = document.RootElement
             .GetProperty("paths")
             .GetProperty("/api/document-captures/process")
-            .GetProperty("post")
-            .GetProperty("responses");
+            .GetProperty("post");
+        var description = post.GetProperty("description").GetString();
+        Assert.Contains("sourceId", description, StringComparison.Ordinal);
+        Assert.Contains("128", description, StringComparison.Ordinal);
+        var responses = post.GetProperty("responses");
         Assert.Equal(
             ["200", "400", "500", "502", "504"],
             responses.EnumerateObject().Select(property => property.Name).Order().ToArray());

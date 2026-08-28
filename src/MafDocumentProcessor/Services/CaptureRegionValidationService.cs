@@ -291,6 +291,7 @@ public sealed class CaptureRegionValidationService(
             orientedSource,
             candidate.Pixels,
             memberId,
+            candidate.Proposal.SourceId,
             cancellationToken);
 
         return new CaptureMemberProcessingInput(
@@ -305,6 +306,7 @@ public sealed class CaptureRegionValidationService(
         OrientedCaptureSourceImage orientedSource,
         PixelRectangle pixels,
         string memberId,
+        string? regionSourceId,
         CancellationToken cancellationToken)
     {
         using var crop = orientedSource.CloneCrop(pixels);
@@ -319,7 +321,8 @@ public sealed class CaptureRegionValidationService(
             Content = content,
             FileName = $"{stem}-{memberId}.png",
             ContentType = "image/png",
-            FileSizeBytes = content.LongLength
+            FileSizeBytes = content.LongLength,
+            SourceId = regionSourceId ?? original.SourceId
         };
     }
 

@@ -172,7 +172,7 @@ public sealed class CaptureRegionValidationTests
     {
         var proposals = new[]
         {
-            CreateProposal(1, 0.55, 0.55, 0.4, 0.4, confidence: null),
+            CreateProposal(1, 0.55, 0.55, 0.4, 0.4, confidence: null, sourceId: "receipt-a"),
             CreateProposal(2, 0.1, 0.1, 0.4, 0.4, confidence: null),
             CreateProposal(3, 0.102, 0.102, 0.398, 0.398, confidence: null)
         };
@@ -197,10 +197,15 @@ public sealed class CaptureRegionValidationTests
             {
                 Assert.Equal(new NormalizedBounds(0.55, 0.55, 0.4, 0.4), first.Member.Region.Bounds);
                 Assert.Equal(new PixelRectangle(55, 55, 40, 40), first.CropPixels);
+                Assert.Equal("receipt-a", first.CropRequest.SourceId);
             },
-            second => Assert.Equal(
-                new NormalizedBounds(0.1, 0.1, 0.4, 0.4),
-                second.Member.Region.Bounds),
+            second =>
+            {
+                Assert.Equal(
+                    new NormalizedBounds(0.1, 0.1, 0.4, 0.4),
+                    second.Member.Region.Bounds);
+                Assert.Equal("claim-45", second.CropRequest.SourceId);
+            },
             third => Assert.Equal(
                 new NormalizedBounds(0.102, 0.102, 0.398, 0.398),
                 third.Member.Region.Bounds));
@@ -543,14 +548,16 @@ public sealed class CaptureRegionValidationTests
         double width,
         double height,
         decimal? confidence = 0.95m,
-        string sourceItemId = "source-001")
+        string sourceItemId = "source-001",
+        string? sourceId = null)
     {
         return new DocumentRegionProposal(
             sourceItemId,
             detectionIndex,
             new ProposedNormalizedBounds(x, y, width, height),
             outline: null,
-            confidence);
+            confidence,
+            sourceId);
     }
 
     private static byte[] CreatePng(int width, int height, Action<Image<Rgba32>>? paint = null)

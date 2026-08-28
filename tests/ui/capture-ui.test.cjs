@@ -161,7 +161,11 @@ test("editor regions support add, delete, reorder, and partial-source serializat
     { memberId: "one", region: { bounds: { x: 0.1, y: 0.1, width: 0.3, height: 0.4 } } },
     { memberId: "two", region: { bounds: { x: 0.5, y: 0.2, width: 0.3, height: 0.4 } } }
   ]);
-  const added = [...regions, { id: "three", bounds: { x: 0.35, y: 0.35, width: 0.3, height: 0.3 } }];
+  const added = [...regions, {
+    id: "three",
+    bounds: { x: 0.35, y: 0.35, width: 0.3, height: 0.3 },
+    sourceId: "  receipt-three  "
+  }];
   const reordered = CaptureUi.reorderRegions(added, 2, 0);
   const afterDelete = reordered.filter((region) => region.id !== "one");
 
@@ -174,13 +178,65 @@ test("editor regions support add, delete, reorder, and partial-source serializat
       {
         sourceIndex: 1,
         regions: [
-          { bounds: { x: 0.35, y: 0.35, width: 0.3, height: 0.3 } },
+          {
+            bounds: { x: 0.35, y: 0.35, width: 0.3, height: 0.3 },
+            sourceId: "receipt-three"
+          },
           { bounds: { x: 0.5, y: 0.2, width: 0.3, height: 0.4 } }
         ]
       },
       { sourceIndex: 2, regions: [] }
     ]
   });
+});
+
+test("document references stay attached through edit, reorder, cancel, and serialization", () => {
+  const members = [
+    {
+      memberId: "one",
+      result: { metadata: { sourceId: "batch-1" } },
+      region: { bounds: { x: 0.1, y: 0.1, width: 0.3, height: 0.4 } }
+    },
+    {
+      memberId: "two",
+      result: { metadata: { sourceId: "receipt-b" } },
+      region: { bounds: { x: 0.5, y: 0.2, width: 0.3, height: 0.4 } }
+    }
+  ];
+  const session = CaptureUi.createRegionEditSession(
+    { sourceItemId: "source-001", index: 1 },
+    members,
+    "batch-1");
+
+  assert.deepEqual(session.regions.map((region) => region.sourceId), ["", "receipt-b"]);
+  session.regions[0].sourceId = "  receipt-a  ";
+  session.regions = CaptureUi.reorderRegions(session.regions, 1, 0);
+
+  assert.deepEqual(session.regions.map((region) => region.sourceId), ["receipt-b", "  receipt-a  "]);
+  assert.deepEqual(session.originalRegions.map((region) => region.sourceId), ["", "receipt-b"]);
+  assert.deepEqual(CaptureUi.serializeRegionOverrides([session]).sources[0].regions, [
+    {
+      bounds: { x: 0.5, y: 0.2, width: 0.3, height: 0.4 },
+      sourceId: "receipt-b"
+    },
+    {
+      bounds: { x: 0.1, y: 0.1, width: 0.3, height: 0.4 },
+      sourceId: "receipt-a"
+    }
+  ]);
+});
+
+test("document references are included in accessible member labels", () => {
+  const label = CaptureUi.getMemberAccessibleLabel({
+    memberId: "source-001-document-001",
+    disposition: "Accepted",
+    result: { category: "Receipt", metadata: { sourceId: "receipt-a" } },
+    region: { confidence: null }
+  });
+
+  assert.equal(
+    label,
+    "source-001-document-001: Accepted, Receipt, document reference receipt-a, detection confidence not reported");
 });
 
 test("region edit sessions isolate the working copy and begin unchanged", () => {

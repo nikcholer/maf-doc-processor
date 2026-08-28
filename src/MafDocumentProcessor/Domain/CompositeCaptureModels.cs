@@ -124,7 +124,8 @@ public sealed record CompositeCaptureRequest
                         index + 1,
                         region.Bounds,
                         region.Outline,
-                        confidence: null);
+                        confidence: null,
+                        sourceId: region.SourceId);
                 })
                 .ToArray());
         }

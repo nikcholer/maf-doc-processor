@@ -7,6 +7,8 @@ namespace MafDocumentProcessor.Api.Services;
 
 public static class CompositeCaptureRegionOverrideParser
 {
+    public const int MaxRegionSourceIdLength = 128;
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public static CaptureRegionOverrideParseResult Parse(
@@ -86,13 +88,32 @@ public static class CompositeCaptureRegionOverrideParser
                         $"A region override outline for source {source.SourceIndex} must contain exactly four points.");
                 }
 
-                sourceOverrides.Add(new CaptureRegionOverride(region.Bounds, region.Outline));
+                var sourceId = NormalizeRegionSourceId(region.SourceId);
+                if (sourceId is { Length: > MaxRegionSourceIdLength })
+                {
+                    return CaptureRegionOverrideParseResult.Failure(
+                        $"A region sourceId may contain at most {MaxRegionSourceIdLength} characters after trimming.");
+                }
+
+                if (sourceId?.Any(char.IsControl) == true)
+                {
+                    return CaptureRegionOverrideParseResult.Failure(
+                        "A region sourceId cannot contain control characters.");
+                }
+
+                sourceOverrides.Add(new CaptureRegionOverride(region.Bounds, region.Outline, sourceId));
             }
 
             overrides[source.SourceIndex] = Array.AsReadOnly(sourceOverrides.ToArray());
         }
 
         return CaptureRegionOverrideParseResult.Success(overrides);
+    }
+
+    private static string? NormalizeRegionSourceId(string? value)
+    {
+        var trimmed = value?.Trim();
+        return string.IsNullOrEmpty(trimmed) ? null : trimmed;
     }
 }
 

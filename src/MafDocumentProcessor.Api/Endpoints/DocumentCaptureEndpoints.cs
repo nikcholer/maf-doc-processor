@@ -22,6 +22,7 @@ public static class DocumentCaptureEndpoints
             .WithDescription(
                 "Accepts one or more PNG or JPEG files in a repeated 'images' multipart field and an optional request-level sourceId. " +
                 "An optional regionOverrides JSON field supplies normalized regions for selected one-based source indexes; those sources skip model detection. " +
+                "Each corrected region may include a trimmed sourceId of up to 128 characters, used as that child document's caller reference. " +
                 "Other sources are searched for document regions, and every valid crop is processed through the same document workflow as an individual upload. " +
                 "The response is always the capture aggregate, including partial success. Content type: multipart/form-data.")
             .Produces<CompositeCaptureProcessingResponse>(StatusCodes.Status200OK)

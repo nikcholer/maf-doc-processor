@@ -27,6 +27,7 @@ public sealed class CompositeCaptureRegionOverrideParserTests
                   "sourceIndex": 1,
                   "regions": [
                     {
+                      "sourceId": "  claim:receipt-1  ",
                       "bounds": { "x": 0.1, "y": 0.2, "width": 0.4, "height": 0.5 },
                       "outline": [
                         { "x": 0.1, "y": 0.2 },
@@ -49,8 +50,35 @@ public sealed class CompositeCaptureRegionOverrideParserTests
         var first = Assert.Single(result.Overrides![1]);
         Assert.Equal(0.1, first.Bounds.X);
         Assert.Equal(4, first.Outline?.Count);
+        Assert.Equal("claim:receipt-1", first.SourceId);
         Assert.Empty(result.Overrides[2]);
         Assert.False(result.Overrides.ContainsKey(3));
+    }
+
+    [Fact]
+    public void Parse_WhitespaceRegionSourceId_NormalizesToNull()
+    {
+        var result = CompositeCaptureRegionOverrideParser.Parse(
+            """
+            {
+              "sources": [
+                {
+                  "sourceIndex": 1,
+                  "regions": [
+                    {
+                      "sourceId": "   ",
+                      "bounds": { "x": 0.1, "y": 0.2, "width": 0.4, "height": 0.5 }
+                    }
+                  ]
+                }
+              ]
+            }
+            """,
+            1,
+            Options);
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(Assert.Single(result.Overrides![1]).SourceId);
     }
 
     [Theory]
@@ -80,5 +108,36 @@ public sealed class CompositeCaptureRegionOverrideParserTests
 
         Assert.False(result.IsSuccess);
         Assert.Contains("at most 2", result.Error, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("too-long")]
+    [InlineData("control-character")]
+    public void Parse_InvalidRegionSourceIds_ReturnARequestBoundaryFailure(string scenario)
+    {
+        var sourceId = scenario == "too-long"
+            ? new string('x', CompositeCaptureRegionOverrideParser.MaxRegionSourceIdLength + 1)
+            : "receipt\u0001one";
+        var json = $$"""
+            {
+              "sources": [
+                {
+                  "sourceIndex": 1,
+                  "regions": [
+                    {
+                      "sourceId": {{System.Text.Json.JsonSerializer.Serialize(sourceId)}},
+                      "bounds": { "x": 0.1, "y": 0.2, "width": 0.4, "height": 0.5 }
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        var result = CompositeCaptureRegionOverrideParser.Parse(json, 1, Options);
+
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.Overrides);
+        Assert.Contains("sourceId", result.Error, StringComparison.Ordinal);
     }
 }
